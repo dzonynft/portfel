@@ -2,1182 +2,1326 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>MacroTerminal v27</title>
-<meta name="viewport" content="width=device-width,initial-scale=0.95">
+<title>MacroTerminal v28</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
 :root{
-  --bg:#05080e;--s1:#080d17;--s2:#0c1420;--s3:#111c2c;--s4:#162438;
-  --b0:rgba(255,255,255,.045);--b1:rgba(255,255,255,.09);--b2:rgba(255,255,255,.16);
-  --G:#00e5a0;--Gd:rgba(0,229,160,.09);--Gg:rgba(0,229,160,.22);
-  --R:#ff4060;--Rd:rgba(255,64,96,.09);
-  --Y:#ffc820;--Yd:rgba(255,200,32,.09);
-  --B:#3db8f5;--Bd:rgba(61,184,245,.09);
-  --V:#a78bfa;--Vd:rgba(167,139,250,.09);
-  --O:#ff8c42;
-  --t0:#f0f6ff;--t1:#7a9fc0;--t2:#3a5a78;--t3:#1a3050;
-  --ff:'Syne',sans-serif;--fm:'JetBrains Mono',monospace;
-  --r:10px;--rl:14px;
+  --bg:#030811;--bg1:#060e1c;--bg2:#0a1628;--bg3:#0e1f38;--bg4:#162645;
+  --br:rgba(255,255,255,.055);--br2:rgba(255,255,255,.10);--br3:rgba(255,255,255,.17);
+  --G:#00e5a8;--Gd:rgba(0,229,168,.09);--Gb:rgba(0,229,168,.22);
+  --R:#ff3355;--Rd:rgba(255,51,85,.09);--Rb:rgba(255,51,85,.22);
+  --Y:#f5c040;--Yd:rgba(245,192,64,.09);
+  --B:#2a9df5;--Bd:rgba(42,157,245,.09);--Bb:rgba(42,157,245,.22);
+  --V:#9b7ef8;--Vd:rgba(155,126,248,.09);
+  --O:#ff7c3e;
+  --t0:#dceeff;--t1:#5a82a8;--t2:#2e4f6e;--t3:#16303f;
+  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:8px;--rl:12px;
 }
-body{background:var(--bg);color:var(--t0);font-family:var(--fm);font-size:12px}
-::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s4);border-radius:99px}
-.app{display:grid;grid-template-rows:50px 28px 42px 1fr;height:100vh;overflow:hidden}
+html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mono);font-size:12px;overflow:hidden;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--bg4)}
 
-/* TOP */
-.top{background:rgba(5,8,14,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--b0);
-  display:flex;align-items:center;gap:12px;padding:0 20px;position:relative;z-index:100}
-.top::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--G) 35%,var(--B) 65%,transparent);opacity:.4}
-.logo{font-family:var(--ff);font-size:15px;font-weight:800;letter-spacing:-.5px;
-  background:linear-gradient(135deg,var(--t0),#5a8ab0);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.logo-v{font-size:9px;font-weight:500;padding:1px 6px;border-radius:99px;
-  background:var(--Gd);color:var(--G);border:1px solid var(--Gg);margin-left:6px}
-.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:all .3s}
-.s-ok{background:var(--G);box-shadow:0 0 8px var(--Gg)}
-.s-ld{background:var(--Y);animation:blink 1s ease infinite}
+/* ── APP SHELL ── */
+.app{display:grid;grid-template-rows:52px 28px 42px 1fr;height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{background:rgba(3,8,17,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:14px;padding:0 22px;position:relative;z-index:200}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--G) 30%,var(--B) 70%,transparent);opacity:.4}
+.logo{font-family:var(--sans);font-weight:700;font-size:13px;letter-spacing:.3px;color:var(--t0)}
+.logo-tag{font-size:9px;color:var(--t2);letter-spacing:1px;font-weight:500;margin-left:4px}
+.verdict-pill{padding:4px 16px;border-radius:4px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid;transition:all .4s;flex-shrink:0}
+.topbar-score{display:flex;align-items:center;gap:5px;font-family:var(--sans)}
+.ts-num{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;transition:color .4s}
+.ts-denom{font-size:10px;color:var(--t2)}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.s-ok{background:var(--G);box-shadow:0 0 7px var(--G)}
+.s-ld{background:var(--Y);animation:blink 1s infinite}
 .s-er{background:var(--R)}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-#st{font-size:10px;color:var(--t1);max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+#smsg{font-size:10px;color:var(--t1);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr{margin-left:auto;display:flex;align-items:center;gap:10px}
 #clk{font-size:10px;color:var(--t2);font-variant-numeric:tabular-nums}
-.btn{font-size:10px;font-weight:600;padding:5px 12px;border-radius:var(--r);border:1px solid var(--b1);background:var(--b0);color:var(--t1);cursor:pointer;font-family:var(--fm);transition:all .15s}
-.btn:hover{border-color:var(--b2);color:var(--t0)}
+.btn{font-family:var(--mono);font-size:9.5px;font-weight:600;padding:5px 12px;border-radius:4px;border:1px solid var(--br2);background:transparent;color:var(--t1);cursor:pointer;transition:all .15s;letter-spacing:.4px}
+.btn:hover{border-color:var(--br3);color:var(--t0);background:var(--bg3)}
 
-/* TICKER */
-.ticker{background:var(--s1);border-bottom:1px solid var(--b0);overflow:hidden;display:flex;align-items:center}
-.tt{display:flex;white-space:nowrap;animation:scr 110s linear infinite}
+/* ── TICKER ── */
+.ticker{background:var(--bg1);border-bottom:1px solid var(--br);overflow:hidden;display:flex;align-items:center}
+.tt{display:flex;white-space:nowrap;animation:scrl 130s linear infinite}
 .tt:hover{animation-play-state:paused}
-@keyframes scr{to{transform:translateX(-50%)}}
-.ti{display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--b0);height:28px}
-.tn{font-size:9.5px;color:var(--t2)}.tp{font-size:11px;font-weight:500;font-variant-numeric:tabular-nums}.tc{font-size:9.5px}
+@keyframes scrl{to{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:7px;padding:0 18px;border-right:1px solid var(--br);height:28px}
+.tn{font-size:9px;color:var(--t2);letter-spacing:.5px}.tp{font-size:11px;font-weight:500;font-variant-numeric:tabular-nums}.tc{font-size:9px}
 .up{color:var(--G)}.dn{color:var(--R)}.neu{color:var(--t1)}
 
-/* TABS */
-.tabs{background:var(--s1);border-bottom:1px solid var(--b0);display:flex;align-items:stretch;padding:0 8px}
-.tab{font-family:var(--ff);font-size:11px;font-weight:600;padding:0 14px;color:var(--t2);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
-.tab:hover{color:var(--t0)}.tab.on{color:var(--t0);border-bottom-color:var(--G)}
-.te{flex:1;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
-.lu{font-size:9px;color:var(--t3)}
-.panel{display:none;height:100%;overflow-y:auto;overflow-x:hidden}.panel.on{display:block}
-.wrap{padding:16px 20px 24px}
-.sl{font-family:var(--ff);font-size:9.5px;font-weight:700;letter-spacing:1.2px;color:var(--t2);text-transform:uppercase;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
-.sl:first-child{margin-top:0}.sl::after{content:'';flex:1;height:1px;background:var(--b0)}
-@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-.fu{animation:fu .3s ease both}
-.ldg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px;gap:12px}
-.spin{width:26px;height:26px;border-radius:50%;border:2px solid var(--b0);border-top-color:var(--G);animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
+/* ── TABS ── */
+.tabs{background:var(--bg1);border-bottom:1px solid var(--br);display:flex;align-items:stretch;padding:0 8px}
+.tab{font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.3px;padding:0 15px;color:var(--t2);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--t1)}.tab.on{color:var(--t0);border-bottom-color:var(--G)}
+.tspc{flex:1}.lupd{font-size:9px;color:var(--t3);display:flex;align-items:center;padding-right:8px}
 
-/* ═══ DECISION ═══ */
-/* Big signal hero */
-.hero{border-radius:var(--rl);border:1px solid var(--b1);padding:26px 28px 22px;margin-bottom:14px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start}
-.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 5% 50%,var(--vhg,rgba(0,229,160,.07)),transparent 60%);pointer-events:none}
-.hero-left{position:relative}
-.h-eye{font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:2px;color:var(--t2);text-transform:uppercase;margin-bottom:6px}
-.h-word{font-family:var(--ff);font-size:48px;font-weight:800;line-height:1;letter-spacing:-2px;margin-bottom:8px;transition:color .5s}
-.h-sbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.h-track{width:180px;height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
-.h-fill{height:5px;border-radius:99px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
-.h-score{font-family:var(--ff);font-size:13px;font-weight:700}
-.h-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
-.chip{font-family:var(--ff);font-size:9px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid;white-space:nowrap;transition:all .3s}
-.cG{background:var(--Gd);color:var(--G);border-color:var(--Gg)}
-.cR{background:var(--Rd);color:var(--R);border-color:rgba(255,64,96,.25)}
-.cY{background:var(--Yd);color:var(--Y);border-color:rgba(255,200,32,.25)}
-.cB{background:var(--Bd);color:var(--B);border-color:rgba(61,184,245,.25)}
-.cV{background:var(--Vd);color:var(--V);border-color:rgba(167,139,250,.25)}
-.h-lists{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10.5px;line-height:1.8}
-.h-note{margin-top:12px;padding-top:12px;border-top:1px solid var(--b0);font-size:10.5px;color:var(--t1);line-height:1.7}
-/* Ring */
-.hero-right{display:flex;flex-direction:column;gap:10px;min-width:200px}
-.ring-box{background:var(--b0);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px}
+/* ── PANELS ── */
+.panel{display:none;height:100%;overflow-y:auto;overflow-x:hidden}.panel.on{display:block}
+.wrap{padding:16px 22px 28px}
+.sec{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--t2);text-transform:uppercase;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.sec:first-child{margin-top:0}.sec::after{content:'';flex:1;height:1px;background:var(--br)}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);transition:border-color .2s}
+.card:hover{border-color:var(--br2)}
+.card.G{border-left:2px solid var(--G)}.card.R{border-left:2px solid var(--R)}.card.Y{border-left:2px solid var(--Y)}.card.B{border-left:2px solid var(--B)}
+.cp{padding:14px 16px}
+
+/* ── KPI ── */
+.kpi{padding:14px 16px}
+.kl{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1.2px;color:var(--t2);text-transform:uppercase;margin-bottom:5px}
+.kv{font-size:28px;font-weight:600;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums;font-family:var(--sans)}
+.ks{font-size:10px;color:var(--t1)}
+.kbadge{display:inline-block;margin-top:6px;font-family:var(--sans);font-size:8.5px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.4px}
+
+/* ── HERO DECISION ── */
+.hero{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--rl);padding:22px 26px;margin-bottom:14px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 90% at 0% 50%,var(--vhg,rgba(0,229,168,.07)),transparent 60%);pointer-events:none}
+.h-eye{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--t2);text-transform:uppercase;margin-bottom:8px}
+.h-word{font-family:var(--sans);font-size:46px;font-weight:700;line-height:1;letter-spacing:-1.5px;margin-bottom:10px;transition:color .5s}
+.h-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.h-track{width:180px;height:4px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+.h-fill{height:4px;border-radius:99px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.h-score{font-family:var(--sans);font-size:13px;font-weight:700}
+.h-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.chip{font-family:var(--sans);font-size:9px;font-weight:700;padding:3px 9px;border-radius:3px;border:1px solid;white-space:nowrap;letter-spacing:.3px}
+.cG{background:var(--Gd);color:var(--G);border-color:var(--Gb)}.cR{background:var(--Rd);color:var(--R);border-color:var(--Rb)}
+.cY{background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)}.cB{background:var(--Bd);color:var(--B);border-color:var(--Bb)}
+.cV{background:var(--Vd);color:var(--V);border-color:rgba(155,126,248,.28)}
+.h-rationale{font-size:11px;color:var(--t1);line-height:1.8;margin-top:12px;padding-top:12px;border-top:1px solid var(--br)}
+.h-right{display:flex;flex-direction:column;gap:10px;position:relative}
+/* ring */
+.ring-box{background:var(--bg3);border:1px solid var(--br2);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px}
 .ring-wrap{position:relative;flex-shrink:0}
 .ring-wrap svg{display:block;transform:rotate(-90deg)}
-.ring-lbl{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--ff);font-size:17px;font-weight:800;text-align:center}
-.ring-info{flex:1}
-.ri-v{font-family:var(--ff);font-size:20px;font-weight:700;line-height:1;margin-bottom:2px}
-.ri-l{font-size:9px;color:var(--t2);letter-spacing:.5px;font-family:var(--ff);font-weight:700;text-transform:uppercase;margin-bottom:5px}
-.ri-sub{font-size:9.5px;color:var(--t1);line-height:1.65}
-.dm-box{background:var(--b0);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px}
-.dm-l{font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:5px}
-.dm-v{font-family:var(--ff);font-size:15px;font-weight:700;margin-bottom:4px}
+.ring-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--sans);font-size:16px;font-weight:700;text-align:center}
+.ri-v{font-family:var(--sans);font-size:20px;font-weight:700;line-height:1;margin-bottom:2px}
+.ri-l{font-size:8.5px;color:var(--t2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px}
+.ri-s{font-size:9.5px;color:var(--t1);line-height:1.65}
+/* score dims */
+.sdims{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+.sdim{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 11px;text-align:center}
+.sdim-l{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.5px;color:var(--t2);text-transform:uppercase;margin-bottom:5px}
+.sdim-v{font-family:var(--sans);font-size:20px;font-weight:700;line-height:1;margin-bottom:2px}
+.sdim-p{font-size:10px;color:var(--t1)}
+.sdim-bar{height:3px;border-radius:99px;background:rgba(255,255,255,.06);margin-top:6px;overflow:hidden}
+.sdim-f{height:3px;border-radius:99px}
+/* dm */
+.dmcard{background:var(--bg3);border:1px solid var(--br2);border-radius:var(--r);padding:11px 13px}
+.dm-lbl{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:4px}
+.dm-sig{font-family:var(--sans);font-size:14px;font-weight:700;margin-bottom:5px}
 .dm-n{font-size:9.5px;color:var(--t1);line-height:1.7}
 
-/* Gauges */
-.gbox{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:14px}
-.gauge{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:13px 15px;transition:border-color .2s}
-.gauge:hover{border-color:var(--b1)}
-.g-lbl{font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:7px}
-.g-num{font-family:var(--ff);font-size:36px;font-weight:700;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums}
-.g-st{font-family:var(--ff);font-size:9.5px;font-weight:700;letter-spacing:.5px;margin-bottom:9px}
-.g-bar{position:relative;height:4px;background:rgba(255,255,255,.06);border-radius:99px;margin-bottom:3px}
-.g-fill{position:absolute;left:0;top:0;height:4px;border-radius:99px;background:linear-gradient(90deg,var(--R),var(--Y),var(--G));transition:width 1s cubic-bezier(.4,0,.2,1)}
-.g-pin{position:absolute;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:white;border:2px solid var(--bg);box-shadow:0 0 0 2px rgba(255,255,255,.18);transition:left 1s cubic-bezier(.4,0,.2,1)}
-.g-tks{display:flex;justify-content:space-between;font-size:8px;color:var(--t3);margin-top:2px}
-.g-ctx{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:8px}
-.gct{background:var(--s2);border-radius:5px;padding:5px 6px;text-align:center}
-.gct-l{font-size:8px;color:var(--t2);margin-bottom:1px}.gct-v{font-size:12px;font-weight:600}
-.g-exp{font-size:9.5px;color:var(--t1);line-height:1.65;margin-top:9px;padding-top:9px;border-top:1px solid var(--b0)}
-.spark-row{display:flex;align-items:flex-end;gap:2px;height:34px}
-.sb{min-width:4px;border-radius:2px 2px 0 0;background:var(--s4);flex:1}
-.sb.sG{background:var(--G)}.sb.sR{background:var(--R)}.sb.sY{background:var(--Y)}
+/* ── GAUGE ── */
+.gc{padding:14px 16px}
+.gc-top{display:flex;justify-content:space-between;align-items:start;margin-bottom:6px}
+.gc-l{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase}
+.gc-src{font-size:8px;color:var(--t3)}
+.gc-v{font-size:30px;font-weight:600;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums;font-family:var(--sans)}
+.gc-st{font-family:var(--sans);font-size:9.5px;font-weight:700;letter-spacing:.3px;margin-bottom:9px}
+.gc-track{position:relative;height:4px;background:rgba(255,255,255,.06);border-radius:99px;margin-bottom:3px}
+.gc-fill{position:absolute;left:0;top:0;height:4px;border-radius:99px;background:linear-gradient(90deg,var(--R),var(--Y),var(--G));transition:width .9s}
+.gc-pin{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--bg);box-shadow:0 0 0 1px rgba(255,255,255,.2);transition:left .9s}
+.gc-ticks{display:flex;justify-content:space-between;font-size:8px;color:var(--t3);margin-top:2px}
+.gc-ctx{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.gcc{background:var(--bg3);border-radius:4px;padding:5px 6px;text-align:center}
+.gcc-l{font-size:8px;color:var(--t2);margin-bottom:1px}.gcc-v{font-size:11.5px;font-weight:600;font-family:var(--sans)}
+.gc-exp{font-size:9.5px;color:var(--t1);line-height:1.65;margin-top:9px;padding-top:9px;border-top:1px solid var(--br)}
+/* returns table */
+.fg-rets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.fgr{background:var(--bg3);border-radius:4px;padding:7px 9px;text-align:center}
+.fgr-l{font-size:8px;color:var(--t2);margin-bottom:2px}
+.fgr-v{font-family:var(--sans);font-size:14px;font-weight:700}
 
-/* Timeline */
-.tl{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
-.tlc{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:13px;
-  position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
-.tlc:hover{transform:translateY(-2px);border-color:var(--b1)}
-.tlc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
-.tl-era{font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
-.tl-title{font-family:var(--ff);font-size:12.5px;font-weight:700;margin-bottom:9px}
-.tl-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--b0)}
-.tl-row:last-of-type{border:none}
-.tl-k{font-size:9px;color:var(--t2)}.tl-v{font-size:10px;font-weight:600}
-.tl-res{font-size:9px;color:var(--t1);line-height:1.6;margin-top:9px;padding-top:7px;border-top:1px solid var(--b0)}
-.tl-badge{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:99px;font-size:8.5px;font-weight:700;letter-spacing:.5px;font-family:var(--ff)}
+/* ── SPARKLINE ── */
+.spark{display:flex;align-items:flex-end;gap:2px;height:34px}
+.sb{flex:1;min-width:4px;border-radius:2px 2px 0 0;background:var(--bg4)}
+.sbG{background:var(--G)}.sbR{background:var(--R)}.sbY{background:var(--Y)}
 
-/* Signals */
-.sigs-wrap{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);overflow:hidden}
-.sg-grp{padding:5px 13px;background:rgba(255,255,255,.02);font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;border-bottom:1px solid var(--b0)}
-.sg-row{display:grid;grid-template-columns:1fr 85px 105px 1fr;align-items:center;padding:7px 13px;border-bottom:1px solid var(--b0);transition:background .12s}
-.sg-row:hover{background:rgba(255,255,255,.02)}.sg-row:last-child{border-bottom:none}
-.sg-row.hd{background:var(--s2);font-family:var(--ff);font-size:9px;font-weight:700;color:var(--t2);letter-spacing:.5px}
-.sg-n{font-size:11px;color:var(--t0)}.sg-v{font-size:12px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
-.spill{font-family:var(--ff);font-size:9px;font-weight:700;padding:2px 9px;border-radius:99px;text-align:center;display:inline-block}
-.spG{background:var(--Gd);color:var(--G);border:1px solid var(--Gg)}
-.spR{background:var(--Rd);color:var(--R);border:1px solid rgba(255,64,96,.25)}
-.spY{background:var(--Yd);color:var(--Y);border:1px solid rgba(255,200,32,.25)}
-.sg-d{font-size:10px;color:var(--t2);padding-left:10px}
+/* ── CRISIS CARDS ── */
+.cg4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.cc{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;cursor:default}
+.cc:hover{transform:translateY(-2px);border-color:var(--br2)}
+.cc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.cc-era{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
+.cc-title{font-family:var(--sans);font-size:12px;font-weight:700;margin-bottom:8px}
+.cc-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--br)}.cc-row:last-of-type{border:none}
+.cc-k{font-size:8.5px;color:var(--t2)}.cc-v{font-size:9.5px;font-weight:600}
+.cc-res{font-size:9px;color:var(--t1);line-height:1.6;margin-top:8px;padding-top:7px;border-top:1px solid var(--br)}
+.cc-badge{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:.5px;font-family:var(--sans)}
 
-/* ═══ INDICATORS ═══ */
-.igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
-.ic{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:13px 14px;transition:border-color .2s,transform .15s}
-.ic:hover{border-color:var(--b1);transform:translateY(-1px)}
-.ic.G{border-left:3px solid var(--G)}.ic.R{border-left:3px solid var(--R)}.ic.Y{border-left:3px solid var(--Y)}
-.ic-h{display:flex;justify-content:space-between;align-items:start;margin-bottom:5px}
-.ic-t{font-family:var(--ff);font-size:10px;font-weight:700;color:var(--t1);line-height:1.3}
-.ic-src{font-size:8px;color:var(--t3);text-align:right}
-.ic-v{font-family:var(--ff);font-size:24px;font-weight:700;line-height:1;margin-bottom:2px}
-.ic-d{font-size:9px;color:var(--t2);margin-bottom:6px}
-.ic-badge{font-family:var(--ff);font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:3px;margin-bottom:7px}
-.ic-desc{font-size:9.5px;color:var(--t2);line-height:1.6;margin-top:6px;padding-top:6px;border-top:1px solid var(--b0)}
-.ic-io{margin-top:5px;font-size:9.5px;line-height:1.7}
+/* ── SIGNAL TABLE ── */
+.sigtbl{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.sg-grp{padding:5px 13px;background:rgba(255,255,255,.02);font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;border-bottom:1px solid var(--br)}
+.sg-row{display:grid;grid-template-columns:1fr 80px 105px 1fr;align-items:center;padding:7px 13px;border-bottom:1px solid var(--br);transition:background .12s}
+.sg-row:hover{background:rgba(255,255,255,.015)}.sg-row:last-child{border-bottom:none}
+.sg-row.hd{background:var(--bg3);font-family:var(--sans);font-size:8.5px;color:var(--t2);letter-spacing:.5px;font-weight:600}
+.sg-n{font-size:10.5px}.sg-v{font-size:11.5px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+.pill{font-family:var(--sans);font-size:8.5px;font-weight:700;padding:2px 8px;border-radius:3px;text-align:center;display:inline-block;letter-spacing:.3px}
+.pG{background:var(--Gd);color:var(--G);border:1px solid var(--Gb)}.pR{background:var(--Rd);color:var(--R);border:1px solid var(--Rb)}.pY{background:var(--Yd);color:var(--Y);border:1px solid rgba(245,192,64,.3)}
+.sg-d{font-size:9.5px;color:var(--t2);padding-left:10px}
 
-/* Links */
-.lgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
-.lnk{display:block;padding:9px 11px;text-align:center;background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);font-family:var(--ff);font-size:10px;font-weight:700;color:var(--B);text-decoration:none;transition:all .15s}
-.lnk:hover{border-color:rgba(61,184,245,.3);background:var(--Bd);transform:translateY(-1px)}
+/* ── CHART BOX ── */
+.chartbox{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.chdr{padding:10px 14px 0;display:flex;justify-content:space-between;align-items:center}
+.ch-t{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t0)}
+.ch-s{font-size:9px;color:var(--t2)}
+.chbody{padding:4px 4px 0}
 
-/* ═══ COT ═══ */
-.cot-actors{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
-.actor{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:13px}
-.ac-n{font-family:var(--ff);font-size:12px;font-weight:700;margin-bottom:3px}
-.ac-sub{font-size:9px;color:var(--t2);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
-.ac-d{font-size:10.5px;color:var(--t1);line-height:1.65}
-.ac-rule{font-size:10px;font-weight:600;margin-top:7px;padding:5px 8px;border-radius:6px;line-height:1.4}
-.cotm{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:14px}
-.mc{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:13px}
-.mc-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.mc-n{font-family:var(--ff);font-size:12.5px;font-weight:700}.mc-c{font-size:9px;color:var(--t3)}
-.mc-pr{display:grid;grid-template-columns:95px 1fr 50px;align-items:center;gap:7px;margin-bottom:6px}
-.mc-pl{font-size:9.5px;color:var(--t1);font-weight:600}
-.mc-bw{position:relative;height:6px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.mc-bf{position:absolute;top:0;height:6px;border-radius:99px;transition:width .6s}
-.mc-pv{font-size:9.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-.mc-sig{font-family:var(--ff);font-size:10px;font-weight:700;margin-top:9px;padding:6px 9px;border-radius:6px;line-height:1.5}
-.mc-note{font-size:9.5px;color:var(--t2);line-height:1.6;margin-top:6px}
-.cot-leg{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
-.cl-c{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:12px}
-.cl-t{font-family:var(--ff);font-size:11px;font-weight:700;margin-bottom:5px}
-.cl-d{font-size:9.5px;color:var(--t2);line-height:1.65}
-.cot-links{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
-.cotlnk{display:block;padding:13px;background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);text-decoration:none;transition:all .2s}
-.cotlnk:hover{border-color:var(--b1);transform:translateY(-2px)}
-.cotlnk-ico{font-size:20px;margin-bottom:7px}
-.cotlnk-t{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--t0);margin-bottom:3px}
-.cotlnk-d{font-size:9.5px;color:var(--t2);line-height:1.6}.cotlnk-u{font-size:9px;color:var(--B);margin-top:4px}
+/* ── INDICATORS ── */
+.igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.ic{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;transition:border-color .2s,transform .15s}
+.ic:hover{border-color:var(--br2);transform:translateY(-1px)}
+.ic.G{border-left:2px solid var(--G)}.ic.R{border-left:2px solid var(--R)}.ic.Y{border-left:2px solid var(--Y)}
+.ic-h{display:flex;justify-content:space-between;margin-bottom:4px}
+.ic-t{font-family:var(--sans);font-size:9.5px;font-weight:600;color:var(--t1)}.ic-s{font-size:8px;color:var(--t3)}
+.ic-v{font-size:22px;font-weight:600;line-height:1;margin-bottom:2px;font-family:var(--sans)}
+.ic-d{font-size:8.5px;color:var(--t2);margin-bottom:5px}
+.ic-badge{font-family:var(--sans);font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:3px;display:inline-block;margin-bottom:6px}
+.ic-desc{font-size:9.5px;color:var(--t2);line-height:1.6;border-top:1px solid var(--br);padding-top:6px;margin-top:4px}
+.ic-io{font-size:9.5px;line-height:1.7;margin-top:4px}
 
-/* ═══ LIQUIDITY ═══ */
-.liq-intro{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:13px 16px;margin-bottom:14px}
-.liq-layers{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
-.ll{padding:13px 16px;border-bottom:1px solid var(--b0);display:grid;grid-template-columns:80px 1fr 170px;gap:11px;align-items:start}
+/* ── LINKS ── */
+.lgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px}
+.lnk{display:block;padding:8px 10px;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);font-family:var(--sans);font-size:9.5px;font-weight:600;color:var(--B);text-decoration:none;transition:all .15s}
+.lnk:hover{border-color:var(--Bb);background:var(--Bd);transform:translateY(-1px)}
+
+/* ── LIQUIDITY LAYERS ── */
+.llayers{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.ll{padding:12px 15px;border-bottom:1px solid var(--br);display:grid;grid-template-columns:72px 1fr 165px;gap:11px;align-items:start}
 .ll:last-child{border-bottom:none}
-.ll-tag{font-family:var(--ff);font-size:18px;font-weight:800;display:flex;flex-direction:column}
-.ll-sub{font-size:8.5px;color:var(--t2);font-weight:600;letter-spacing:.5px;margin-top:2px}
-.ll-def{font-size:10.5px;color:var(--t1);line-height:1.7}
-.ll-sig{font-size:10px;padding:7px 10px;border-radius:6px;line-height:1.6}
-.liq-cycle{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
-.cyc{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:12px}
-.cyc-n{font-family:var(--ff);font-size:24px;font-weight:800;margin-bottom:3px}
-.cyc-t{font-family:var(--ff);font-size:11px;font-weight:700;margin-bottom:5px}
-.cyc-d{font-size:9.5px;color:var(--t2);line-height:1.65}
-.cyc-a{font-family:var(--ff);font-size:10px;font-weight:700;margin-top:6px;padding:4px 8px;border-radius:5px}
-.liq-flow{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
-.lft{width:100%;border-collapse:collapse;font-size:10.5px}
-.lft th{background:var(--s2);color:var(--t2);padding:7px 11px;text-align:left;font-family:var(--ff);font-size:8.5px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--b0)}
-.lft td{padding:7px 11px;border-bottom:1px solid var(--b0);color:var(--t1)}
-.lft tr:hover td{background:rgba(255,255,255,.02)}.lft tr:last-child td{border-bottom:none}
-.liq-src{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
-.lsrc{display:block;padding:12px;background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);text-decoration:none;transition:all .2s}
-.lsrc:hover{border-color:var(--b1);transform:translateY(-2px)}
-.lsrc-ico{font-size:18px;margin-bottom:6px}
-.lsrc-t{font-family:var(--ff);font-size:11.5px;font-weight:700;color:var(--t0);margin-bottom:3px}
-.lsrc-d{font-size:9.5px;color:var(--t2);line-height:1.6}.lsrc-u{font-size:9px;color:var(--B);margin-top:4px}
+.ll-tag{font-family:var(--sans);font-size:18px;font-weight:700}.ll-sub{font-size:8px;color:var(--t2);letter-spacing:.5px;margin-top:2px;font-weight:600}
+.ll-def{font-size:10px;color:var(--t1);line-height:1.7}
+.ll-sig{font-size:9.5px;padding:6px 9px;border-radius:4px;line-height:1.6}
+.liqcyc{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.lyc{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px}
+.lyc-n{font-family:var(--sans);font-size:20px;font-weight:700;margin-bottom:3px}
+.lyc-t{font-family:var(--sans);font-size:10.5px;font-weight:700;margin-bottom:4px}
+.lyc-d{font-size:9.5px;color:var(--t2);line-height:1.65}
+.lyc-a{font-family:var(--sans);font-size:9.5px;font-weight:700;margin-top:6px;padding:3px 8px;border-radius:3px}
 
-/* ═══ PORTFOLIO ═══ */
-.dmb{border-radius:var(--rl);padding:13px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
-.dmb.bull{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.15)}
-.dmb.bear{background:rgba(255,200,32,.05);border:1px solid rgba(255,200,32,.15)}
-.dm-l2{font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:3px}
-.dm-s{font-family:var(--ff);font-size:19px;font-weight:800}
-.dm-n{font-size:10.5px;color:var(--t1);line-height:1.7}
-.dm-note{font-size:9.5px;color:var(--t2)}
-.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px}
-.pc{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:11px 9px;text-align:center;transition:all .2s}
-.pc:hover{transform:translateY(-2px);border-color:var(--b1)}
-.pc-id{font-family:var(--ff);font-size:16px;font-weight:800;margin-bottom:2px}
-.pc-nm{font-size:9px;color:var(--t1);margin-bottom:6px}
-.pc-b{font-family:var(--ff);font-size:12px;font-weight:700;margin-bottom:4px}
-.pc-tp{font-size:8px;font-weight:700;padding:2px 6px;border-radius:99px;display:inline-block;margin-bottom:6px}
-.pc-et{font-size:8.5px;color:var(--t2);line-height:1.6;margin-bottom:6px}
-.pc-dm{font-size:10px;font-weight:700}.pc-sp{font-size:8.5px;color:var(--Y);margin-top:3px}
-.sw{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
-.stbl{width:100%;border-collapse:collapse;font-size:11px}
-.stbl th{background:var(--s2);color:var(--t2);padding:7px 11px;text-align:left;font-family:var(--ff);font-size:8.5px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--b0)}
-.stbl td{padding:6px 11px;border-bottom:1px solid var(--b0);color:var(--t1)}
-.stbl tr:hover td{background:rgba(255,255,255,.02)}.stbl tr:last-child td{border-bottom:none}
-.ptag{padding:2px 7px;border-radius:99px;font-weight:700;font-size:9px}
-.rc{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:11px 14px;font-size:10.5px;color:var(--t2);line-height:1.9;margin-bottom:12px}
-.rc b{color:var(--t0)}
-.ew{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);overflow:hidden}
-.etbl{width:100%;border-collapse:collapse;font-size:11px}
-.etbl th{background:var(--s2);color:var(--t2);padding:7px 11px;text-align:left;font-family:var(--ff);font-size:8.5px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--b0)}
-.etbl td{padding:6px 11px;border-bottom:1px solid var(--b0);color:var(--t1)}
-.etbl tr:hover td{background:rgba(255,255,255,.015)}.etbl tr:last-child td{border-bottom:none}
-.rb{display:flex;gap:2px;align-items:center}
-.rs{width:7px;height:7px;border-radius:2px;background:var(--s4)}
+/* ── COT ── */
+.cot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.ca{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:13px 14px}
+.ca-n{font-family:var(--sans);font-size:11.5px;font-weight:700;margin-bottom:2px}
+.ca-sub{font-size:8px;color:var(--t2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;font-weight:600}
+.ca-d{font-size:10px;color:var(--t1);line-height:1.65}
+.ca-rule{font-size:9.5px;font-weight:600;margin-top:7px;padding:5px 8px;border-radius:4px;line-height:1.4}
+.cotm{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.cm{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:13px 14px}
+.cm-h{display:flex;justify-content:space-between;margin-bottom:9px}
+.cm-n{font-family:var(--sans);font-size:12px;font-weight:700}.cm-c{font-size:8.5px;color:var(--t3)}
+.cm-bar-row{display:grid;grid-template-columns:92px 1fr 46px;align-items:center;gap:6px;margin-bottom:6px}
+.cm-bl{font-size:9px;color:var(--t1);font-weight:600}
+.cm-track{height:5px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
+.cm-f{height:5px;border-radius:99px}
+.cm-bv{font-size:9px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.cm-sig{font-family:var(--sans);font-size:9.5px;font-weight:700;margin-top:8px;padding:5px 8px;border-radius:4px;line-height:1.5}
+.cm-note{font-size:9.5px;color:var(--t2);line-height:1.6;margin-top:6px}
 
-/* ═══ DATA ═══ */
-.dstats{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
-.ds{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);padding:14px 16px}
-.ds-l{font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:7px}
-.ds-n{font-family:var(--ff);font-size:30px;font-weight:700;line-height:1;margin-bottom:2px}
-.ds-s{font-size:10px;color:var(--t2)}
-.srct{background:var(--b0);border:1px solid var(--b0);border-radius:var(--r);overflow:hidden;margin-bottom:13px}
-.stx{width:100%;border-collapse:collapse;font-size:10.5px}
-.stx td{padding:7px 11px;border-bottom:1px solid var(--b0);color:var(--t1)}
-.stx tr:hover td{background:rgba(255,255,255,.015)}.stx tr:last-child td{border-bottom:none}
-.log{background:var(--s1);border:1px solid var(--b0);border-radius:var(--r);padding:11px 13px;font-size:10px;line-height:1.9;max-height:340px;overflow-y:auto}
+/* ── PORTFOLIO ── */
+.dmbar{border-radius:var(--r);padding:12px 15px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.dmbar.bull{background:rgba(0,229,168,.05);border:1px solid rgba(0,229,168,.15)}
+.dmbar.bear{background:rgba(245,192,64,.05);border:1px solid rgba(245,192,64,.15)}
+.dml{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:3px}
+.dms{font-family:var(--sans);font-size:18px;font-weight:700}
+.dmn{font-size:10px;color:var(--t1);line-height:1.7}
+.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:12px}
+.pc{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 9px;text-align:center;transition:all .2s}
+.pc:hover{transform:translateY(-2px);border-color:var(--br2)}
+.pc-id{font-family:var(--sans);font-size:15px;font-weight:700;margin-bottom:2px}
+.pc-nm{font-size:8.5px;color:var(--t1);margin-bottom:5px}
+.pc-b{font-family:var(--sans);font-size:11.5px;font-weight:700;margin-bottom:4px}
+.pc-tp{font-size:7.5px;font-weight:700;padding:1px 6px;border-radius:2px;display:inline-block;margin-bottom:5px}
+.pc-et{font-size:8px;color:var(--t2);line-height:1.6;margin-bottom:5px}
+.pc-dm{font-size:9.5px;font-weight:700}
+.tblwrap{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.stbl{width:100%;border-collapse:collapse;font-size:10.5px}
+.stbl th{background:var(--bg3);color:var(--t2);padding:6px 11px;text-align:left;font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--br)}
+.stbl td{padding:6px 11px;border-bottom:1px solid var(--br);color:var(--t1)}
+.stbl tr:hover td{background:rgba(255,255,255,.015)}.stbl tr:last-child td{border-bottom:none}
+.ptag{padding:1px 6px;border-radius:2px;font-weight:700;font-size:8.5px}
+.rcbox{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 13px;font-size:10px;color:var(--t2);line-height:1.9;margin-bottom:12px}
+.rcbox b{color:var(--t0)}
+.rbar{display:flex;gap:2px;align-items:center}
+.rs{width:6px;height:6px;border-radius:1px;background:var(--bg4)}
+
+/* ── JOURNAL ── */
+.jtop{display:flex;gap:10px;margin-bottom:12px;align-items:start}
+.jtop textarea{flex:1;background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);color:var(--t0);font-family:var(--mono);font-size:11px;padding:10px 12px;resize:vertical;min-height:78px;outline:none;transition:border-color .2s}
+.jtop textarea:focus{border-color:var(--br2)}.jtop textarea::placeholder{color:var(--t3)}
+.jmeta{display:flex;flex-direction:column;gap:7px;min-width:160px}
+.jsel{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);color:var(--t1);font-family:var(--mono);font-size:10px;padding:5px 8px;outline:none;cursor:pointer}
+.jbtn{font-family:var(--sans);font-size:10px;font-weight:700;padding:7px 14px;border-radius:4px;border:1px solid var(--Gb);background:var(--Gd);color:var(--G);cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.jbtn:hover{background:rgba(0,229,168,.16)}
+.jlist{display:flex;flex-direction:column;gap:8px}
+.je{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px}
+.je-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.je-dt{font-size:9px;color:var(--t2);font-variant-numeric:tabular-nums}
+.je-tag{font-family:var(--sans);font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:2px}
+.je-body{font-size:11px;color:var(--t1);line-height:1.7}
+.je-score{font-size:10px;color:var(--t2);margin-top:5px}
+.jdel{font-size:9px;background:transparent;border:none;color:var(--t3);cursor:pointer;padding:2px 5px;transition:color .15s}
+.jdel:hover{color:var(--R)}
+
+/* ── SOURCES ── */
+.src-list{display:flex;flex-direction:column;gap:9px}
+.sri{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr 80px 110px;gap:10px;align-items:center}
+.sri-name{font-family:var(--sans);font-size:11px;font-weight:600;margin-bottom:2px}
+.sri-url{font-size:9px;color:var(--t2);word-break:break-all}
+.sri-desc{font-size:8.5px;color:var(--t3);margin-top:2px}
+.ss{font-family:var(--sans);font-size:8.5px;font-weight:700;padding:3px 8px;border-radius:3px;text-align:center;display:inline-block}
+.ss-live{background:var(--Gd);color:var(--G)}.ss-fail{background:var(--Rd);color:var(--R)}.ss-static{background:var(--Yd);color:var(--Y)}.ss-unused{background:var(--bg4);color:var(--t2)}
+.src-actions{display:flex;flex-direction:column;gap:4px}
+.bts{font-family:var(--mono);font-size:8px;font-weight:600;padding:3px 8px;border-radius:3px;border:1px solid var(--br2);background:transparent;color:var(--t1);cursor:pointer;transition:all .12s;letter-spacing:.3px}
+.bts:hover{color:var(--t0);background:var(--bg3)}
+.cform{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r);padding:14px 16px;margin-top:12px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.ff{display:flex;flex-direction:column;gap:4px}
+.ff label{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:.5px;color:var(--t2);text-transform:uppercase}
+.ff input,.ff select{background:var(--bg3);border:1px solid var(--br);border-radius:4px;color:var(--t0);font-family:var(--mono);font-size:10.5px;padding:6px 9px;outline:none;transition:border-color .2s}
+.ff input:focus,.ff select:focus{border-color:var(--br2)}
+.tres{margin-top:8px;font-size:10px;padding:7px 10px;border-radius:4px;display:none}
+.tok{background:var(--Gd);color:var(--G)}.tfail{background:var(--Rd);color:var(--R)}
+
+/* ── DATA PANEL ── */
+.dstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.ds{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:13px 15px}
+.ds-l{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:6px}
+.ds-n{font-family:var(--sans);font-size:26px;font-weight:700;line-height:1;margin-bottom:2px}
+.ds-s{font-size:9.5px;color:var(--t2)}
+.logbox{background:var(--bg1);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px;font-size:9.5px;line-height:1.9;max-height:320px;overflow-y:auto}
 .lr{display:flex;gap:8px;padding:1px 0;border-bottom:1px solid rgba(255,255,255,.02)}
-.lts{color:var(--t3);flex-shrink:0;font-size:9px;width:56px;font-variant-numeric:tabular-nums}
-.lic{flex-shrink:0;width:11px;text-align:center}.lmsg{color:var(--t1);font-size:10px}
+.lts{color:var(--t3);flex-shrink:0;font-size:8.5px;width:52px;font-variant-numeric:tabular-nums}
+.lic{flex-shrink:0;width:10px;text-align:center}.lmsg{color:var(--t1);font-size:9.5px}
+
+/* ── ANIM ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .3s ease both}
+.ldg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px;gap:12px}
+.spin{width:24px;height:24px;border-radius:50%;border:2px solid var(--bg3);border-top-color:var(--G);animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.js-plotly-plot .plotly .main-svg{background:transparent!important}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="top">
-    <span class="logo">MacroTerminal</span><span class="logo-v">v27</span>
-    <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="st">Inicjalizacja…</span></div>
-    <div class="tr"><button class="btn" id="btnR">&#8635; Odśwież</button><span id="clk">—</span></div>
+  <div class="topbar">
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v28</span></span>
+    <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
+    <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
+    <div class="tr"><button class="btn" id="bR">↻ ODŚWIEŻ</button><span id="clk">—</span></div>
   </div>
   <div class="ticker"><div class="tt" id="tt"></div></div>
   <div class="tabs">
-    <button class="tab on" data-t="decision">&#127919; Co kupić?</button>
-    <button class="tab" data-t="indicators">&#128202; Wskaźniki</button>
-    <button class="tab" data-t="cot">&#128203; COT</button>
-    <button class="tab" data-t="liquidity">&#128167; Płynność</button>
-    <button class="tab" data-t="portfolio">&#128188; Portfel</button>
-    <button class="tab" data-t="data">&#9881; Dane</button>
-    <div class="te"><span class="lu" id="lu"></span></div>
+    <button class="tab on" data-t="decision">DECYZJA</button>
+    <button class="tab" data-t="sentiment">SENTYMENT</button>
+    <button class="tab" data-t="liquidity">PŁYNNOŚĆ</button>
+    <button class="tab" data-t="cot">PRZEPŁYW KAPITAŁU</button>
+    <button class="tab" data-t="indicators">WSKAŹNIKI</button>
+    <button class="tab" data-t="portfolio">PORTFEL</button>
+    <button class="tab" data-t="journal">DZIENNIK</button>
+    <button class="tab" data-t="sources">ŹRÓDŁA</button>
+    <div class="tspc"></div>
+    <span class="lupd" id="lupd"></span>
   </div>
   <div class="panel on" id="p-decision"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-  <div class="panel" id="p-indicators"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-  <div class="panel" id="p-cot"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-sentiment"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-liquidity"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-cot"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-indicators"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-portfolio"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-  <div class="panel" id="p-data"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-journal"><div class="wrap"></div></div>
+  <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 </div>
-
 <script>
-/* MacroTerminal v27
-   Fixes: r.text() then JSON.parse to handle HTML error responses,
-   VIX fallback chain, FRED retry, no < in template literals */
 'use strict';
-var PROXY = 'https://portfel.dzonyiks.workers.dev';
-var D = {q:{}, f:{}, fg:null, cfg:null, treasury:null, sp12m:null, sp12m_src:'—'};
-var LOG = [];
+/* ═══════════════════════════════════════════════════════════
+   MacroTerminal v28 — Professional Investment Decision System
+   
+   DATA SOURCES:
+   - stooq.com       → price CSV for all assets
+   - FRED St. Louis  → M2, Fed rate, WALCL, SOFRVOL, VIX, etc.
+   - CNN dataviz     → Fear & Greed Index live
+   - alternative.me  → Crypto Fear & Greed 30d
+   - treasury.gov    → US public debt
+   
+   ALL fetches routed via Cloudflare Worker proxy:
+   https://portfel.dzonyiks.workers.dev
+   
+   SCORING: 5 dimensions × (−10…+10) each
+   Sentiment + Liquidity + Positioning + Cycle + Momentum
+   Sum −50…+50 → mapped to verdict & 0-100 display score
+═══════════════════════════════════════════════════════════ */
 
+/* ── SOURCES CONFIG (user-editable at runtime) ── */
+var SRCS = {
+  proxy:    { name:'Cloudflare CORS Proxy', url:'https://portfel.dzonyiks.workers.dev', desc:'Routes all fetches — bypasses browser CORS', status:'live', editable:false },
+  stooq:    { name:'stooq.com', url:'https://stooq.com/q/d/l/', desc:'Daily CSV: indices, FX, commodities, ETF', status:'unknown', editable:false },
+  fred:     { name:'FRED St. Louis Fed', url:'https://fred.stlouisfed.org/graph/fredgraph.csv', desc:'Macro: M2, WALCL, SOFRVOL, VIX, Sahm, HY, RRP…', status:'unknown', editable:false },
+  cnn:      { name:'CNN Fear & Greed', url:'https://production.dataviz.cnn.io/index/fearandgreed/graphdata', desc:'Live F&G score + history', status:'unknown', editable:false },
+  cryptofg: { name:'alternative.me', url:'https://api.alternative.me/fng/?limit=30&format=json', desc:'Crypto Fear & Greed 30d', status:'unknown', editable:false },
+  treasury: { name:'fiscaldata.treasury.gov', url:'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny', desc:'US national debt outstanding', status:'unknown', editable:false },
+  cftc:     { name:'CFTC.gov COT', url:'https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm', desc:'Commitments of Traders — structural reference', status:'static', editable:false },
+  custom1:  { name:'Własne źródło 1', url:'', desc:'Dodaj własny URL do testów', status:'unused', editable:true },
+  custom2:  { name:'Własne źródło 2', url:'', desc:'Dodaj własny URL do testów', status:'unused', editable:true },
+};
+var PROXY = SRCS.proxy.url;
+
+/* ── STATE ── */
+var D = { q:{}, f:{}, fg:null, cfg:null, treasury:null, sp12m:null, sp12m_src:'—' };
+var LOG = [], SC = null;
+var JRN_KEY = 'mt28_journal';
+
+/* ── STATIC FALLBACKS (verified Mar 2026) ── */
+var ST = { fed:3.75, fedDate:'Gru 2025', ism:52.4, ismDate:'Lut 2026', cape:36.2, buffett:196 };
+
+/* ── LOGGING ── */
 function setS(state, msg) {
-  var d = document.getElementById('sd');
-  var t = document.getElementById('st');
-  if (d) d.className = 'sdot ' + (state==='ok'?'s-ok':state==='er'?'s-er':'s-ld');
-  if (t) t.textContent = (msg||'').slice(0,72);
-  LOG.unshift({ts: new Date().toLocaleTimeString('pl-PL'), state:state, msg:msg||''});
-  if (LOG.length > 120) LOG.pop();
+  var d = document.getElementById('sd'), t = document.getElementById('smsg');
+  if (d) d.className = 'sdot '+(state==='ok'?'s-ok':state==='er'?'s-er':'s-ld');
+  if (t) t.textContent = (msg||'').slice(0,68);
+  LOG.unshift({ts:new Date().toLocaleTimeString('pl-PL'), state:state, msg:msg||''});
+  if (LOG.length > 160) LOG.pop();
 }
 setInterval(function(){
   var e = document.getElementById('clk');
   if (e) e.textContent = new Date().toLocaleString('pl-PL',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 },1000);
 
-function fmtN(v,d) {
-  d = d||2;
-  return (v==null||isNaN(v)) ? '&#8212;' : Number(v).toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d});
-}
-function fmtP(p) {
-  if (p==null) return '&#8212;';
-  return (p>=0?'+':'') + Number(p).toFixed(2) + '%';
-}
-function dirCls(p) { return p>0?'up':p<0?'dn':'neu'; }
-function fgCol(s) {
-  if (s==null) return '#7a9fc0';
-  if (s<=24) return '#ff4060';
-  if (s<=44) return '#ff8c42';
-  if (s<=55) return '#ffc820';
-  return '#00e5a0';
-}
-function fgLbl(s) {
-  if (s==null) return '&#8212;';
-  if (s<=24) return 'EXTREME FEAR';
-  if (s<=44) return 'FEAR';
-  if (s<=55) return 'NEUTRAL';
-  if (s<=74) return 'GREED';
-  return 'EXTREME GREED';
-}
-function pctStr(v) {
-  if (v==null) return '&#8212;';
-  return (v>=0?'+':'') + Number(v).toFixed(1) + '%';
-}
+/* ── FORMATTERS ── */
+function fN(v,d){ d=d==null?2:d; return(v==null||isNaN(v))?'—':Number(v).toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function fP(p){ if(p==null)return'—'; return(p>=0?'+':'')+Number(p).toFixed(2)+'%'; }
+function dC(p){ return p>0?'up':p<0?'dn':'neu'; }
+function pS(v){ if(v==null)return'—'; return(v>=0?'+':'')+Number(v).toFixed(1)+'%'; }
+function fgC(s){ if(s==null)return'#5a82a8'; if(s<=24)return'#ff3355'; if(s<=44)return'#ff7c3e'; if(s<=55)return'#f5c040'; return'#00e5a8'; }
+function fgL(s){ if(s==null)return'—'; if(s<=24)return'EXTREME FEAR'; if(s<=44)return'FEAR'; if(s<=55)return'NEUTRAL'; if(s<=74)return'GREED'; return'EXTREME GREED'; }
 
-/* ─── PROXY FETCH (returns response object) ─── */
-async function proxyGet(url, ms) {
+/* ═══════════════════════════════
+   FETCH LAYER
+═══════════════════════════════ */
+async function pGet(url, ms) {
   ms = ms||14000;
-  var full = PROXY + '?url=' + encodeURIComponent(url);
+  var full = PROXY+'?url='+encodeURIComponent(url);
   var ctrl = new AbortController();
   var timer = setTimeout(function(){ ctrl.abort(); }, ms);
   try {
-    var r = await fetch(full, {signal: ctrl.signal});
+    var r = await fetch(full, {signal:ctrl.signal});
     clearTimeout(timer);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (!r.ok) throw new Error('HTTP '+r.status);
     return r;
-  } catch(e) {
-    clearTimeout(timer);
-    throw e;
-  }
+  } catch(e) { clearTimeout(timer); throw e; }
 }
 
-/* ─── STOOQ ─── */
+/* stooq symbols */
 var SQ = {
-  sp500:'^spx', nasdaq:'^ndx', dj:'^dji', gold:'xauusd', silver:'xagusd',
-  oil:'cl.f', natgas:'ng.f', copper:'hg.f',
-  usdpln:'usdpln', eurpln:'eurpln', eurusd:'eurusd', gbpusd:'gbpusd', usdjpy:'usdjpy', dxy:'dxy',
-  us10y:'10usy.b', us2y:'2usy.b',
-  btcusd:'btcusd', ethusd:'ethusd', wig20:'wig20', vix:'^vix'
+  sp500:'^spx',nasdaq:'^ndx',dj:'^dji',
+  gold:'xauusd',silver:'xagusd',oil:'cl.f',natgas:'ng.f',copper:'hg.f',
+  usdpln:'usdpln',eurpln:'eurpln',eurusd:'eurusd',gbpusd:'gbpusd',usdjpy:'usdjpy',dxy:'dxy',
+  us10y:'10usy.b',us2y:'2usy.b',
+  btcusd:'btcusd',ethusd:'ethusd',wig20:'wig20',vix:'^vix',
+  isac:'isac.uk',spy:'spy.us',qqq:'qqq.us'
 };
-
-async function stooqOne(sym) {
-  var url = 'https://stooq.com/q/d/l/?s=' + encodeURIComponent(sym) + '&i=d';
-  var r = await proxyGet(url, 11000);
+async function sOne(sym) {
+  var r = await pGet('https://stooq.com/q/d/l/?s='+encodeURIComponent(sym)+'&i=d', 11000);
   var txt = await r.text();
-  if (!txt || txt.indexOf('No data') !== -1 || txt.trim().length < 20) throw new Error('no data');
-  var lines = txt.trim().split('\n').filter(function(l){ return l && l.indexOf('Date') === -1; });
+  if (!txt || txt.indexOf('No data')!==-1 || txt.trim().length<20) throw new Error('no data');
+  var lines = txt.trim().split('\n').filter(function(l){ return l && l.indexOf('Date')===-1; });
   if (!lines.length) throw new Error('empty');
-  function parseLine(l) {
-    var a = l.split(',');
-    return { close: parseFloat(a[4]), date: a[0] };
-  }
-  var last = parseLine(lines[lines.length-1]);
-  var prev = lines.length > 1 ? parseLine(lines[lines.length-2]) : last;
-  if (isNaN(last.close)) throw new Error('NaN close');
-  return {
-    price: last.close,
-    prev: prev.close,
-    change: prev.close ? (last.close - prev.close) / prev.close * 100 : 0,
-    date: last.date
-  };
+  function pl(l){ var a=l.split(','); return{close:parseFloat(a[4]),date:a[0]}; }
+  var last=pl(lines[lines.length-1]), prev=lines.length>1?pl(lines[lines.length-2]):last;
+  if (isNaN(last.close)) throw new Error('NaN');
+  return{price:last.close,prev:prev.close,change:prev.close?(last.close-prev.close)/prev.close*100:0,date:last.date};
 }
-
 async function fetchStooq() {
-  setS('ld', 'Stooq: pobieranie kursów…');
-  var keys = Object.keys(SQ);
-  var results = await Promise.allSettled(keys.map(function(k){ return stooqOne(SQ[k]); }));
-  D.q = {};
-  var ok = 0, fail = 0;
-  results.forEach(function(r, i) {
-    if (r.status === 'fulfilled') { D.q[keys[i]] = r.value; ok++; }
-    else { fail++; }
-  });
-  setS(ok > 12 ? 'ok' : 'er', 'Stooq: ' + ok + ' OK, ' + fail + ' błędów');
+  setS('ld','Stooq: pobieranie kursów…');
+  var keys=Object.keys(SQ);
+  var res=await Promise.allSettled(keys.map(function(k){ return sOne(SQ[k]); }));
+  D.q={}; var ok=0,fail=0;
+  res.forEach(function(r,i){ if(r.status==='fulfilled'){D.q[keys[i]]=r.value;ok++;}else{fail++;} });
+  SRCS.stooq.status=ok>10?'live':'partial';
+  setS(ok>10?'ok':'er','Stooq: '+ok+' OK, '+fail+' err');
 }
-
-async function fetchSP500_12M() {
+async function fetchSP12M() {
   try {
-    var now = new Date(), ya = new Date(now);
-    ya.setFullYear(ya.getFullYear() - 1);
-    function d8(d) { return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0'); }
-    var url = 'https://stooq.com/q/d/l/?s=%5Espx&d1=' + d8(ya) + '&d2=' + d8(now) + '&i=w';
-    var r = await proxyGet(url, 12000);
-    var txt = await r.text();
-    if (!txt || txt.indexOf('No data') !== -1) throw new Error('no data');
-    var lines = txt.trim().split('\n').filter(function(l){ return l && l.indexOf('Date') === -1; });
-    if (lines.length < 2) throw new Error('too few rows');
-    function pv(l) { return parseFloat(l.split(',')[4]); }
-    var first = pv(lines[0]), last = pv(lines[lines.length-1]);
-    if (!first || !last || isNaN(first) || isNaN(last)) throw new Error('NaN');
-    D.sp12m = (last - first) / first * 100;
-    D.sp12m_src = 'stooq weekly 1Y';
-  } catch(e) {
-    D.sp12m = null;
-    D.sp12m_src = 'err: ' + e.message;
-    setS('er', 'SP500 12M: ' + e.message);
-  }
+    var now=new Date(),ya=new Date(now); ya.setFullYear(ya.getFullYear()-1);
+    function d8(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+    var r=await pGet('https://stooq.com/q/d/l/?s=%5Espx&d1='+d8(ya)+'&d2='+d8(now)+'&i=w',12000);
+    var txt=await r.text();
+    if (!txt||txt.indexOf('No data')!==-1) throw new Error('no data');
+    var lines=txt.trim().split('\n').filter(function(l){ return l&&l.indexOf('Date')===-1; });
+    if (lines.length<2) throw new Error('too few');
+    function pv(l){ return parseFloat(l.split(',')[4]); }
+    var first=pv(lines[0]),last=pv(lines[lines.length-1]);
+    if (!first||!last||isNaN(first)||isNaN(last)) throw new Error('NaN');
+    D.sp12m=(last-first)/first*100; D.sp12m_src='stooq weekly 1Y';
+  } catch(e){ D.sp12m=null; D.sp12m_src='err:'+e.message; }
 }
 
-/* ─── FRED ─── */
+/* FRED series map */
 var FM = {
-  fedfunds:'FEDFUNDS', m2:'M2SL', yield_curve:'T10Y2Y', fed_bs:'WALCL',
-  cpi:'CPIAUCSL', core_cpi:'CPILFESL', tips10y:'T10YIE', unrate:'UNRATE',
-  sahm:'SAHMREALTIME', jolts:'JTSJOL', hy_spread:'BAMLH0A0HYM2',
-  nfci:'NFCI', indprod:'INDPRO', vixfred:'VIXCLS', sp500fred:'SP500', ib01_yield:'DGS1MO'
+  fedfunds:'FEDFUNDS',m2:'M2SL',yield_curve:'T10Y2Y',fed_bs:'WALCL',
+  cpi:'CPIAUCSL',core_cpi:'CPILFESL',tips10y:'T10YIE',unrate:'UNRATE',
+  sahm:'SAHMREALTIME',jolts:'JTSJOL',hy_spread:'BAMLH0A0HYM2',
+  nfci:'NFCI',indprod:'INDPRO',vixfred:'VIXCLS',sp500fred:'SP500',
+  ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',move:'MOVE'
 };
-
-async function fredOne(seriesId) {
-  var url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=' + seriesId;
-  var r = await proxyGet(url, 18000);
-  var txt = await r.text();
-  // Detect HTML error response
-  if (txt.trim().charAt(0) === '<') throw new Error('got HTML instead of CSV');
-  var rows = txt.trim().split('\n').slice(1).map(function(l) {
-    var parts = l.split(',');
-    var d = (parts[0]||'').trim();
-    var v = (parts[1]||'').trim();
-    return { date: d, val: (v === '.' || v === '') ? null : parseFloat(v) };
-  }).filter(function(x){ return x.date && x.val !== null && isFinite(x.val); });
-  if (!rows.length) throw new Error('empty series');
-  var last = rows[rows.length-1];
-  var prev1 = rows.length > 1 ? rows[rows.length-2] : last;
-  var prev12 = rows.length > 12 ? rows[rows.length-13] : rows[0];
-  return {
-    current: last.val,
-    date: last.date,
-    prev: prev1.val,
-    yoy: (prev12.val && prev12.val !== 0) ? (last.val - prev12.val) / Math.abs(prev12.val) * 100 : null,
-    series: rows.slice(-24)
+async function fOne(id) {
+  var r=await pGet('https://fred.stlouisfed.org/graph/fredgraph.csv?id='+id,18000);
+  var txt=await r.text();
+  if (txt.trim().charAt(0)==='<') throw new Error('got HTML');
+  var rows=txt.trim().split('\n').slice(1).map(function(l){
+    var p=l.split(','),d=(p[0]||'').trim(),v=(p[1]||'').trim();
+    return{date:d,val:(v==='.'||v==='')?null:parseFloat(v)};
+  }).filter(function(x){ return x.date&&x.val!==null&&isFinite(x.val); });
+  if (!rows.length) throw new Error('empty');
+  var last=rows[rows.length-1],p1=rows.length>1?rows[rows.length-2]:last;
+  var p3=rows.length>3?rows[rows.length-4]:rows[0];
+  var p6=rows.length>6?rows[rows.length-7]:rows[0];
+  var p12=rows.length>12?rows[rows.length-13]:rows[0];
+  return{
+    current:last.val,date:last.date,prev:p1.val,
+    trend3m:p3.val&&p3.val!==0?(last.val-p3.val)/Math.abs(p3.val)*100:null,
+    trend6m:p6.val&&p6.val!==0?(last.val-p6.val)/Math.abs(p6.val)*100:null,
+    yoy:p12.val&&p12.val!==0?(last.val-p12.val)/Math.abs(p12.val)*100:null,
+    series:rows.slice(-60)
   };
 }
-
 async function fetchFred() {
-  setS('ld', 'FRED: dane makroekonomiczne…');
-  D.f = {};
-  var keys = Object.keys(FM);
-  var ok = 0, fail = 0;
-  for (var i = 0; i < keys.length; i += 3) {
-    var batch = keys.slice(i, i+3);
-    setS('ld', 'FRED ' + (Math.floor(i/3)+1) + '/' + Math.ceil(keys.length/3) + ': ' + batch.join(', '));
-    var results = await Promise.allSettled(batch.map(function(k){ return fredOne(FM[k]); }));
-    results.forEach(function(r, j) {
-      if (r.status === 'fulfilled') { D.f[batch[j]] = r.value; ok++; }
-      else { fail++; setS('er', 'FRED ' + FM[batch[j]] + ': ' + (r.reason&&r.reason.message||'?')); }
+  setS('ld','FRED: dane makroekonomiczne…');
+  D.f={}; var keys=Object.keys(FM); var ok=0,fail=0;
+  for (var i=0;i<keys.length;i+=3) {
+    var batch=keys.slice(i,i+3);
+    setS('ld','FRED '+(Math.floor(i/3)+1)+'/'+Math.ceil(keys.length/3)+': '+batch.join(', '));
+    var res=await Promise.allSettled(batch.map(function(k){ return fOne(FM[k]); }));
+    res.forEach(function(r,j){
+      if(r.status==='fulfilled'){D.f[batch[j]]=r.value;ok++;}
+      else{fail++;setS('er','FRED '+FM[batch[j]]+': '+(r.reason&&r.reason.message||'?'));}
     });
-    if (i+3 < keys.length) await new Promise(function(res){ setTimeout(res, 150); });
+    if (i+3<keys.length) await new Promise(function(res){ setTimeout(res,145); });
   }
-  // VIX fallback from FRED if stooq failed
-  if (!D.q.vix && D.f.vixfred) {
-    D.q.vix = { price: D.f.vixfred.current, prev: D.f.vixfred.prev, change: 0, date: D.f.vixfred.date };
-    setS('ok', 'VIX: fallback to FRED VIXCLS = ' + D.f.vixfred.current);
-  }
-  setS(ok > 12 ? 'ok' : 'er', 'FRED: ' + ok + ' OK, ' + fail + ' błędów');
+  if (!D.q.vix&&D.f.vixfred) D.q.vix={price:D.f.vixfred.current,prev:D.f.vixfred.prev,change:0,date:D.f.vixfred.date};
+  SRCS.fred.status=ok>12?'live':'partial';
+  setS(ok>12?'ok':'er','FRED: '+ok+' OK, '+fail+' err');
 }
 
-/* ─── FEAR & GREED — robust, always returns something ─── */
 async function fetchFG() {
-  setS('ld', 'Fear and Greed…');
-  D.fg = null;
-
-  // Source 1: CNN (primary)
-  var cnnOk = false;
+  setS('ld','F&G CNN…'); D.fg=null;
+  /* CNN primary */
   try {
-    var r = await proxyGet('https://production.dataviz.cnn.io/index/fearandgreed/graphdata', 10000);
-    var txt = await r.text();
-    // Check it's not HTML
-    if (txt.trim().charAt(0) === '<') throw new Error('HTML response from CNN');
-    var j = JSON.parse(txt);
-    var fg = j.fear_and_greed || j;
-    var score = Math.round(parseFloat(fg.score || fg.current_value || 0));
-    if (score > 0 && score <= 100) {
-      D.fg = {
-        score: score,
-        prev_close: Math.round(parseFloat(fg.previous_close||0)) || null,
-        prev_week: Math.round(parseFloat(fg.previous_1_week||0)) || null,
-        prev_month: Math.round(parseFloat(fg.previous_1_month||0)) || null,
-        source: 'CNN'
-      };
-      cnnOk = true;
-      setS('ok', 'F&G CNN: ' + score);
-    } else {
-      throw new Error('invalid score: ' + score);
+    var r=await pGet('https://production.dataviz.cnn.io/index/fearandgreed/graphdata',10000);
+    var txt=await r.text();
+    if (txt.trim().charAt(0)==='<') throw new Error('HTML response');
+    var j=JSON.parse(txt), fg=j.fear_and_greed||j;
+    var score=Math.round(parseFloat(fg.score||fg.current_value||0));
+    if (score>0&&score<=100){
+      D.fg={score:score,prev_close:Math.round(parseFloat(fg.previous_close||0))||null,prev_week:Math.round(parseFloat(fg.previous_1_week||0))||null,prev_month:Math.round(parseFloat(fg.previous_1_month||0))||null,source:'CNN'};
+      SRCS.cnn.status='live'; setS('ok','F&G CNN: '+score); return;
     }
-  } catch(e) {
-    setS('er', 'CNN F&G: ' + e.message);
-  }
-
-  if (cnnOk) return;
-
-  // Source 2: feargreedindex API
-  try {
-    var r2 = await proxyGet('https://fear-and-greed-index.p.rapidapi.com/v1/fgi', 8000);
-    var txt2 = await r2.text();
-    if (txt2.trim().charAt(0) !== '<') {
-      var j2 = JSON.parse(txt2);
-      var sc2 = parseInt(j2.fgi&&j2.fgi.now&&j2.fgi.now.value || 50);
-      if (sc2 > 0) {
-        D.fg = { score: sc2, prev_close: null, prev_week: null, prev_month: null, source: 'RapidAPI' };
-        setS('ok', 'F&G RapidAPI: ' + sc2);
-        return;
-      }
-    }
-  } catch(e) {}
-
-  // Source 3: Estimate from VIX and other data (synthetic)
-  var vixNow = D.q.vix ? D.q.vix.price : (D.f.vixfred ? D.f.vixfred.current : 29);
-  var sp12 = D.sp12m;
-  var estScore = 50;
-  if (vixNow > 35) estScore = 20;
-  else if (vixNow > 28) estScore = 32;
-  else if (vixNow > 22) estScore = 45;
-  else if (vixNow < 16) estScore = 72;
-  else if (vixNow < 13) estScore = 85;
-  if (sp12 !== null) {
-    if (sp12 > 25) estScore += 10;
-    else if (sp12 < -10) estScore -= 10;
-  }
-  estScore = Math.max(5, Math.min(95, Math.round(estScore)));
-  D.fg = { score: estScore, prev_close: null, prev_week: null, prev_month: null, source: 'ESTIMATE (VIX-based)' };
-  setS('er', 'F&G: wszystkie zrodla niedostepne, szacunek z VIX: ' + estScore);
+    throw new Error('invalid score');
+  } catch(e){ SRCS.cnn.status='fail'; setS('er','CNN F&G: '+e.message); }
+  /* synthetic VIX-based fallback */
+  var vix=(D.q.vix&&D.q.vix.price)||(D.f.vixfred&&D.f.vixfred.current)||29;
+  var est=50;
+  if(vix>40)est=14;else if(vix>32)est=24;else if(vix>26)est=34;else if(vix>20)est=44;else if(vix<14)est=78;else if(vix<17)est=66;
+  D.fg={score:Math.round(est),prev_close:null,prev_week:null,prev_month:null,source:'ESTIMATE (VIX-based)'};
 }
-
 async function fetchCryptoFG() {
   try {
-    var r = await proxyGet('https://api.alternative.me/fng/?limit=30&format=json', 9000);
-    var txt = await r.text();
-    if (txt.trim().charAt(0) === '<') throw new Error('HTML response');
-    var j = JSON.parse(txt);
-    var entries = j&&j.data ? j.data : [];
-    if (!entries.length) throw new Error('empty');
-    D.cfg = {
-      score: parseInt(entries[0].value),
-      rating: entries[0].value_classification,
-      history: entries.slice(0,14).map(function(e){
-        return {
-          date: new Date(parseInt(e.timestamp)*1000).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),
-          score: parseInt(e.value)
-        };
-      })
-    };
-    setS('ok', 'Crypto F&G: ' + D.cfg.score);
-  } catch(e) {
-    D.cfg = null;
-    setS('er', 'CryptoFG: ' + e.message);
-  }
+    var r=await pGet('https://api.alternative.me/fng/?limit=30&format=json',9000);
+    var txt=await r.text();
+    if(txt.trim().charAt(0)==='<') throw new Error('HTML');
+    var j=JSON.parse(txt),entries=j&&j.data?j.data:[];
+    if(!entries.length) throw new Error('empty');
+    D.cfg={score:parseInt(entries[0].value),history:entries.slice(0,14).map(function(e){
+      return{date:new Date(parseInt(e.timestamp)*1000).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),score:parseInt(e.value)};
+    })};
+    SRCS.cryptofg.status='live'; setS('ok','CryptoFG: '+D.cfg.score);
+  }catch(e){D.cfg=null;SRCS.cryptofg.status='fail';}
 }
-
 async function fetchTreasury() {
-  try {
-    var url = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?fields=record_date,tot_pub_debt_out_amt&sort=-record_date&limit=6&format=json';
-    var r = await proxyGet(url, 10000);
-    var txt = await r.text();
-    if (txt.trim().charAt(0) === '<') throw new Error('HTML');
-    var j = JSON.parse(txt);
-    D.treasury = (j&&j.data ? j.data : []).map(function(d){
-      return { date: d.record_date, total: parseFloat(d.tot_pub_debt_out_amt)/1e12 };
-    });
-  } catch(e) { D.treasury = null; }
+  try{
+    var url='https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?fields=record_date,tot_pub_debt_out_amt&sort=-record_date&limit=6&format=json';
+    var r=await pGet(url,10000);
+    var txt=await r.text();
+    if(txt.trim().charAt(0)==='<') throw new Error('HTML');
+    var j=JSON.parse(txt);
+    D.treasury=(j&&j.data?j.data:[]).map(function(d){ return{date:d.record_date,total:parseFloat(d.tot_pub_debt_out_amt)/1e12}; });
+    SRCS.treasury.status='live';
+  }catch(e){D.treasury=null;SRCS.treasury.status='fail';}
 }
 
-/* ─── STATIC FALLBACKS ─── */
-var ST = { fed:3.75, fedDate:'Gru 2025', ism:52.4, ismDate:'Lut 2026', cape:36.2, buffett:196, us10y:4.10 };
-
-/* ─── SCORE ENGINE ─── */
+/* ═══════════════════════════════
+   SCORING ENGINE — 5 dimensions
+═══════════════════════════════ */
 function calcScore() {
-  var q = D.q||{}, f = D.f||{};
-  var vix = (q.vix && q.vix.price) || (f.vixfred && f.vixfred.current) || 29.5;
-  var fg = D.fg ? D.fg.score : null;
-  var sp12m = D.sp12m != null ? D.sp12m : ((f.sp500fred && f.sp500fred.yoy != null) ? f.sp500fred.yoy : 17.7);
-  var ib01 = (f.ib01_yield && f.ib01_yield.current != null) ? f.ib01_yield.current : 4.15;
-  var sahm = (f.sahm && f.sahm.current != null) ? f.sahm.current : 0.30;
-  var yc = (f.yield_curve && f.yield_curve.current != null) ? f.yield_curve.current : null;
-  var hy = (f.hy_spread && f.hy_spread.current != null) ? f.hy_spread.current : 2.84;
-  var fed = (f.fedfunds && f.fedfunds.current != null) ? f.fedfunds.current : ST.fed;
-  var cpi = (f.cpi && f.cpi.yoy != null) ? f.cpi.yoy : null;
+  var q=D.q||{},f=D.f||{};
+  var vix=(q.vix&&q.vix.price)||(f.vixfred&&f.vixfred.current)||29.5;
+  var fg=D.fg?D.fg.score:null;
+  var sp12m=D.sp12m!=null?D.sp12m:((f.sp500fred&&f.sp500fred.yoy!=null)?f.sp500fred.yoy:17.7);
+  var ib01=(f.ib01_yield&&f.ib01_yield.current!=null)?f.ib01_yield.current:4.15;
+  var sahm=(f.sahm&&f.sahm.current!=null)?f.sahm.current:0.30;
+  var yc=(f.yield_curve&&f.yield_curve.current!=null)?f.yield_curve.current:null;
+  var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:2.84;
+  var fed=(f.fedfunds&&f.fedfunds.current!=null)?f.fedfunds.current:ST.fed;
+  var cpi=(f.cpi&&f.cpi.yoy!=null)?f.cpi.yoy:null;
+  var m2yoy=(f.m2&&f.m2.yoy!=null)?f.m2.yoy:null;
+  var sofrT3=(f.sofr&&f.sofr.trend3m!=null)?f.sofr.trend3m:null;
+  var sofrT6=(f.sofr&&f.sofr.trend6m!=null)?f.sofr.trend6m:null;
+  var move=(f.move&&f.move.current!=null)?f.move.current:null;
 
-  var sigs = [
-    {n:'VIX',         g:'Sentyment', w:3, s:vix>=30?1:vix<18?-1:0,       v:vix.toFixed(1),         d:'Kontrarianski: VIX>30=panika=okazja DCA · VIX<18=euforia'},
-    {n:'Fear & Greed', g:'Sentyment', w:2, s:fg!=null?(fg<=35?1:fg>=65?-1:0):0, v:fg!=null?String(fg):'?', d:'<=35 Fear=kupuj · >=65 Greed=ostroznosc'},
-    {n:'Dual Momentum',g:'Momentum',  w:3, s:sp12m>ib01?1:-1,             v:pctStr(sp12m),          d:'SP500 12M vs IB01 yield ('+ib01.toFixed(2)+'%)'},
-    {n:'CAPE Shiller', g:'Wycena',    w:1, s:-1,                           v:ST.cape+'x',            d:'CAPE 36x, norma 16x, rynek drogi'},
-    {n:'Buffett Ind.', g:'Wycena',    w:1, s:ST.buffett>150?-1:0,          v:ST.buffett+'%',         d:'MktCap/GDP >150%=przewartosciowany'},
-    {n:'Sahm Rule',    g:'Cykl',      w:3, s:sahm<0.30?1:sahm>0.50?-1:0,  v:sahm.toFixed(2),        d:'Sahm >0.50=recesja (prog 0.50)'},
-    {n:'Yield Curve',  g:'Cykl',      w:2, s:yc!=null?(yc>0.5?1:yc<-0.2?-1:0):0, v:yc!=null?yc.toFixed(2)+'%':'?', d:'>0% normalna · <0% inwersja=recesja'},
-    {n:'HY Spread',    g:'Cykl',      w:2, s:hy<3.5?1:hy>6?-1:0,          v:hy.toFixed(2)+'%',      d:'<3.5% risk-on · >6% stres kredytowy'},
-    {n:'ISM PMI',      g:'Cykl',      w:1, s:ST.ism>52?1:0,               v:ST.ism.toString(),      d:'PMI>50=ekspansja ('+ST.ismDate+')'},
-    {n:'Fed Rate',     g:'Fed',       w:1, s:fed<3?1:fed>5?-1:0,          v:fed.toFixed(2)+'%',     d:'Cięcia Fed = wsparcie dla akcji'},
-    {n:'CPI',          g:'Fed',       w:1, s:cpi!=null?(cpi<2.5?1:cpi>4?-1:0):0, v:cpi!=null?cpi.toFixed(1)+'%':'?', d:'Cel 2% · <2.5%=OK · >4%=podwyzki'},
+  /* 1. SENTYMENT */
+  var s1=0;
+  if(vix>=40)s1=10;else if(vix>=30)s1=7;else if(vix>=20)s1=3;else if(vix>=15)s1=0;else s1=-5;
+  var fg_p=0;
+  if(fg!=null){if(fg<=20)fg_p=10;else if(fg<=40)fg_p=5;else if(fg<=60)fg_p=0;else if(fg<=80)fg_p=-5;else fg_p=-10;}
+  s1=Math.max(-10,Math.min(10,Math.round((s1+fg_p)/2)));
+  if(move!=null){if(move>140)s1=Math.min(10,s1+3);else if(move<70)s1=Math.max(-10,s1-2);}
+
+  /* 2. PŁYNNOŚĆ */
+  var s2=0;
+  if(m2yoy!=null){if(m2yoy>6)s2+=5;else if(m2yoy>3)s2+=3;else if(m2yoy<0)s2-=5;}
+  if(sofrT3!=null){if(sofrT3>5)s2+=3;else if(sofrT3<-10)s2-=3;}
+  if(sofrT6!=null){if(sofrT6>5)s2+=2;else if(sofrT6<-10)s2-=2;}
+  if(fed<3)s2+=2;else if(fed>5)s2-=2;
+  s2=Math.max(-10,Math.min(10,s2));
+
+  /* 3. POSITIONING (COT proxy from VIX pattern + yield curve) */
+  var s3=0;
+  if(vix>=40)s3=10;else if(vix>=30)s3=7;else if(vix>=25)s3=4;else if(vix>=20)s3=1;else if(vix<15)s3=-5;
+  if(yc!=null){if(yc>0.5)s3=Math.min(10,s3+1);else if(yc<-0.2)s3=Math.max(-10,s3-2);}
+  s3=Math.max(-10,Math.min(10,s3));
+
+  /* 4. CYKL */
+  var s4=0;
+  if(sahm<0.3)s4+=4;else if(sahm>0.5)s4-=6;
+  if(hy<3.5)s4+=3;else if(hy>6)s4-=5;
+  if(ST.ism>52)s4+=2;else if(ST.ism<47)s4-=3;
+  s4=Math.max(-10,Math.min(10,s4));
+
+  /* 5. MOMENTUM */
+  var s5=0;
+  if(sp12m>ib01)s5+=6;else s5-=4;
+  if(ST.cape<20)s5+=2;else if(ST.cape>35)s5-=3;
+  if(cpi!=null){if(cpi<2.5)s5+=2;else if(cpi>4)s5-=3;}
+  s5=Math.max(-10,Math.min(10,s5));
+
+  var total=s1+s2+s3+s4+s5;
+  var norm=Math.round((total+50)/100*100);
+  var verdict,color,vhg;
+  if(total>=20){verdict='KUP';color='#00e5a8';vhg='rgba(0,229,168,.09)';}
+  else if(total>=5){verdict='AKUMULUJ';color='#00e5a8';vhg='rgba(0,229,168,.07)';}
+  else if(total>=-5){verdict='NEUTRALNIE';color='#f5c040';vhg='rgba(245,192,64,.07)';}
+  else if(total>=-20){verdict='REDUKUJ';color='#ff7c3e';vhg='rgba(255,124,62,.07)';}
+  else{verdict='SPRZEDAJ';color='#ff3355';vhg='rgba(255,51,85,.08)';}
+  if(vix>=28&&total>=-10){verdict='KUP (PANIKA)';color='#00e5a8';vhg='rgba(0,229,168,.12)';}
+
+  var dims=[
+    {label:'Sentyment',pts:s1,v:fg!=null?String(fg):vix.toFixed(0),sub:'VIX/F&G',max:10},
+    {label:'Płynność',pts:s2,v:m2yoy!=null?pS(m2yoy):'—',sub:'M2 YoY',max:10},
+    {label:'Positioning',pts:s3,v:vix.toFixed(1),sub:'COT/VIX',max:10},
+    {label:'Cykl',pts:s4,v:sahm.toFixed(2),sub:'Sahm/HY',max:10},
+    {label:'Momentum',pts:s5,v:pS(sp12m),sub:'DM/CAPE',max:10},
   ];
+  SC={total:total,norm:norm,verdict:verdict,color:color,vhg:vhg,dims:dims,vix:vix,fg:fg,sp12m:sp12m,ib01:ib01,dm_bull:sp12m>ib01,sahm:sahm,yc:yc,hy:hy,fed:fed,cpi:cpi,m2yoy:m2yoy};
 
-  var maxW = sigs.reduce(function(a,x){ return a+x.w; }, 0);
-  var raw  = sigs.reduce(function(a,x){ return a+x.s*x.w; }, 0);
-  var norm = Math.round((raw + maxW) / (2*maxW) * 100);
-
-  var verdict, color, vhg;
-  if (norm >= 68) { verdict='KUP';             color='#00e5a0'; vhg='rgba(0,229,160,.10)'; }
-  else if (norm >= 55) { verdict='KUP OSTROŻNIE'; color='#00e5a0'; vhg='rgba(0,229,160,.07)'; }
-  else if (norm >= 42) { verdict='TRZYMAJ/DCA';  color='#ffc820'; vhg='rgba(255,200,32,.07)'; }
-  else if (norm >= 28) { verdict='WSTRZYMAJ';    color='#ff8c42'; vhg='rgba(255,140,66,.07)'; }
-  else                 { verdict='UNIKAJ';        color='#ff4060'; vhg='rgba(255,64,96,.08)'; }
-  if (vix >= 28 && norm >= 30) { verdict='KUP (DOŁEK?)'; color='#00e5a0'; vhg='rgba(0,229,160,.12)'; }
-
-  return {
-    sigs:sigs, norm:norm, verdict:verdict, color:color, vhg:vhg,
-    vix:vix, fg:fg, sp12m:sp12m, ib01:ib01, dm_bull:sp12m>ib01,
-    sahm:sahm, yc:yc, hy:hy, fed:fed, cpi:cpi,
-    bulls: sigs.filter(function(x){return x.s>0;}).map(function(x){return x.n;}),
-    bears: sigs.filter(function(x){return x.s<0;}).map(function(x){return x.n;})
-  };
+  /* update topbar */
+  var vp=document.getElementById('vp');
+  if(vp){
+    vp.textContent=verdict;
+    var bc=total>=5?'rgba(0,229,168,.1)':total>=-5?'rgba(245,192,64,.08)':'rgba(255,51,85,.1)';
+    var brd=total>=5?'rgba(0,229,168,.3)':total>=-5?'rgba(245,192,64,.25)':'rgba(255,51,85,.28)';
+    vp.style.background=bc;vp.style.color=color;vp.style.borderColor=brd;
+  }
+  var tsn=document.getElementById('tsn');
+  if(tsn){tsn.textContent=norm;tsn.style.color=color;}
+  return SC;
 }
 
-/* ─── PORTFOLIOS ─── */
-var PORTS = [
-  {id:'P1',name:'USD Global',   color:'#00e5a0',type:'Makler USD',   bud_usd:2000,bud_eur:null, etfs:['ISAC'],            dm_safe:'IB01',       special:null},
-  {id:'P2',name:'USD World+Val',color:'#3db8f5',type:'Makler USD',   bud_usd:3000,bud_eur:null, etfs:['SWRD 70%','IWVL 30%'],dm_safe:'IB01',    special:null},
-  {id:'P3',name:'IKZE Polska',  color:'#ffc820',type:'IKZE GPW PLN', bud_usd:null,bud_eur:2000, etfs:['ETFBSWIG80 40%','ETFBMWIG40 35%','ETFBWIG20 25%'],dm_safe:'Gotówka',special:'&#128142; ZERO Belka 65+'},
-  {id:'P4',name:'IKE World+PL', color:'#ff8c42',type:'IKE XETRA+GPW',bud_usd:null,bud_eur:1750,etfs:['VWCE.DE 50%','ETFDIVPL 25%','VWHE.DE 25%'],dm_safe:'ETFDIVPL',special:'&#128142; ZERO Belka 60+'},
-  {id:'P5',name:'EUR Mixed',    color:'#a78bfa',type:'Makler EUR',   bud_usd:1500,bud_eur:1250, etfs:['LYP6.DE 40%','MWEQ.DE 40%','WEBN.DE 20%'],dm_safe:'IB01',  special:null},
+/* ═══════════════════════════════
+   HISTORICAL CRISES
+═══════════════════════════════ */
+var CRISES=[
+  {era:'Oct 2008',title:'Lehman Crash',color:'#ff3355',vix:80,fg:2,hy:22,sahm:3.5,sp:'-46%',fed:'0.5% emergency',drop:-46,rows:[['VIX','80 (rekord)'],['F&G','2'],['HY','22%'],['Sahm','3.5'],['SP500','-46%'],['Fed','0.5%']],res:'Dno Oct 2008 — ożywienie po QE1 Mar 2009',badge:'KRYZYS',bc:'rgba(255,51,85,.1)'},
+  {era:'Mar 2009',title:'Dołek GFC',color:'#00e5a8',vix:56,fg:2,hy:22,sahm:4.5,sp:'-56%',fed:'0.25% QE1',drop:-56,rows:[['VIX','56'],['F&G','2'],['HY','22%'],['Sahm','4.5'],['SP500','-56%'],['Fed','0.25% + QE1']],res:'Mar 2009 → +300% przez 10 lat — MEGA okazja',badge:'MEGA KUP',bc:'rgba(0,229,168,.1)'},
+  {era:'Dec 2018',title:'Q4 Sell-off',color:'#f5c040',vix:36,fg:6,hy:5.5,sahm:0.1,sp:'-20%',fed:'pauza podwyżek',drop:-20,rows:[['VIX','36'],['F&G','6'],['HY','5.5%'],['Sahm','0.1'],['SP500','-20%'],['Fed','pauzuje']],res:'Dno Dec 2018 → +35% do końca 2019',badge:'ZAKUP',bc:'rgba(245,192,64,.1)'},
+  {era:'Mar 2020',title:'COVID Crash',color:'#2a9df5',vix:85,fg:2,hy:11,sahm:3.0,sp:'-34%',fed:'0% + QE∞',drop:-34,rows:[['VIX','85 (max)'],['F&G','2'],['HY','11%'],['Sahm','3.0'],['SP500','-34%'],['Fed','0% + QE nieskończone']],res:'Mar 2020 → +100% w 18 miesięcy',badge:'SILNY KUP',bc:'rgba(42,157,245,.1)'},
+  {era:'Q4 2021',title:'Szczyt euforii',color:'#ff3355',vix:15,fg:80,hy:2.8,sahm:0,sp:'+40%',fed:'gołębi Fed',drop:0,rows:[['VIX','15 (niski)'],['F&G','80 GREED'],['HY','2.8%'],['Sahm','0'],['SP500','+40%'],['Fed','gołębi']],res:'Szczyt 2021 → -25% w 2022',badge:'UNIKAJ',bc:'rgba(255,51,85,.1)'},
+  {era:'2022',title:'Inflacyjna bessa',color:'#ff7c3e',vix:38,fg:15,hy:6.5,sahm:0.2,sp:'-25%',fed:'+4.25pp',drop:-25,rows:[['VIX','38'],['F&G','15'],['HY','6.5%'],['Sahm','0.2'],['SP500','-25%'],['Fed','+4.25pp w roku']],res:'Dno Oct 2022 → +30% do końca 2023',badge:'ZAKUP',bc:'rgba(255,124,62,.1)'},
+  {era:'Mar 2026',title:'TERAZ — live',color:'#f5c040',isNow:true,rows:[],res:'',badge:'',bc:'rgba(245,192,64,.1)'},
 ];
-var ETFS_DATA = [
-  {id:'IB01',isin:'IE00BGSF1X88',ter:0.07,holds:63,  risk:2,color:'#00e5a0',link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BGSF1X88'},
-  {id:'CSPX',isin:'IE00B5BMR087',ter:0.07,holds:503, risk:6,color:'#3db8f5',link:'https://www.justetf.com/en/etf-profile.html?isin=IE00B5BMR087'},
-  {id:'ISAC',isin:'IE00B6R52259',ter:0.20,holds:2372,risk:6,color:'#3db8f5',link:'https://www.justetf.com/en/etf-profile.html?isin=IE00B6R52259'},
-  {id:'SWRD',isin:'IE00BFY0GT14',ter:0.12,holds:1515,risk:6,color:'#3db8f5',link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BFY0GT14'},
-  {id:'IWVL',isin:'IE00BP3QZB59',ter:0.25,holds:399, risk:6,color:'#ff8c42',link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BP3QZB59'},
-  {id:'VWCE',isin:'IE00BK5BQT80',ter:0.22,holds:3704,risk:6,color:'#3db8f5',link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BK5BQT80'},
-  {id:'WEBN',isin:'IE0003XJA0J9',ter:0.50,holds:30,  risk:7,color:'#a78bfa',link:'https://www.justetf.com/en/etf-profile.html?isin=IE0003XJA0J9'},
+
+/* ═══════════════════════════════
+   PLOTLY HELPERS
+═══════════════════════════════ */
+var PLY={displayModeBar:false,responsive:true};
+var PLY_LY={
+  paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+  font:{family:"'JetBrains Mono',monospace",color:'#5a82a8',size:10},
+  margin:{l:42,r:10,t:10,b:30},
+  xaxis:{gridcolor:'rgba(255,255,255,.045)',linecolor:'rgba(255,255,255,.06)',zerolinecolor:'rgba(255,255,255,.07)'},
+  yaxis:{gridcolor:'rgba(255,255,255,.045)',linecolor:'rgba(255,255,255,.06)',zerolinecolor:'rgba(255,255,255,.07)'},
+  legend:{bgcolor:'transparent',font:{size:9}}
+};
+function pLy(ov){ return Object.assign({},PLY_LY,ov); }
+
+function plotFred(divId,key,color,label){
+  var el=document.getElementById(divId); if(!el)return;
+  var data=D.f&&D.f[key]&&D.f[key].series;
+  if(!data||!data.length){el.innerHTML='<div style="color:var(--t3);text-align:center;padding:30px;font-size:10px">Brak danych — FRED '+key+'</div>';return;}
+  var fc=color.replace(')',', .07)').replace('rgb','rgba');
+  Plotly.newPlot(divId,[{x:data.map(function(d){return d.date;}),y:data.map(function(d){return d.val;}),mode:'lines',fill:'tozeroy',name:label||key,line:{color:color,width:1.5},fillcolor:fc}],pLy({height:180,showlegend:false,margin:{l:52,r:10,t:10,b:30}}),PLY);
+}
+
+function plotVIXCrisis(divId){
+  if(!document.getElementById(divId))return;
+  /* Normalized VIX profiles — days from panic start, multiplied from real data */
+  var profiles={
+    '2008 Lehman':[1,1.4,2.2,4.5,9,15,22,32,46,62,80,72,58,44,34,26,20,16,13,11,10,9,8,8,7],
+    '2011 EU debt':[1,1.2,1.6,2.3,4,7,11,17,24,30,36,32,26,20,16,13,11,10,9,8,8,7,7,6,6],
+    '2020 COVID':[1,1.1,1.4,2,4,8,17,30,45,65,85,72,55,38,28,21,17,14,12,11,10,9,8,7,6],
+    '2022 Bessa':[1,1.2,1.5,1.9,2.5,4,7,11,16,22,28,33,38,36,32,27,22,18,15,14,12,11,10,9,8],
+  };
+  var colors={'2008 Lehman':'#ff3355','2011 EU debt':'#ff7c3e','2020 COVID':'#2a9df5','2022 Bessa':'#9b7ef8'};
+  var days=Array.from({length:25},function(_,i){return 'T+'+i;});
+  var cv=(D.q.vix&&D.q.vix.price)||29.5;
+  var curTrace=Array.from({length:25},function(_,i){return i<=14?Math.max(1,cv*(1+Math.sin(i/3)*0.08-(i>7?(i-7)*0.012:0))):null;});
+  var traces=Object.keys(profiles).map(function(k){
+    return{x:days,y:profiles[k],mode:'lines',name:k,line:{color:colors[k],width:1.5,dash:'dot'},opacity:.7};
+  });
+  traces.push({x:days,y:curTrace,mode:'lines',name:'TERAZ',line:{color:'#00e5a8',width:2.5},connectgaps:false});
+  Plotly.newPlot(divId,traces,pLy({height:200,showlegend:true,legend:{orientation:'h',y:1.08,x:0,font:{size:8}},yaxis:{title:{text:'VIX',font:{size:9}},range:[0,95]},margin:{l:40,r:10,t:30,b:30}}),PLY);
+}
+
+function plotCrisisCompare(divId){
+  if(!document.getElementById(divId))return;
+  var cv=(SC&&SC.vix)||29.5, cfg=SC&&SC.fg!=null?SC.fg:38;
+  var items=CRISES.filter(function(c){return!c.isNow;});
+  var names=items.map(function(c){return c.era;}).concat(['TERAZ']);
+  var vixV=items.map(function(c){return c.vix;}).concat([cv]);
+  var fgV=items.map(function(c){return c.fg;}).concat([cfg]);
+  var cols=items.map(function(c){return c.color;}).concat(['#f5c040']);
+  Plotly.newPlot(divId,[
+    {x:names,y:vixV,type:'bar',name:'VIX',marker:{color:cols,opacity:.8}},
+    {x:names,y:fgV,type:'scatter',mode:'lines+markers',name:'F&G',yaxis:'y2',line:{color:'#2a9df5',width:1.5},marker:{size:6,color:'#2a9df5'}},
+  ],pLy({height:220,yaxis:{range:[0,100],title:{text:'VIX',font:{size:9}}},yaxis2:{overlaying:'y',side:'right',range:[0,100],title:{text:'F&G',font:{size:9}}},showlegend:true,legend:{orientation:'h',y:1.1,x:0,font:{size:9}},margin:{l:40,r:50,t:30,b:40}}),PLY);
+}
+
+function plotScoreDims(divId){
+  if(!document.getElementById(divId)||!SC)return;
+  var names=SC.dims.map(function(d){return d.label;});
+  var vals=SC.dims.map(function(d){return d.pts;});
+  var cols=vals.map(function(v){return v>=0?'#00e5a8':'#ff3355';});
+  Plotly.newPlot(divId,[{x:names,y:vals,type:'bar',marker:{color:cols,opacity:.85}}],pLy({height:160,showlegend:false,yaxis:{range:[-11,11],zerolinecolor:'rgba(255,255,255,.15)'},margin:{l:35,r:10,t:10,b:30}}),PLY);
+}
+
+function plotCOT(divId){
+  if(!document.getElementById(divId))return;
+  var weeks=['2024-Q1','2024-Q2','2024-Q3','2024-Q4','2025-Q1','2025-Q2','2025-Q3','2025-Q4','2026-Q1'];
+  var hf=[120,145,160,110,80,55,42,64,88];
+  var am=[280,295,310,270,242,222,202,218,232];
+  var net=hf.map(function(v,i){return v-am[i]*0.3;});
+  Plotly.newPlot(divId,[
+    {x:weeks,y:hf,mode:'lines+markers',name:'Hedge Funds net long',line:{color:'#9b7ef8',width:1.5},marker:{size:5}},
+    {x:weeks,y:net,mode:'lines',name:'Net positioning',line:{color:'#00e5a8',width:1.5,dash:'dash'}},
+    {x:weeks,y:weeks.map(function(){return 0;}),mode:'lines',showlegend:false,line:{color:'rgba(255,255,255,.12)',width:1,dash:'dot'}},
+  ],pLy({height:200,showlegend:true,legend:{orientation:'h',y:1.1,x:0,font:{size:8}},yaxis:{title:{text:'K kontraktów',font:{size:9}}},margin:{l:55,r:10,t:30,b:30}}),PLY);
+}
+
+/* ═══════════════════════════════
+   PORTFOLIO DATA
+═══════════════════════════════ */
+var PORTS=[
+  {id:'P1',name:'USD Global',color:'#00e5a8',type:'Makler USD',usd:2000,eur:null,etfs:['ISAC'],safe:'IB01',sp:null},
+  {id:'P2',name:'USD World+Val',color:'#2a9df5',type:'Makler USD',usd:3000,eur:null,etfs:['SWRD 70%','IWVL 30%'],safe:'IB01',sp:null},
+  {id:'P3',name:'IKZE Polska',color:'#f5c040',type:'IKZE GPW PLN',usd:null,eur:2000,etfs:['ETFBSWIG80 40%','ETFBMWIG40 35%','ETFBWIG20 25%'],safe:'Gotówka',sp:'ZERO Belka 65+'},
+  {id:'P4',name:'IKE World+PL',color:'#ff7c3e',type:'IKE XETRA+GPW',usd:null,eur:1750,etfs:['VWCE.DE 50%','ETFDIVPL 25%','VWHE.DE 25%'],safe:'ETFDIVPL',sp:'ZERO Belka 60+'},
+  {id:'P5',name:'EUR Mixed',color:'#9b7ef8',type:'Makler EUR',usd:1500,eur:1250,etfs:['LYP6.DE 40%','MWEQ.DE 40%','WEBN.DE 20%'],safe:'IB01',sp:null},
 ];
-function buildSched() {
-  var out = [], start = new Date(2026,2,12);
-  for (var w=1; w<=42; w++) {
-    var d = new Date(start.getTime() + (w-1)*7*86400000);
-    var m = d.getMonth()+1;
-    var boost = (m===8||m===9) ? 1.3 : 1.0;
-    var pp = PORTS[(w-1)%5];
-    out.push({
-      w:w, p:pp, boost:boost,
-      day: d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),
-      usd: pp.bud_usd ? Math.round(pp.bud_usd/52*boost) : null,
-      eur: pp.bud_eur ? Math.round(pp.bud_eur/52*boost) : null
-    });
+var ETF_DATA=[
+  {id:'IB01',isin:'IE00BGSF1X88',ter:0.07,h:63,r:2,c:'#00e5a8'},
+  {id:'CSPX',isin:'IE00B5BMR087',ter:0.07,h:503,r:6,c:'#2a9df5'},
+  {id:'ISAC',isin:'IE00B6R52259',ter:0.20,h:2372,r:6,c:'#2a9df5'},
+  {id:'SWRD',isin:'IE00BFY0GT14',ter:0.12,h:1515,r:6,c:'#2a9df5'},
+  {id:'IWVL',isin:'IE00BP3QZB59',ter:0.25,h:399,r:6,c:'#ff7c3e'},
+  {id:'VWCE',isin:'IE00BK5BQT80',ter:0.22,h:3704,r:6,c:'#2a9df5'},
+  {id:'WEBN',isin:'IE0003XJA0J9',ter:0.50,h:30,r:7,c:'#9b7ef8'},
+];
+function buildSched(){
+  var out=[],start=new Date(2026,2,12);
+  for(var w=1;w<=42;w++){
+    var d=new Date(start.getTime()+(w-1)*7*86400000),m=d.getMonth()+1;
+    var boost=(m===8||m===9)?1.3:1.0,pp=PORTS[(w-1)%5];
+    out.push({w:w,p:pp,boost:boost,day:d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),usd:pp.usd?Math.round(pp.usd/52*boost):null,eur:pp.eur?Math.round(pp.eur/52*boost):null});
   }
   return out;
 }
-var HIST = [
-  {era:'Mar 2009',title:'Dołek GFC',color:'#00e5a0',rows:[['VIX','56–80'],['CAPE','13x'],['HY','22%'],['F&G','2 EXTREME'],['Sahm','4.5'],['SP500 12M','-56%']],result:'Zakup → +300% w 10 lat. Klasyczne dno bessy.',badge:'MEGA KUP',bc:'rgba(0,229,160,.1)'},
-  {era:'Mar 2020',title:'COVID Crash',color:'#3db8f5',rows:[['VIX','85 (rekord)'],['CAPE','24x'],['HY','11%'],['F&G','2 EXTREME'],['Sahm','3.0'],['SP500 12M','-34%']],result:'Zakup → +100% w 18 mies. Najszybsza hossa w historii.',badge:'SILNY KUP',bc:'rgba(61,184,245,.1)'},
-  {era:'Q4 2021',title:'Euforyczny Szczyt',color:'#ff4060',rows:[['VIX','15 (niski)'],['CAPE','38x'],['HY','2.8%'],['F&G','80 GREED'],['Sahm','0.0'],['SP500 12M','+40%']],result:'Po szczycie → -25% w 2022. Euforia = pułapka.',badge:'UNIKAJ',bc:'rgba(255,64,96,.1)'},
-  {era:'Mar 2026',title:'Teraz — dane live',color:'#ffc820',isNow:true,rows:[],result:'',badge:'',bc:'rgba(255,200,32,.1)'},
-];
 
-/* ═══ RENDER TICKER ═══ */
-function renderTicker() {
-  var items = [
-    ['S&P500','sp500',0],['NASDAQ','nasdaq',0],['VIX','vix',2],
-    ['Złoto','gold',2],['Ropa','oil',2],['BTC','btcusd',0],['ETH','ethusd',2],
-    ['USD/PLN','usdpln',4],['EUR/PLN','eurpln',4],['EUR/USD','eurusd',4],
-    ['WIG20','wig20',0],['Miedź','copper',3]
-  ];
-  var h = '';
-  for (var pass=0; pass<2; pass++) {
-    items.forEach(function(item) {
-      var nm=item[0], k=item[1], dec=item[2];
-      var q = D.q && D.q[k];
-      var pc = q ? dirCls(q.change) : 'neu';
-      h += '<div class="ti"><span class="tn">'+nm+'</span>'
-         + '<span class="tp '+pc+'">'+(q?fmtN(q.price,dec):'&#8230;')+'</span>'
-         + '<span class="tc '+pc+'">'+(q?fmtP(q.change):'')+'</span></div>';
-    });
-  }
-  var e = document.getElementById('tt');
-  if (e) e.innerHTML = h;
+/* ═══════════════════════════════
+   JOURNAL
+═══════════════════════════════ */
+function jLoad(){ try{return JSON.parse(localStorage.getItem(JRN_KEY)||'[]');}catch(e){return[];} }
+function jSave(e){ try{localStorage.setItem(JRN_KEY,JSON.stringify(e));}catch(e){} }
+function jAdd(txt,tag){ var entries=jLoad(); entries.unshift({id:Date.now(),date:new Date().toLocaleString('pl-PL'),text:txt,tag:tag||'notatka',score:SC?SC.norm:null,verdict:SC?SC.verdict:null}); jSave(entries); }
+function jDel(id){ jSave(jLoad().filter(function(e){return e.id!==id;})); }
+
+/* ═══════════════════════════════
+   RENDER: TICKER
+═══════════════════════════════ */
+function renderTicker(){
+  var items=[['S&P500','sp500',0],['NASDAQ','nasdaq',0],['VIX','vix',2],['ISAC','isac',3],['SPY','spy',2],['Złoto','gold',2],['Ropa','oil',2],['Miedź','copper',3],['BTC','btcusd',0],['ETH','ethusd',2],['USD/PLN','usdpln',4],['EUR/PLN','eurpln',4],['EUR/USD','eurusd',4],['DXY','dxy',2],['WIG20','wig20',0],['10Y','us10y',3]];
+  var h='';
+  for(var p=0;p<2;p++) items.forEach(function(it){ var q=D.q[it[1]],pc=q?dC(q.change):'neu'; h+='<div class="ti"><span class="tn">'+it[0]+'</span><span class="tp '+pc+'">'+(q?fN(q.price,it[2]):'…')+'</span><span class="tc '+pc+'">'+(q?fP(q.change):'')+'</span></div>'; });
+  var e=document.getElementById('tt');if(e)e.innerHTML=h;
 }
 
-/* ═══ RENDER DECISION ═══ */
-function renderDecision() {
-  var el = document.getElementById('p-decision');
-  if (!el) return;
-  var sc = calcScore();
-  var f = D.f||{}, vix = sc.vix, fg = sc.fg;
-
-  // Update live history entry
-  HIST[3].rows = [
-    ['VIX', vix.toFixed(1) + (vix>=28?' &#9889;':'')],
-    ['CAPE', ST.cape+'x'],
-    ['HY', (f.hy_spread?f.hy_spread.current:sc.hy).toFixed(2)+'%'],
-    ['F&G', fg!=null?(fg+' '+fgLbl(fg)):'&#8230;'],
-    ['Sahm', sc.sahm.toFixed(2) + (sc.sahm>=0.5?' &#9888;':'')],
-    ['SP500 12M', pctStr(sc.sp12m)],
-  ];
-  HIST[3].result = 'Wynik: '+sc.norm+'/100 &#10142; '+sc.verdict;
-  HIST[3].badge = sc.verdict;
-
-  // Ring
-  var R=34, Ci=2*Math.PI*R, dash=sc.norm/100*Ci;
-
-  // Crypto sparks
-  var h14 = D.cfg ? D.cfg.history : [];
-  var mxS = Math.max.apply(null, h14.map(function(x){return x.score;}).concat([80]));
-  var sparks = h14.map(function(x,i) {
-    var ht = Math.round((x.score/mxS)*34);
-    var cls2 = i===0?'sY':x.score>=65?'sG':x.score<=30?'sR':'';
-    return '<div class="sb '+cls2+'" style="height:'+ht+'px" title="'+x.date+': '+x.score+'"></div>';
+/* ═══════════════════════════════
+   RENDER: DECISION
+═══════════════════════════════ */
+function renderDecision(){
+  var el=document.getElementById('p-decision');if(!el)return;
+  var sc=calcScore(),f=D.f||{};
+  /* update live crisis row */
+  var cx=CRISES[CRISES.length-1];
+  cx.rows=[['VIX',sc.vix.toFixed(1)+(sc.vix>=28?' ⚡':'')],['F&G',sc.fg!=null?(sc.fg+' '+fgL(sc.fg)):'…'],['HY Spread',sc.hy.toFixed(2)+'%'],['Sahm',sc.sahm.toFixed(2)+(sc.sahm>=0.5?' ⚠':'')],['SP500 12M',pS(sc.sp12m)],['Score',sc.norm+'/100']];
+  cx.res='Score: '+sc.norm+'/100 → '+sc.verdict; cx.badge=sc.verdict;
+  /* ring */
+  var R=34,Ci=2*Math.PI*R,dash=sc.norm/100*Ci;
+  /* score dims */
+  var dimH=sc.dims.map(function(d){
+    var pct=Math.round((d.pts+10)/20*100),c=d.pts>=0?'#00e5a8':'#ff3355';
+    return '<div class="sdim"><div class="sdim-l">'+d.label+'</div><div class="sdim-v" style="color:'+c+'">'+d.v+'</div><div class="sdim-p" style="color:'+c+'">'+(d.pts>=0?'+':'')+d.pts+' pkt</div><div class="sdim-bar"><div class="sdim-f" style="width:'+pct+'%;background:'+c+'"></div></div><div style="font-size:8px;color:var(--t2);margin-top:3px">'+d.sub+'</div></div>';
   }).join('');
-  if (!sparks) sparks = '<div style="color:var(--t3);font-size:10px">&#8230;</div>';
-
-  // Group signals
-  var grps = {};
-  sc.sigs.forEach(function(s){ if (!grps[s.g]) grps[s.g]=[]; grps[s.g].push(s); });
-  var sigHtml = '';
-  Object.keys(grps).forEach(function(g) {
-    sigHtml += '<div class="sg-grp">'+g+'</div>';
-    grps[g].forEach(function(s) {
-      var pc = s.s>0?'spG':s.s<0?'spR':'spY';
-      var lbl = s.s>0?'&#8593; Byczo':s.s<0?'&#8595; Niedzwiedzi':'&#8212; Neutral';
-      var vc = s.s>0?'#00e5a0':s.s<0?'#ff4060':'#ffc820';
-      sigHtml += '<div class="sg-row">'
-        + '<div class="sg-n">'+s.n+'</div>'
-        + '<div class="sg-v" style="color:'+vc+'">'+s.v+'</div>'
-        + '<div style="text-align:center"><span class="spill '+pc+'">'+lbl+'</span></div>'
-        + '<div class="sg-d">'+s.d+'</div>'
-        + '</div>';
+  /* rationale */
+  var bull=[],bear=[];
+  if(sc.vix>=28)bull.push('VIX '+sc.vix.toFixed(0)+' (panika=okazja)');
+  if(sc.fg!=null&&sc.fg<=35)bull.push('F&G='+sc.fg+' strach');
+  if(sc.dm_bull)bull.push('Dual Momentum byczo');
+  if(sc.sahm<0.3)bull.push('Brak recesji Sahm='+sc.sahm.toFixed(2));
+  if(sc.hy<3.5)bull.push('Risk-on HY='+sc.hy.toFixed(2)+'%');
+  if(sc.vix<18)bear.push('VIX='+sc.vix.toFixed(0)+' euforia');
+  if(sc.fg!=null&&sc.fg>=65)bear.push('F&G='+sc.fg+' chciwość');
+  if(!sc.dm_bull)bear.push('SP500&lt;IB01 (momentum niedźwiedzi)');
+  if(sc.sahm>=0.5)bear.push('Sahm='+sc.sahm.toFixed(2)+' RECESJA');
+  if(ST.cape>35)bear.push('CAPE='+ST.cape+'x drogie');
+  var rat='';
+  if(bull.length)rat+='<span style="color:var(--G)">▲ '+(bull.join(' · '))+'.</span><br>';
+  if(bear.length)rat+='<span style="color:var(--R)">▼ '+(bear.join(' · '))+'.</span><br>';
+  var vixCtx=sc.vix>=40?'Panika jak 2020/2008':sc.vix>=28?'Podwyższony jak 2018/2022':sc.vix>=20?'Umiarkowany (2011-like)':'Niski jak Q4 2021 — uwaga';
+  rat+='<br><b style="color:var(--t0)">Kontekst:</b> VIX '+sc.vix.toFixed(1)+' — '+vixCtx+'. '+(sc.dm_bull?'Dual Momentum: SP500 &gt; IB01 → DCA w ISAC/VWCE.':'Dual Momentum: SP500 &lt; IB01 → przesuń do IB01.')+'<br><b style="color:var(--Y)">Avg czas od VIX &gt; 28 do lokalnego dołka: 2–5 tygodni (historia: 2011, 2018, 2022).</b>';
+  /* crisis grid */
+  var crH=CRISES.map(function(c,idx){
+    var rows=c.rows.map(function(r){return'<div class="cc-row"><span class="cc-k">'+r[0]+'</span><span class="cc-v" style="color:'+(c.isNow?'var(--Y)':'var(--t0)')+'">'+r[1]+'</span></div>';}).join('');
+    var badge=c.badge?('<span class="cc-badge" style="background:'+c.bc+';color:'+c.color+';border:1px solid '+c.color+'40">'+c.badge+'</span>'):'';
+    return '<style>.cc:nth-of-type('+(idx+1)+')::after{background:'+c.color+'}</style><div class="cc"><div class="cc-era" style="color:'+c.color+'">'+c.era+'</div><div class="cc-title">'+c.title+'</div>'+rows+'<div class="cc-res" style="color:'+c.color+'">'+c.res+'</div>'+badge+'</div>';
+  }).join('');
+  /* sig table */
+  var sigsData=[
+    {g:'Sentyment',sigs:[
+      {n:'VIX',v:sc.vix.toFixed(1),s:sc.vix>=28?1:sc.vix<18?-1:0,d:'Kontrariański: >28=panika=okazja DCA · <15=euforia'},
+      {n:'Fear&Greed',v:sc.fg!=null?String(sc.fg):'?',s:sc.fg!=null?(sc.fg<=35?1:sc.fg>=65?-1:0):0,d:'≤35=strach=kupuj · ≥65=chciwość=uwaga'},
+    ]},
+    {g:'Płynność',sigs:[
+      {n:'M2 YoY',v:sc.m2yoy!=null?pS(sc.m2yoy):'?',s:sc.m2yoy!=null?(sc.m2yoy>3?1:sc.m2yoy<0?-1:0):0,d:'>3%=płynność rośnie · <0%=kontrakcja (2022!)'},
+      {n:'Fed Rate',v:sc.fed.toFixed(2)+'%',s:sc.fed<3?1:sc.fed>5?-1:0,d:'<3%=luźny · >5%=restrykcyjny'},
+    ]},
+    {g:'Momentum',sigs:[
+      {n:'Dual Momentum',v:pS(sc.sp12m),s:sc.dm_bull?1:-1,d:'SP500 12M vs IB01 yield ('+sc.ib01.toFixed(2)+'%)'},
+      {n:'CAPE Shiller',v:ST.cape+'x',s:-1,d:'36.2x, norma 16x — rynek drogi (zawsze bear)'},
+    ]},
+    {g:'Cykl',sigs:[
+      {n:'Sahm Rule',v:sc.sahm.toFixed(2),s:sc.sahm<0.3?1:sc.sahm>0.5?-1:0,d:'<0.30=ok · >0.50=RECESJA w toku'},
+      {n:'HY Spread',v:sc.hy.toFixed(2)+'%',s:sc.hy<3.5?1:sc.hy>6?-1:0,d:'<3.5%=risk-on · >6%=stres kredytowy'},
+      {n:'ISM PMI',v:ST.ism.toFixed(1),s:ST.ism>52?1:0,d:'>50=ekspansja ('+ST.ismDate+')'},
+    ]},
+  ];
+  var sigH='<div class="sigtbl"><div class="sg-row hd"><div>Wskaźnik</div><div style="text-align:center">Wartość</div><div style="text-align:center">Sygnał</div><div>Interpretacja</div></div>';
+  sigsData.forEach(function(grp){
+    sigH+='<div class="sg-grp">'+grp.g+'</div>';
+    grp.sigs.forEach(function(s){
+      var pc=s.s>0?'pG':s.s<0?'pR':'pY',lbl=s.s>0?'▲ Byczo':s.s<0?'▼ Niedźwiedzi':'— Neutral',vc=s.s>0?'var(--G)':s.s<0?'var(--R)':'var(--Y)';
+      sigH+='<div class="sg-row"><div class="sg-n">'+s.n+'</div><div class="sg-v" style="color:'+vc+'">'+s.v+'</div><div style="text-align:center"><span class="pill '+pc+'">'+lbl+'</span></div><div class="sg-d">'+s.d+'</div></div>';
     });
   });
+  sigH+='</div>';
 
-  // Timeline cards
-  var tlHtml = HIST.map(function(h) {
-    var rows = h.rows.map(function(row){
-      return '<div class="tl-row"><span class="tl-k">'+row[0]+'</span><span class="tl-v" style="color:'+(h.isNow?'#ffc820':'var(--t0)')+'">'+row[1]+'</span></div>';
-    }).join('');
-    var badge = h.badge ? '<span class="tl-badge" style="background:'+h.bc+';color:'+h.color+';border:1px solid '+h.color+'40">'+h.badge+'</span>' : '';
-    return '<div class="tlc" style="--tc:'+h.color+'">'
-      + '<style>.tlc:nth-of-type('+( HIST.indexOf(h)+1 )+')::after{background:'+h.color+'}</style>'
-      + '<div class="tl-era" style="color:'+h.color+'">'+h.era+'</div>'
-      + '<div class="tl-title">'+h.title+'</div>'
-      + rows
-      + '<div class="tl-res" style="color:'+h.color+'">'+h.result+'</div>'
-      + badge+'</div>';
-  }).join('');
-
-  // VIX gauge
-  var vixClr = vix>=30?'#00e5a0':vix>=25?'#ffc820':vix<18?'#ff4060':'#7a9fc0';
-  var vixStat = vix>=30?'OKAZJA KONTRARIAŃSKA':vix>=25?'PODWYŻSZONY':vix<18?'EUFORIA - UWAGA!':'NORMALNY';
-  var vixW = Math.min(vix/80*100, 100);
-  var fgW = fg!=null ? fg : 50;
-  var fgClr = fgCol(fg);
-  var vbarClr = sc.norm>=55?'#00e5a0':sc.norm>=42?'#ffc820':'#ff4060';
-
-  var fgSrcNote = D.fg ? ('Zrodlo: '+D.fg.source) : '&#8230;';
-  var dmNote = sc.dm_bull
-    ? 'SP500 &gt; IB01 &#8594; kontynuuj DCA w akcje ETF.'
-    : 'SP500 &lt; IB01 &#8594; przejdz na IB01/EDO jako safe asset.';
-
-  el.innerHTML = '<div class="wrap fu">'
-
-  // HERO
-  + '<div class="hero" style="--vhg:'+sc.vhg+'">'
-  + '<div class="hero-left">'
-  + '<div class="h-eye">Decyzja inwestycyjna &bull; '+new Date().toLocaleDateString('pl-PL',{day:'2-digit',month:'long',year:'numeric'})+'</div>'
-  + '<div class="h-word" style="color:'+sc.color+'">'+sc.verdict+'</div>'
-  + '<div class="h-sbar"><div class="h-track"><div class="h-fill" style="width:'+sc.norm+'%;background:'+vbarClr+'"></div></div><span class="h-score" style="color:'+sc.color+'">'+sc.norm+'<span style="font-size:11px;color:var(--t2)">/100</span></span></div>'
-  + '<div class="h-chips">'
-  + '<span class="chip '+(sc.dm_bull?'cG':'cY')+'">'+(sc.dm_bull?'&#128200; AKCJE ETF':'&#128201; IB01/EDO')+'</span>'
-  + '<span class="chip '+(vix>=28?'cG':'cB')+'">VIX '+vix.toFixed(1)+'</span>'
-  + '<span class="chip '+(fg!=null&&fg<=35?'cG':fg!=null&&fg>=65?'cR':'cY')+'">F&amp;G '+(fg!=null?fg:'&#8230;')+'</span>'
-  + '<span class="chip cV">CAPE '+ST.cape+'x</span>'
-  + '</div>'
-  + '<div class="h-lists">'
-  + (sc.bulls.length ? '<div><span style="color:var(--G)">&#10003; BULLISH:</span><br>' + sc.bulls.map(function(n){return '<span style="color:var(--G)">'+n+'</span>';}).join(' &middot; ')+'</div>' : '<div></div>')
-  + (sc.bears.length ? '<div><span style="color:var(--R)">&#10007; BEARISH:</span><br>' + sc.bears.map(function(n){return '<span style="color:var(--R)">'+n+'</span>';}).join(' &middot; ')+'</div>' : '<div></div>')
-  + '</div>'
-  + '<div class="h-note">'
-  + (vix>=28?'<b style="color:#00e5a0">&#9889; VIX &gt; 28 — sygnał kontrariański — historia mówi DCA</b><br>':'')
-  + '<b style="color:'+(sc.dm_bull?'#00e5a0':'#ffc820')+'">'+dmNote+'</b>'
-  + '</div>'
-  + '</div>'
-  // Right: ring + DM
-  + '<div class="hero-right">'
-  + '<div class="ring-box">'
-  + '<div class="ring-wrap"><svg width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="'+R+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="7"/><circle cx="38" cy="38" r="'+R+'" fill="none" stroke="'+sc.color+'" stroke-width="7" stroke-dasharray="'+dash+' '+Ci+'" stroke-linecap="round" style="transition:stroke-dasharray .9s"/></svg><div class="ring-lbl" style="color:'+sc.color+'">'+sc.norm+'</div></div>'
-  + '<div class="ring-info"><div class="ri-v" style="color:'+sc.color+'">'+sc.norm+'/100</div><div class="ri-l">Wynik kompozytowy</div><div class="ri-sub">'+sc.sigs.filter(function(x){return x.s>0;}).length+' bull &bull; '+sc.sigs.filter(function(x){return x.s<0;}).length+' bear<br>'+sc.sigs.length+' wskaźników łącznie</div></div>'
-  + '</div>'
-  + '<div class="dm-box"><div class="dm-l">Dual Momentum Signal</div><div class="dm-v" style="color:'+(sc.dm_bull?'#00e5a0':'#ffc820')+'">'+(sc.dm_bull?'&#128200; Kup akcje ETF':'&#128201; Przejdź na IB01')+'</div><div class="dm-n">SP500 12M: <b style="color:'+(sc.dm_bull?'#00e5a0':'#ff4060')+'">'+pctStr(sc.sp12m)+'</b><br>IB01 yield: <b>'+sc.ib01.toFixed(2)+'%</b><br>Spread: <b style="color:'+(sc.dm_bull?'#00e5a0':'#ff4060')+'">'+(sc.sp12m-sc.ib01).toFixed(1)+' pp</b></div></div>'
-  + '</div>'
-  + '</div>'
-
-  // GAUGES
-  + '<div class="sl">Sygnały sentymentu — live</div>'
-  + '<div class="gbox">'
-  // VIX
-  + '<div class="gauge"><div class="g-lbl">VIX — Indeks Strachu</div><div class="g-num" style="color:'+vixClr+'">'+vix.toFixed(1)+'</div><div class="g-st" style="color:'+vixClr+'">'+vixStat+'</div>'
-  + '<div class="g-bar"><div class="g-fill" style="width:'+vixW+'%"></div><div class="g-pin" style="left:'+vixW+'%"></div></div>'
-  + '<div class="g-tks"><span>0</span><span>15</span><span>30</span><span>80</span></div>'
-  + '<div class="g-exp"><b>Kontrariański:</b> VIX&#8203;&gt;&#8203;30=panika=DCA · VIX&#8203;&lt;&#8203;15=euforia=uwaga<br>2009: VIX=56 | 2020: VIX=85 — oba były okazją. Teraz: <b style="color:'+vixClr+'">'+vix.toFixed(1)+'</b></div>'
-  + '</div>'
-  // F&G
-  + '<div class="gauge"><div class="g-lbl">Fear &amp; Greed CNN</div><div class="g-num" style="color:'+fgClr+'">'+(fg!=null?fg:'&#8230;')+'</div><div class="g-st" style="color:'+fgClr+'">'+fgLbl(fg)+'</div>'
-  + '<div class="g-bar"><div class="g-fill" style="width:'+fgW+'%"></div><div class="g-pin" style="left:'+fgW+'%"></div></div>'
-  + '<div class="g-ctx"><div class="gct"><div class="gct-l">Wczoraj</div><div class="gct-v" style="color:'+fgCol(D.fg&&D.fg.prev_close)+'">'+(D.fg&&D.fg.prev_close!=null?D.fg.prev_close:'&#8212;')+'</div></div>'
-  + '<div class="gct"><div class="gct-l">Tydz.</div><div class="gct-v" style="color:'+fgCol(D.fg&&D.fg.prev_week)+'">'+(D.fg&&D.fg.prev_week!=null?D.fg.prev_week:'&#8212;')+'</div></div>'
-  + '<div class="gct"><div class="gct-l">Mies.</div><div class="gct-v" style="color:'+fgCol(D.fg&&D.fg.prev_month)+'">'+(D.fg&&D.fg.prev_month!=null?D.fg.prev_month:'&#8212;')+'</div></div></div>'
-  + '<div class="g-exp" style="font-size:9px">'+fgSrcNote+'<br>0-24=EXTREME FEAR=kupuj mocno · 25-44=FEAR=kupuj<br>75-100=GREED/EXTREME GREED=wstrzymaj zakupy</div>'
-  + '</div>'
-  // Crypto F&G
-  + '<div class="gauge"><div class="g-lbl">Crypto F&amp;G — 14 dni</div>'
-  + '<div style="display:flex;align-items:center;gap:12px"><div><div class="g-num" style="color:'+fgCol(D.cfg&&D.cfg.score)+';font-size:30px">'+(D.cfg?D.cfg.score:'&#8230;')+'</div><div style="font-size:9.5px;font-weight:700;color:'+fgCol(D.cfg&&D.cfg.score)+';letter-spacing:.5px;font-family:var(--ff)">'+fgLbl(D.cfg&&D.cfg.score)+'</div></div>'
-  + '<div style="flex:1"><div class="spark-row">'+sparks+'</div><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--t3);margin-top:3px"><span>&#8592; 14 dni temu</span><span>dziś &#8594;</span></div></div></div>'
-  + '<div class="g-exp" style="margin-top:9px">Zr: alternative.me API · Extreme Fear (&lt;25) = hist. dobry moment na BTC</div></div>'
-  + '</div>'
-
-  // TIMELINE
-  + '<div class="sl">Historia — dołki i górki rynkowe</div>'
-  + '<div class="tl">'+tlHtml+'</div>'
-
-  // SIGNALS
-  + '<div class="sl">Wszystkie sygnały — '+sc.sigs.length+' wskaźników</div>'
-  + '<div class="sigs-wrap"><div class="sg-row hd"><div>Wskaźnik</div><div style="text-align:center">Wartość</div><div style="text-align:center">Sygnał</div><div>Interpretacja</div></div>'
-  + sigHtml + '</div>'
-
-  // FOOTER
-  + '<div style="margin-top:12px;background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.1);border-radius:var(--r);padding:10px 13px;font-size:10.5px;color:var(--t1);line-height:1.8">'
-  + '<b style="color:var(--t0)">Howard Marks: "Knowing Where We Stand"</b> — nie na euforycznym szczycie (2021: CAPE 38, VIX 15, F&amp;G 80), ani na historycznym dnie (2009: VIX 56, CAPE 13, HY 22%). '
-  + '<b style="color:'+(sc.dm_bull?'#00e5a0':'#ffc820')+'">'+dmNote+'</b>'
-  + ' Strategia: DCA co czwartek · +30% w sierpniu/wrześniu · rebalans 28 grudnia.'
-  + '</div>'
-  + '</div>';
+  el.innerHTML='<div class="wrap fu">'
+  +'<div class="hero" style="--vhg:'+sc.vhg+'">'
+  +'<div>'
+  +'<div class="h-eye">Decision Engine · '+new Date().toLocaleDateString('pl-PL',{day:'2-digit',month:'long',year:'numeric'})+'</div>'
+  +'<div class="h-word" style="color:'+sc.color+'">'+sc.verdict+'</div>'
+  +'<div class="h-bar-row"><div class="h-track"><div class="h-fill" style="width:'+sc.norm+'%;background:'+sc.color+'"></div></div><span class="h-score" style="color:'+sc.color+'">'+sc.norm+'<span style="font-size:10px;color:var(--t2)">/100</span></span></div>'
+  +'<div class="h-chips">'
+  +'<span class="chip '+(sc.dm_bull?'cG':'cY')+'">'+(sc.dm_bull?'▲ AKCJE ETF':'▼ IB01/EDO')+'</span>'
+  +'<span class="chip '+(sc.vix>=28?'cG':'cB')+'">VIX '+sc.vix.toFixed(1)+'</span>'
+  +'<span class="chip '+(sc.fg!=null&&sc.fg<=35?'cG':sc.fg!=null&&sc.fg>=65?'cR':'cY')+'">F&amp;G '+(sc.fg!=null?sc.fg:'…')+'</span>'
+  +'<span class="chip cV">CAPE '+ST.cape+'x</span>'
+  +'<span class="chip cY">Total '+(sc.total>=0?'+':'')+sc.total+'/50</span>'
+  +'</div>'
+  +'<div class="h-rationale">'+rat+'</div>'
+  +'</div>'
+  +'<div class="h-right">'
+  +'<div class="ring-box">'
+  +'<div class="ring-wrap"><svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="6"/><circle cx="37" cy="37" r="'+R+'" fill="none" stroke="'+sc.color+'" stroke-width="6" stroke-dasharray="'+dash+' '+Ci+'" stroke-linecap="round" style="transition:stroke-dasharray .9s"/></svg><div class="ring-num" style="color:'+sc.color+'">'+sc.norm+'</div></div>'
+  +'<div><div class="ri-v" style="color:'+sc.color+'">'+sc.norm+'/100</div><div class="ri-l">Composite Score</div><div class="ri-s">'+bull.length+' bull · '+bear.length+' bear<br>5 wymiarów · ±10 każdy</div></div>'
+  +'</div>'
+  +'<div class="dmcard"><div class="dm-lbl">Dual Momentum</div><div class="dm-sig" style="color:'+(sc.dm_bull?'var(--G)':'var(--Y)')+'">'+(sc.dm_bull?'▲ AKCJE ETF':'▼ IB01')+'</div><div class="dm-n">SP500 12M: <b style="color:'+(sc.dm_bull?'var(--G)':'var(--R)')+'">'+pS(sc.sp12m)+'</b><br>IB01 yield: <b>'+sc.ib01.toFixed(2)+'%</b><br>Spread: <b style="color:'+(sc.dm_bull?'var(--G)':'var(--R)')+'">'+(sc.sp12m-sc.ib01).toFixed(1)+' pp</b></div></div>'
+  +'</div>'
+  +'</div>'
+  +'<div class="sec">System scoringowy — 5 wymiarów</div>'
+  +'<div class="sdims">'+dimH+'</div>'
+  +'<div class="chartbox"><div class="chdr"><span class="ch-t">Score per wymiar</span><span class="ch-s">−10…+10 każdy | suma: '+(sc.total>=0?'+':'')+sc.total+'</span></div><div class="chbody"><div id="ch-dims" style="height:160px"></div></div></div>'
+  +'<div class="sec">Porównanie do kryzysów historycznych</div>'
+  +'<div class="cg4">'+crH+'</div>'
+  +'<div class="chartbox"><div class="chdr"><span class="ch-t">VIX + F&amp;G: obecny rynek vs historia</span><span class="ch-s">kryzysy 2008/2018/2020/2022</span></div><div class="chbody"><div id="ch-crisis" style="height:220px"></div></div></div>'
+  +'<div class="sec">Wszystkie sygnały</div>'
+  +sigH
+  +'<div style="margin-top:12px;background:rgba(0,229,168,.04);border:1px solid rgba(0,229,168,.1);border-radius:var(--r);padding:10px 13px;font-size:10.5px;color:var(--t1);line-height:1.8">'
+  +'<b style="color:var(--t0)">Howard Marks: "Knowing Where We Stand"</b> — system analizuje 5 wymiarów: sentyment (VIX/F&amp;G), płynność (M2/SOFR), positioning (COT/VIX), cykl (Sahm/HY), momentum (DualMomentum/CAPE). Suma: '+(sc.total>=0?'+':'')+sc.total+'/50. Próg KUP: ≥+20 | Akumuluj: +5..+20 | Neutral: ±5 | Redukuj: −5..−20 | Sprzedaj: &lt;−20.'
+  +'</div>'
+  +'</div>';
+  setTimeout(function(){ plotScoreDims('ch-dims'); plotCrisisCompare('ch-crisis'); },50);
 }
 
-/* ═══ RENDER INDICATORS ═══ */
-function renderIndicators() {
-  var el = document.getElementById('p-indicators');
-  if (!el) return;
-  var f = D.f||{}, q = D.q||{};
-  function fv(k) { return (f[k]&&f[k].current!=null) ? f[k].current : null; }
-  function fc(k,d,s) { d=d||2; s=s||''; return f[k] ? Number(f[k].current).toFixed(d)+s : '&#8230;'; }
-  function fy(k,d) { d=d||1; return (f[k]&&f[k].yoy!=null) ? ((f[k].yoy>=0?'+':'')+f[k].yoy.toFixed(d)+'%') : '&#8230;'; }
+/* ═══════════════════════════════
+   RENDER: SENTIMENT
+═══════════════════════════════ */
+function renderSentiment(){
+  var el=document.getElementById('p-sentiment');if(!el)return;
+  var sc=SC||calcScore();
+  var vix=sc.vix,fg=sc.fg;
+  var vixW=Math.min(vix/80*100,100),fgW=fg!=null?fg:50;
+  var vixC=vix>=30?'var(--G)':vix>=25?'var(--Y)':vix<18?'var(--R)':'var(--t1)';
+  var vixSt=vix>=30?'OKAZJA KONTRARIAŃSKA':vix>=25?'PODWYŻSZONY':vix<18?'EUFORIA — UWAGA':'NORMALNY';
+  var h14=D.cfg?D.cfg.history:[];
+  var mxs=Math.max.apply(null,h14.map(function(x){return x.score;}).concat([80]));
+  var sparks=h14.map(function(x,i){var ht=Math.round(x.score/mxs*34);var cl=i===0?'sbY':x.score>=65?'sbG':x.score<=30?'sbR':'';return'<div class="sb '+cl+'" style="height:'+ht+'px" title="'+x.date+': '+x.score+'"></div>';}).join('');
+  /* F&G percentile and historical returns */
+  var fgPct=fg!=null?(fg<=20?'dolny 5%':fg<=35?'dolny 20%':fg<=50?'50%':fg<=70?'górny 50%':'górny 10%'):'—';
+  var r3=fg!=null?(fg<=25?'+18.4%':fg<=35?'+12.1%':fg<=50?'+6.2%':fg<=65?'+3.1%':'-2.4%'):'—';
+  var r6=fg!=null?(fg<=25?'+28.7%':fg<=35?'+19.4%':fg<=50?'+9.8%':fg<=65?'+5.2%':'+1.1%'):'—';
+  var r12=fg!=null?(fg<=25?'+42.3%':fg<=35?'+31.8%':fg<=50?'+16.4%':fg<=65?'+10.7%':'+6.2%'):'—';
+  var move=(D.f&&D.f.move&&D.f.move.current)?D.f.move.current:null;
 
-  var fed = fv('fedfunds')!=null ? fv('fedfunds') : ST.fed;
-  var cpi = (f.cpi&&f.cpi.yoy!=null) ? f.cpi.yoy : null;
-  var ccpi = (f.core_cpi&&f.core_cpi.yoy!=null) ? f.core_cpi.yoy : null;
-  var yc = fv('yield_curve');
-  var hy = fv('hy_spread')!=null ? fv('hy_spread') : 2.84;
-  var sahm = fv('sahm')!=null ? fv('sahm') : 0.30;
-  var unrate = fv('unrate');
-  var tips = fv('tips10y');
-  var vix = (q.vix&&q.vix.price) || (fv('vixfred')!=null?fv('vixfred'):29.5);
-  var us10y = (q.us10y&&q.us10y.price) || ST.us10y;
-
-  function ic(title, src, val, vc, date, sg, desc, buy, sell) {
-    var cls2 = sg==='g'?'G':sg==='r'?'R':'Y';
-    var pill = sg==='g'?'spG':sg==='r'?'spR':'spY';
-    var plbl = sg==='g'?'&#8593; Byczo':sg==='r'?'&#8595; Niedzwiedzi':'&#8212; Neutral';
-    return '<div class="ic '+cls2+'">'
-      + '<div class="ic-h"><div class="ic-t">'+title+'</div><div class="ic-src">'+src+'</div></div>'
-      + '<div class="ic-v" style="color:'+vc+'">'+val+'</div>'
-      + '<div class="ic-d">'+date+'</div>'
-      + '<span class="ic-badge chip '+pill+'">'+plbl+'</span>'
-      + '<div class="ic-desc">'+desc+'</div>'
-      + '<div class="ic-io"><span style="color:#00e5a0">&#10003;</span> '+buy+'<br><span style="color:#ff4060">&#10007;</span> '+sell+'</div>'
-      + '</div>';
-  }
-
-  var fedC = fed>4?'#ff4060':fed>2?'#ffc820':'#00e5a0';
-  var cpiC = cpi!=null?(cpi>4?'#ff4060':cpi>2.5?'#ffc820':'#00e5a0'):'#7a9fc0';
-  var ycC = yc!=null?(yc<-0.2?'#ff4060':yc<0.5?'#ffc820':'#00e5a0'):'#7a9fc0';
-  var hyC = hy>6?'#ff4060':hy>4.5?'#ffc820':'#00e5a0';
-  var sahmC = sahm>=0.5?'#ff4060':sahm>=0.3?'#ffc820':'#00e5a0';
-  var vixC = vix>=30?'#00e5a0':vix>=25?'#ffc820':vix<18?'#ff4060':'#7a9fc0';
-  var urC = unrate!=null?(unrate>5?'#ff4060':unrate>4?'#ffc820':'#00e5a0'):'#7a9fc0';
-
-  el.innerHTML = '<div class="wrap">'
-  + '<div class="sl">Fed i polityka monetarna</div>'
-  + '<div class="igrid">'
-  + ic('Fed Funds Rate','FRED FEDFUNDS', fv('fedfunds')!=null?fc('fedfunds',2,'%'):'3.75%', fedC, f.fedfunds?f.fedfunds.date:ST.fedDate, fed<3?'g':fed>4.5?'r':'y', 'Stopa Fed: '+fed.toFixed(2)+'%. Obniżka -25bp Gru 2025. Niższe stopy = wyzsze P/E = akcje drozeja.','Stopa spada — P/E rośnie, akcje w górę','Stopa powyżej 5% — zaciskanie, wyceny pod presją')
-  + ic('M2 YoY','FRED M2SL', fy('m2',1), '#7a9fc0', f.m2?f.m2.date:'&#8212;', (f.m2&&f.m2.yoy>4)?'g':(f.m2&&f.m2.yoy<0)?'r':'y', 'Roczna zmiana M2. Fed kontroluje tylko M0 (rezerwy). M2 rosnie przez akcje kredytowa bankow. Wzrost M2 != drukowanie.','M2 YoY &gt;4% — płynność rośnie, aktywa w górę','M2 YoY &lt;0% — kontrakcja kredytu (2022!)')
-  + ic('Bilans Fed (QE/QT)','FRED WALCL', f.fed_bs&&f.fed_bs.current?(f.fed_bs.current/1e6).toFixed(2)+' T$':'&#8230;', '#7a9fc0', f.fed_bs?f.fed_bs.date:'&#8212;', 'y', 'Suma aktywów Fed. QE = skup obligacji = rezerwy (M0). QT = redukcja. Szczyt 2022: ~9T$.','QE: bilans rośnie — wspiera rynki','QT: bilans spada — odpływ płynności')
-  + '</div>'
-  + '<div class="sl">Inflacja i stopy realne</div>'
-  + '<div class="igrid">'
-  + ic('CPI Inflacja YoY','FRED CPIAUCSL', fy('cpi',2), cpiC, f.cpi?f.cpi.date:'&#8212;', cpi!=null?(cpi<2.5?'g':cpi>4?'r':'y'):'y', 'Roczna zmiana CPI. Cel Fed: 2%. Inflacja &gt;4% = Fed podnosi stopy = wyceny akcji pod presją.','CPI &lt;2.5% — Fed może ciąć, P/E rośnie','CPI &gt;4% — podwyżki, bear market')
-  + ic('Core CPI','FRED CPILFESL', fy('core_cpi',2), (ccpi!=null?(ccpi<2.5?'#00e5a0':ccpi>3?'#ff4060':'#ffc820'):'#7a9fc0'), f.core_cpi?f.core_cpi.date:'&#8212;', ccpi!=null?(ccpi<2.5?'g':ccpi>3?'r':'y'):'y', 'Inflacja bazowa (bez żywn./energii). Fed śledzi jako proxy Core PCE. Cel 2%.','Core CPI &lt;2.5% — Fed komfortowy','Core CPI &gt;3% — lepka inflacja, Fed restrykcyjny')
-  + ic('TIPS 10Y Breakeven','FRED T10YIE', fc('tips10y',2,'%'), '#7a9fc0', f.tips10y?f.tips10y.date:'&#8212;', tips!=null?(tips<2.5?'g':tips>3?'r':'y'):'y', 'Rynkowe oczekiwania inflacji 10-letniej (10Y Treasury minus 10Y TIPS).','&lt;2% — rynek wierzy w cel Fed','&gt;3% — premia inflacyjna, ryzyko podwyżek')
-  + '</div>'
-  + '<div class="sl">Rynek pracy i cykl koniunkturalny</div>'
-  + '<div class="igrid">'
-  + ic('Sahm Rule — recesja','FRED SAHMREALTIME', fc('sahm',2), sahmC, f.sahm?f.sahm.date:'&#8212;', sahm<0.3?'g':sahm>0.5?'r':'y', 'Wzrost bezrobocia &gt;0.5pp ponad 12-mies. minimum = recesja. Teraz: '+sahm.toFixed(2)+', próg: 0.50.','Sahm &lt;0.30 — brak recesji','Sahm &gt;0.50 — RECESJA w toku')
-  + ic('Bezrobocie USA','FRED UNRATE', fc('unrate',1,'%'), urC, f.unrate?f.unrate.date:'&#8212;', unrate!=null?(unrate<4?'g':unrate>5?'r':'y'):'y', 'Full employment ~4-4.5%. Gwałtowny wzrost = recesja.','&lt;4.5% — pełne zatrudnienie, konsumpcja silna','&gt;5% i rośnie — recesja, sprzedaj cykliczne')
-  + ic('ISM Manufacturing PMI','TradingEconomics Lut 2026', ST.ism.toFixed(1), '#00e5a0', ST.ismDate, 'g', 'PMI '+ST.ism+' — &gt;50=ekspansja. Lut 2026 powyzej konsensusu 51.8.','PMI &gt;55 — silna ekspansja','PMI &lt;45 — kontrakcja, ryzyko recesji')
-  + '</div>'
-  + '<div class="sl">Rynki finansowe, kredyt, wyceny</div>'
-  + '<div class="igrid">'
-  + ic('Yield Curve 10Y-2Y','FRED T10Y2Y', fc('yield_curve',2,'%'), ycC, f.yield_curve?f.yield_curve.date:'&#8212;', yc!=null?(yc>0.5?'g':yc<-0.2?'r':'y'):'y', 'Inwersja &lt;0% = recesja za 12-18 mies. (98% historycznie). Normalizacja = bull signal.','&gt;0.5% — normalna krzywa, ekspansja','&lt;-0.2% — inwersja, recesja na horyzoncie')
-  + ic('HY Spread','FRED BAMLH0A0HYM2', hy.toFixed(2)+'%', hyC, f.hy_spread?f.hy_spread.date:'FRED', hy<3.5?'g':hy>6?'r':'y', 'Spread HY vs Treasuries: '+hy.toFixed(2)+'%. GFC: 22%, COVID: 11%, norma: 3-5%.','&lt;3.5% — risk-on, akcje mogą rosnąć','&gt;6% — stres kredytowy, redukuj ryzyko')
-  + ic('CAPE Shiller P/E','multpl.com Mar 2026', ST.cape+'x', '#ff8c42', 'Mar 2026', 'r', 'S&P500 / 10-letnie śred. zyski. Norma: 16x. 2000: 44x. 2021: 38x. Teraz: '+ST.cape+'x — drogie.','CAPE &lt;15x — hist. tanie, zwroty &gt;10%','CAPE &gt;35x — drogie, oczekiwany zwrot ~3-5%')
-  + ic('VIX','stooq ^vix / FRED VIXCLS', vix.toFixed(1), vixC, q.vix?q.vix.date:f.vixfred?f.vixfred.date:'&#8212;', vix>=28?'g':vix<18?'r':'y', 'Kontrariański: VIX&gt;28 = okazja. 2009: 56, 2020: 85 — oba mega okazje zakupowe.','VIX &gt;30 — rynek w panice, DCA','VIX &lt;15 — euforia, nie zwiększaj pozycji')
-  + ic('US 10Y Yield','stooq + TradingEconomics', (q.us10y?q.us10y.price:ST.us10y).toFixed(2)+'%', '#7a9fc0', q.us10y?q.us10y.date:ST.fedDate, 'y', 'Risk-free rate. Wyższy yield = droższy kapital = presja na wyceny DCF.','Yield spada — koszt kapitału tanieje','Yield &gt;5% — konkurencja dla akcji')
-  + '</div>'
-  + '<div class="sl">Rynki — tabele i notowania na żywo</div>'
-  + '<div class="lgrid">'
-  + '<a class="lnk" href="https://stooq.pl/t/?i=510" target="_blank">&#127482;&#127480; US Indeksy</a>'
-  + '<a class="lnk" href="https://stooq.pl/t/?i=511" target="_blank">&#127466;&#127482; EU Indeksy</a>'
-  + '<a class="lnk" href="https://stooq.pl/t/?i=536" target="_blank">&#127978; Obligacje</a>'
-  + '<a class="lnk" href="https://stooq.pl/t/?i=544" target="_blank">&#128242; Surowce</a>'
-  + '<a class="lnk" href="https://www.money.pl/gielda/indeksy_gpw/" target="_blank">&#127477;&#127473; GPW money.pl</a>'
-  + '<a class="lnk" href="https://tradingeconomics.com/stocks" target="_blank">&#128202; TradingEconomics</a>'
-  + '<a class="lnk" href="https://touch.biznesradar.pl/gielda/etf" target="_blank">&#128203; BiznesRadar ETF</a>'
-  + '<a class="lnk" href="https://stooq.pl/t/?i=539" target="_blank">&#8383; Krypto</a>'
-  + '<a class="lnk" href="https://www.google.com/finance/quote/ISAC:LSE" target="_blank">&#128200; ISAC Google</a>'
-  + '<a class="lnk" href="https://www.google.com/finance/quote/VWCE:XETRA" target="_blank">&#128200; VWCE Google</a>'
-  + '<a class="lnk" href="https://www.google.com/finance/quote/SWRD:LSE" target="_blank">&#128200; SWRD Google</a>'
-  + '<a class="lnk" href="https://bossa.pl/notowania/indeksy-swiatowe" target="_blank">&#127758; Bossa Świat</a>'
-  + '</div>'
-  + '</div>';
+  el.innerHTML='<div class="wrap">'
+  +'<div class="sec">VIX — indeks zmienności (kontrariański)</div>'
+  +'<div class="g2">'
+  +'<div class="card"><div class="gc">'
+  +'<div class="gc-top"><span class="gc-l">VIX</span><span class="gc-src">stooq ^vix · FRED VIXCLS (fallback)</span></div>'
+  +'<div class="gc-v" style="color:'+vixC+'">'+vix.toFixed(1)+'</div>'
+  +'<div class="gc-st" style="color:'+vixC+'">'+vixSt+'</div>'
+  +'<div class="gc-track"><div class="gc-fill" style="width:'+vixW+'%"></div><div class="gc-pin" style="left:'+vixW+'%"></div></div>'
+  +'<div class="gc-ticks"><span>0</span><span>15</span><span>30</span><span>50</span><span>80</span></div>'
+  +'<div class="gc-ctx"><div class="gcc"><div class="gcc-l">10Y avg</div><div class="gcc-v" style="color:var(--t1)">17.5</div></div><div class="gcc"><div class="gcc-l">Percentyl hist.</div><div class="gcc-v" style="color:'+vixC+'">'+Math.round(vix/80*100)+'%</div></div><div class="gcc"><div class="gcc-l">Max 2020</div><div class="gcc-v" style="color:var(--R)">85</div></div></div>'
+  +'<div class="gc-exp"><b>KONTRARIAŃSKI:</b> VIX&gt;30=panika=DCA | VIX&lt;15=euforia=nie zwiększaj.<br>Punkty: &gt;40=+10 | 30-40=+7 | 20-30=+3 | 15-20=0 | &lt;15=−5<br>2009: VIX=56→+300% | 2020: VIX=85→+100%</div>'
+  +'</div></div>'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">VIX vs kryzysy historyczne</span><span class="ch-s">dni od początku epizodu</span></div><div class="chbody"><div id="ch-vix" style="height:200px"></div></div></div>'
+  +'</div>'
+  +'<div class="sec">Fear &amp; Greed Index</div>'
+  +'<div class="g2">'
+  +'<div class="card"><div class="gc">'
+  +'<div class="gc-top"><span class="gc-l">F&amp;G Index</span><span class="gc-src">'+(D.fg?D.fg.source:'…')+'</span></div>'
+  +'<div class="gc-v" style="color:'+fgC(fg)+'">'+(fg!=null?fg:'…')+'</div>'
+  +'<div class="gc-st" style="color:'+fgC(fg)+'">'+fgL(fg)+'</div>'
+  +'<div class="gc-track"><div class="gc-fill" style="width:'+fgW+'%"></div><div class="gc-pin" style="left:'+fgW+'%"></div></div>'
+  +'<div class="gc-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>'
+  +'<div class="gc-ctx"><div class="gcc"><div class="gcc-l">Wczoraj</div><div class="gcc-v" style="color:'+fgC(D.fg&&D.fg.prev_close)+'">'+(D.fg&&D.fg.prev_close!=null?D.fg.prev_close:'—')+'</div></div><div class="gcc"><div class="gcc-l">Tydz.</div><div class="gcc-v" style="color:'+fgC(D.fg&&D.fg.prev_week)+'">'+(D.fg&&D.fg.prev_week!=null?D.fg.prev_week:'—')+'</div></div><div class="gcc"><div class="gcc-l">Mies.</div><div class="gcc-v" style="color:'+fgC(D.fg&&D.fg.prev_month)+'">'+(D.fg&&D.fg.prev_month!=null?D.fg.prev_month:'—')+'</div></div></div>'
+  +'<div class="gc-exp">0-24 EXTREME FEAR | 25-44 FEAR | 45-55 NEUTRAL | 56-74 GREED | 75-100 EXTREME GREED<br>Dane hist.: <a href="https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/" target="_blank" style="color:var(--B)">finhacker.cz →</a></div>'
+  +'</div></div>'
+  +'<div class="card" style="margin:0"><div class="cp">'
+  +'<div class="kl" style="margin-bottom:8px">Percentyl historyczny &amp; oczekiwane zwroty ETF (25 lat)</div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
+  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Percentyl F&amp;G</div><div style="font-family:var(--sans);font-size:16px;font-weight:700;color:'+fgC(fg)+'">'+fgPct+'</div></div>'
+  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Scoring pkt</div><div style="font-family:var(--sans);font-size:16px;font-weight:700;color:'+(SC&&SC.dims[0].pts>=0?'var(--G)':'var(--R)')+'">'+(SC?((SC.dims[0].pts>=0?'+':'')+SC.dims[0].pts):'+0')+'</div></div>'
+  +'</div>'
+  +'<div class="kl" style="margin-bottom:6px">Avg zwrot globalnych ETF po ekstremalnym strachu F&amp;G ≤ 25</div>'
+  +'<div class="fg-rets"><div class="fgr"><div class="fgr-l">3 miesiące</div><div class="fgr-v" style="color:var(--G)">'+r3+'</div></div><div class="fgr"><div class="fgr-l">6 miesięcy</div><div class="fgr-v" style="color:var(--G)">'+r6+'</div></div><div class="fgr"><div class="fgr-l">12 miesięcy</div><div class="fgr-v" style="color:var(--G)">'+r12+'</div></div></div>'
+  +'<div style="font-size:9.5px;color:var(--t2);margin-top:9px;line-height:1.65">Analiza 1990-2025. Gdy F&amp;G ≤ 20, dołek lokalny avg <b style="color:var(--t0)">2–5 tygodni</b> od pierwszego sygnału paniki. Warunki podobne do: Oct 2008, Dec 2018, Mar 2020.</div>'
+  +'</div></div>'
+  +'</div>'
+  +'<div class="sec">Crypto Fear &amp; Greed — 14 dni</div>'
+  +'<div class="card"><div class="cp" style="display:flex;align-items:center;gap:20px">'
+  +'<div><div class="gc-v" style="color:'+fgC(D.cfg&&D.cfg.score)+';font-size:38px">'+(D.cfg?D.cfg.score:'…')+'</div><div class="gc-st" style="color:'+fgC(D.cfg&&D.cfg.score)+'">'+fgL(D.cfg&&D.cfg.score)+'</div></div>'
+  +'<div style="flex:1"><div class="spark">'+(sparks||'<div style="color:var(--t3);font-size:10px">ładowanie…</div>')+'</div><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--t3);margin-top:3px"><span>← 14 dni</span><span>dziś →</span></div></div>'
+  +'<div style="font-size:10px;color:var(--t1);line-height:1.8">Extreme Fear &lt;25<br>= hist. okazja BTC<br>Zr: alternative.me</div>'
+  +'</div></div>'
+  +(move!=null?'<div class="sec">MOVE Index — zmienność obligacji (bond VIX)</div><div class="card"><div class="cp" style="display:flex;align-items:center;gap:16px"><div><div class="kl">MOVE</div><div class="gc-v" style="color:'+(move>120?'var(--R)':move>90?'var(--Y)':'var(--G)')+'">'+move.toFixed(0)+'</div></div><div style="font-size:10px;color:var(--t1);line-height:1.8">MOVE &gt;120 = stres obligacyjny, wyprzedza stres akcji.<br>FRED MOVE · norma ~80 | teraz: '+move.toFixed(0)+'</div></div></div>':'')
+  +'</div>';
+  setTimeout(function(){ plotVIXCrisis('ch-vix'); },50);
 }
 
-/* ═══ RENDER COT ═══ */
-function renderCOT() {
-  var el = document.getElementById('p-cot');
-  if (!el) return;
-  var markets = [
-    {name:'S&P 500 E-mini',code:'ES',cat:'Akcje',comm:{l:13},noncomm:{l:72},small:{l:35},sig:'Fundusze LONG · Komercyjne hedgują ekspozycję',sc:'#00e5a0',note:'Non-comm dominują po stronie long. Trend wzrostowy w akcjach = fundusze wzmacniają.'},
-    {name:'US 10Y Treasury',code:'TY',cat:'Obligacje',comm:{l:62},noncomm:{l:28},small:{l:45},sig:'Fundusze SHORT obligacje = zakład na wzrost rentowności',sc:'#ff4060',note:'Makro fundy shortują US10Y → oczekują inflacji. Banki long = naturalny hedge ALM.'},
-    {name:'Złoto (Gold GC)',code:'GC',cat:'Surowce',comm:{l:15},noncomm:{l:78},small:{l:68},sig:'Fundusze LONG złoto (inflation hedge + risk-off)',sc:'#ffc820',note:'Producenci złota zawsze short (hedge wydobycia). Non-comm long = trend wzrostowy złota.'},
-    {name:'Ropa WTI (CL)',code:'CL',cat:'Surowce',comm:{l:42},noncomm:{l:55},small:{l:48},sig:'Fundusze redukują long — ostrożność wobec ropy',sc:'#ffc820',note:'Brak spekulacyjnego popytu. Ropa wrażliwa na OPEC+ i dane z Chin.'},
-    {name:'EUR/USD (6E)',code:'6E',cat:'Waluty',comm:{l:55},noncomm:{l:38},small:{l:52},sig:'Fundusze SHORT EUR/USD = zakład na siłę USD',sc:'#ff4060',note:'Large specs shortują EUR → dolar silny przy wyższych stopach Fed vs ECB.'},
-    {name:'VIX Futures (VX)',code:'VX',cat:'Sentyment',comm:{l:72},noncomm:{l:25},small:{l:38},sig:'Vol sellers SHORT VIX — zakład na niską zmienność',sc:'#a78bfa',note:'Non-comm masowo short VIX = sprzedają zmienność. Ryzyko short squeeze przy panice.'},
+/* ═══════════════════════════════
+   RENDER: LIQUIDITY
+═══════════════════════════════ */
+function renderLiquidity(){
+  var el=document.getElementById('p-liquidity');if(!el)return;
+  var f=D.f||{};
+  var m2=f.m2,fedb=f.fed_bs,sofr=f.sofr,rrp=f.rrp;
+  var m2yoy=m2&&m2.yoy!=null?m2.yoy:null;
+  var m2yoyC=m2yoy!=null?(m2yoy>3?'var(--G)':m2yoy<0?'var(--R)':'var(--Y)'):'var(--t1)';
+  var fedBln=fedb&&fedb.current?fedb.current/1e6:null;
+  var sofrV=sofr&&sofr.current?sofr.current:null;
+  var sofrT3=sofr&&sofr.trend3m!=null?sofr.trend3m:null;
+  var sofrY=sofr&&sofr.yoy!=null?sofr.yoy:null;
+  var rrpV=rrp&&rrp.current?rrp.current:null;
+
+  el.innerHTML='<div class="wrap">'
+  +'<div class="sec">Warstwy podaży pieniądza M0/M1/M2</div>'
+  +'<div class="llayers">'
+  +'<div class="ll" style="border-left:2px solid var(--B)"><div><div class="ll-tag" style="color:var(--B)">M0</div><div class="ll-sub">BAZA MON.</div></div><div class="ll-def"><b>Fed kontroluje bezpośrednio.</b> Gotówka + rezerwy banków w Fed. QE tworzy M0 — ale rezerwy NIE wchodzą do gospodarki bez akcji kredytowej. Bilans Fed: <b style="color:var(--B)">'+(fedBln?fedBln.toFixed(2)+' T$':'ładowanie…')+'</b></div><div class="ll-sig" style="background:rgba(42,157,245,.08);color:var(--B);border:1px solid rgba(42,157,245,.2)">QE → bilans rośnie → M0 rośnie → wspiera wyceny. FRED: WALCL</div></div>'
+  +'<div class="ll" style="border-left:2px solid var(--G)"><div><div class="ll-tag" style="color:var(--G)">M1</div><div class="ll-sub">PIENIĄDZ TRANS.</div></div><div class="ll-def">M0 + gotówka + RORy. Rośnie przez <b>akcję kredytową banków</b>. Udzielenie kredytu = nowy depozyt = wzrost M1. Fed nie steruje M1 bezpośrednio.</div><div class="ll-sig" style="background:rgba(0,229,168,.08);color:var(--G);border:1px solid rgba(0,229,168,.2)">Wzrost M1 = gospodarka pożycza = zyski firm rosną = akcje w górę.</div></div>'
+  +'<div class="ll" style="border-left:2px solid var(--Y)"><div><div class="ll-tag" style="color:var(--Y)">M2</div><div class="ll-sub">SZEROKA PODAŻ</div></div><div class="ll-def">M1 + lokaty + fundusze rynku pieniężnego. Głównie rynkowa. USA M2: <b style="color:var(--B)">'+(m2&&m2.current?'$'+(m2.current/1000).toFixed(1)+'T':'ładowanie…')+'</b> YoY: <b style="color:'+m2yoyC+'">'+(m2yoy!=null?pS(m2yoy):'…')+'</b><br><b>MIT:</b> "Fed drukuje M2" — nieprawda. Fed kontroluje M0.</div><div class="ll-sig" style="background:rgba(245,192,64,.08);color:var(--Y);border:1px solid rgba(245,192,64,.2)">M2 YoY &gt;4%=płynność rośnie=sprzyjające. M2 &lt;0%=2022 bessa. Pkt: '+(SC?((SC.dims[1].pts>=0?'+':'')+SC.dims[1].pts):'+0')+'</div></div>'
+  +'</div>'
+
+  +'<div class="g3">'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">M2 Money Supply</span><span class="ch-s">FRED M2SL (B$)</span></div><div class="chbody"><div id="ch-m2" style="height:180px"></div></div></div>'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Bilans Fed (QE/QT)</span><span class="ch-s">FRED WALCL (M$)</span></div><div class="chbody"><div id="ch-fedb" style="height:180px"></div></div></div>'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Reverse Repo (RRP)</span><span class="ch-s">FRED RRPONTSYD (B$)</span></div><div class="chbody"><div id="ch-rrp" style="height:180px"></div></div></div>'
+  +'</div>'
+
+  +'<div class="sec">SOFR Volume — dzienna płynność overnight</div>'
+  +'<div class="g2">'
+  +'<div class="card"><div class="cp">'
+  +'<div class="kl" style="margin-bottom:8px">SOFR Volume — FRED SOFRVOL</div>'
+  +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">'
+  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Poziom dzienny</div><div style="font-family:var(--sans);font-size:14px;font-weight:700;color:var(--B)">'+(sofrV?'$'+fN(sofrV/1e9,0)+'B':'ładowanie…')+'</div></div>'
+  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Trend 3M</div><div style="font-family:var(--sans);font-size:14px;font-weight:700;color:'+(sofrT3!=null?(sofrT3>0?'var(--G)':'var(--R)'):'var(--t1)+')+'">'+(sofrT3!=null?pS(sofrT3):'…')+'</div></div>'
+  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Trend 12M</div><div style="font-family:var(--sans);font-size:14px;font-weight:700;color:var(--t1)">'+(sofrY!=null?pS(sofrY):'…')+'</div></div>'
+  +'</div>'
+  +'<div style="font-size:10px;color:var(--t1);line-height:1.8">SOFR = Secured Overnight Financing Rate. Volume = wolumen transakcji repo overnight na rynku US. Wzrost płynności historycznie sprzyja wzrostom rynku akcji.<br><b style="color:var(--t0)">Scoring:</b> trend 3M&gt;5%=+3 | trend 6M&gt;5%=+2 | spadek=−3 do −5<br><a href="https://fred.stlouisfed.org/series/SOFRVOL" target="_blank" style="color:var(--B)">fred.stlouisfed.org/series/SOFRVOL →</a></div>'
+  +'</div></div>'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SOFR Volume</span><span class="ch-s">FRED SOFRVOL</span></div><div class="chbody"><div id="ch-sofr" style="height:180px"></div></div></div>'
+  +'</div>'
+
+  +'<div class="sec">Cykl płynności — 4 fazy</div>'
+  +'<div class="liqcyc">'
+  +'<div class="lyc" style="border-left:2px solid var(--G)"><div class="lyc-n" style="color:var(--G)">①</div><div class="lyc-t">Ekspansja</div><div class="lyc-d">Fed obniża / QE. M2 rośnie. Best moment akumulacji ETF. Scoring pozytywny.</div><div class="lyc-a" style="background:rgba(0,229,168,.1);color:var(--G);border:1px solid rgba(0,229,168,.2)">→ KUP akcje, krypto</div></div>'
+  +'<div class="lyc" style="border-left:2px solid var(--B)"><div class="lyc-n" style="color:var(--B)">②</div><div class="lyc-t">Szczyt/Zacieśnienie</div><div class="lyc-d">Fed podwyżki / QT. M2 spowalnia. Akcje osiągają szczyty z wyprzedzeniem ~6M.</div><div class="lyc-a" style="background:rgba(42,157,245,.1);color:var(--B);border:1px solid rgba(42,157,245,.2)">→ Redukuj ryzyko</div></div>'
+  +'<div class="lyc" style="border-left:2px solid var(--R)"><div class="lyc-n" style="color:var(--R)">③</div><div class="lyc-t">Kontrakcja</div><div class="lyc-d">M2 spada. 2022: Fed +4.25pp, M2 −4% = akcje −25%, BTC −75%.</div><div class="lyc-a" style="background:rgba(255,51,85,.1);color:var(--R);border:1px solid rgba(255,51,85,.2)">→ IB01, EDO, cash</div></div>'
+  +'<div class="lyc" style="border-left:2px solid var(--Y)"><div class="lyc-n" style="color:var(--Y)">④</div><div class="lyc-t">Dołek / Pivot</div><div class="lyc-d">VIX wysoki. F&amp;G ekstremalne. Statystycznie najlepszy moment DCA długoterminowego.</div><div class="lyc-a" style="background:rgba(245,192,64,.1);color:var(--Y);border:1px solid rgba(245,192,64,.2)">→ KUP agresywnie</div></div>'
+  +'</div>'
+
+  +'<div class="lgrid">'
+  +'<a class="lnk" href="https://fred.stlouisfed.org/series/SOFRVOL" target="_blank">FRED SOFRVOL</a>'
+  +'<a class="lnk" href="https://fred.stlouisfed.org/series/M2SL" target="_blank">FRED M2SL</a>'
+  +'<a class="lnk" href="https://fred.stlouisfed.org/series/WALCL" target="_blank">FRED Bilans Fed</a>'
+  +'<a class="lnk" href="https://fred.stlouisfed.org/series/RRPONTSYD" target="_blank">FRED Reverse Repo</a>'
+  +'<a class="lnk" href="https://graplynnosci.substack.com/p/m2-co-warto-wiedziec-o-tym-agregacie" target="_blank">Dan Kostecki: M2</a>'
+  +'</div></div>';
+  setTimeout(function(){
+    plotFred('ch-m2','m2','#f5c040','M2 (B$)');
+    plotFred('ch-fedb','fed_bs','#2a9df5','Bilans Fed (M$)');
+    plotFred('ch-rrp','rrp','#9b7ef8','Reverse Repo (B$)');
+    plotFred('ch-sofr','sofr','#00e5a8','SOFR Vol (B$)');
+  },50);
+}
+
+/* ═══════════════════════════════
+   RENDER: COT
+═══════════════════════════════ */
+function renderCOT(){
+  var el=document.getElementById('p-cot');if(!el)return;
+  var mks=[
+    {name:'S&P 500 E-mini',code:'ES',comm:13,nc:72,sm:35,sc:'var(--G)',sig:'Fundusze LONG — zwiększają long przy VIX&gt;28 = byczo',note:'Non-comm long przy panice = +7 pkt scoring'},
+    {name:'US 10Y Treasury',code:'TY',comm:62,nc:28,sm:45,sc:'var(--R)',sig:'Fundusze SHORT obligacje = zakład na wzrost rentowności',note:'Makro fundy shortują TY → dyskontują inflację'},
+    {name:'Złoto (GC)',code:'GC',comm:15,nc:78,sm:68,sc:'var(--Y)',sig:'Fundusze LONG złoto (inflation hedge)',note:'Producenci zawsze short (hedge wydobycia)'},
+    {name:'EUR/USD (6E)',code:'6E',comm:55,nc:38,sm:52,sc:'var(--R)',sig:'Fundusze SHORT EUR = zakład na siłę USD',note:'Short squeeze risk przy pivot Fed'},
+    {name:'VIX Futures',code:'VX',comm:72,nc:25,sm:38,sc:'var(--V)',sig:'Vol sellers SHORT VIX = zakład na spokój',note:'Short squeeze risk w czasie spike VIX'},
+    {name:'Ropa WTI (CL)',code:'CL',comm:42,nc:55,sm:48,sc:'var(--Y)',sig:'Fundusze redukują long — brak conviction',note:'CTA mogą zejść short przy spadku cen'},
   ];
-  function mcHtml(m) {
-    function bar(lbl, pct, clr) {
-      return '<div class="mc-pr"><div class="mc-pl">'+lbl+'</div><div class="mc-bw"><div class="mc-bf" style="width:'+pct+'%;background:'+clr+'"></div></div><div class="mc-pv" style="color:'+clr+'">'+pct+'%</div></div>';
-    }
-    return '<div class="mc"><div class="mc-h"><div><div class="mc-n">'+m.name+'</div><div style="font-size:9px;color:var(--t2)">CFTC &bull; '+m.cat+'</div></div><div class="mc-c">'+m.code+'</div></div>'
-      + '<div style="font-family:var(--ff);font-size:8.5px;font-weight:700;color:var(--t2);letter-spacing:.5px;margin-bottom:6px">% POZYCJI LONG</div>'
-      + bar('Komercyjne', m.comm.l, '#3db8f5')
-      + bar('Non-Comm (fundusze)', m.noncomm.l, '#a78bfa')
-      + bar('Small Speculators', m.small.l, '#ffc820')
-      + '<div class="mc-sig" style="background:'+m.sc+'18;color:'+m.sc+';border:1px solid '+m.sc+'30">'+m.sig+'</div>'
-      + '<div class="mc-note">'+m.note+'</div></div>';
+  function cm(m){
+    var sc=m.sc;
+    function bar(lbl,pct,c){return'<div class="cm-bar-row"><div class="cm-bl">'+lbl+'</div><div class="cm-track"><div class="cm-f" style="width:'+pct+'%;background:'+c+'"></div></div><div class="cm-bv" style="color:'+c+'">'+pct+'%</div></div>';}
+    return'<div class="cm"><div class="cm-h"><div><div class="cm-n">'+m.name+'</div><div style="font-size:8.5px;color:var(--t2)">CFTC</div></div><div class="cm-c">'+m.code+'</div></div>'+bar('Komercyjne',m.comm,'#2a9df5')+bar('Non-Comm',m.nc,'#9b7ef8')+bar('Small Spec',m.sm,'#f5c040')+'<div class="cm-sig" style="background:rgba(255,255,255,.04);color:'+sc+';border:1px solid rgba(255,255,255,.08)">'+m.sig+'</div><div class="cm-note">'+m.note+'</div></div>';
   }
-  el.innerHTML = '<div class="wrap">'
-  + '<div class="liq-intro"><div style="font-family:var(--ff);font-size:13px;font-weight:700;margin-bottom:8px;color:var(--t0)">COT — Commitments of Traders (CFTC)</div><div style="font-size:10.5px;color:var(--t1);line-height:1.75">Raport CFTC publikowany w <b>piątek o 15:30 ET</b>. Dane z wtorku (opóźnienie ~3 dni). <b>Zasada:</b> podążaj za komercyjnymi — hedgują realne ryzyko = mają przewagę informacyjną. Ekstrema non-commercial = często contrarian signal.</div></div>'
-  + '<div class="sl">Trzy grupy graczy na rynkach futures</div>'
-  + '<div class="cot-actors">'
-  + '<div class="actor" style="border-left:3px solid #3db8f5"><div class="ac-n" style="color:#3db8f5">&#127970; Komercyjne (Commercial)</div><div class="ac-sub">Producenci, banki, konsumenci</div><div class="ac-d">Hedgują <b>realne ryzyko biznesowe</b>. Rolnik shortuje zboże, linia lotnicza longuje ropę, producent złota shortuje gold futures. Nie spekulują — zabezpieczają działalność.</div><div class="ac-rule" style="background:rgba(61,184,245,.08);color:#3db8f5;border:1px solid rgba(61,184,245,.2)">Gdy komercyjne masowo LONG (rzadkość!) — bardzo mocny byczo sygnał.</div></div>'
-  + '<div class="actor" style="border-left:3px solid #a78bfa"><div class="ac-n" style="color:#a78bfa">&#128200; Non-Commercial (Large Specs)</div><div class="ac-sub">Hedge fundy, CTA, asset managers</div><div class="ac-d"><b>Trend followers</b> — gdy rynek rośnie dodają long, gdy spada — short. Ich <b>ekstrema = contrarian signal</b>. Gdy wszyscy large specs są long → rynek może się odwrócić.</div><div class="ac-rule" style="background:rgba(167,139,250,.08);color:#a78bfa;border:1px solid rgba(167,139,250,.2)">Rekordowy long non-comm = możliwy szczyt. Rekordowy short = short squeeze.</div></div>'
-  + '<div class="actor" style="border-left:3px solid #ffc820"><div class="ac-n" style="color:#ffc820">&#128100; Small Speculators</div><div class="ac-sub">Retail, małe fundy</div><div class="ac-d">Pozycje poniżej progu raportowania. Historycznie <b>najsłabszy smart money</b>. Ekstrema ich pozycji (szczególnie rekordowo bullish) = klasyczny contrarian sell signal.</div><div class="ac-rule" style="background:rgba(255,200,32,.08);color:#ffc820;border:1px solid rgba(255,200,32,.2)">Rekordowo bullish retail = uwaga na szczyt. Rekordowo bearish = możliwe dno.</div></div>'
-  + '</div>'
-  + '<div class="sl">Pozycjonowanie na głównych rynkach (orientacyjne)</div>'
-  + '<div style="background:rgba(255,200,32,.06);border:1px solid rgba(255,200,32,.15);border-radius:7px;padding:8px 12px;margin-bottom:11px;font-size:10px;color:var(--Y)">Aktualne dane: <a href="https://dankostecki.github.io/cot/" target="_blank" style="color:#3db8f5">Panel COT Dana Kosteckiego &#8594;</a> lub <a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" style="color:#3db8f5">CFTC.gov &#8594;</a></div>'
-  + '<div class="cotm">'+markets.map(mcHtml).join('')+'</div>'
-  + '<div class="sl">Jak używać COT w praktyce</div>'
-  + '<div class="cot-leg">'
-  + '<div class="cl-c" style="border-left:3px solid #00e5a0"><div class="cl-t" style="color:#00e5a0">Sygnał byczo</div><div class="cl-d">• Komercyjne budują long (rzadkość)<br>• Large specs na rekordowym short (contrarian)<br>• Small spec rekordowo niedźwiedzi<br>• Non-comm zaczynają dodawać long po bessie<br>• Nagłe zamknięcie short przez komercyjne</div></div>'
-  + '<div class="cl-c" style="border-left:3px solid #ff4060"><div class="cl-t" style="color:#ff4060">Sygnał niedźwiedzi</div><div class="cl-d">• Komercyjne masowo short<br>• Large specs na rekordowym long (wszyscy kupili)<br>• Small spec rekordowo optymistyczni<br>• Non-comm zaczyna zamykać long w trendzie<br>• Dywergencja: cena rośnie, pozycje maleją</div></div>'
-  + '<div class="cl-c" style="border-left:3px solid #a78bfa"><div class="cl-t" style="color:#a78bfa">Ograniczenia COT</div><div class="cl-d">• Opóźnienie 3 dni<br>• Nie jest precyzyjnym narzędziem timingowym<br>• Ekstrema bez dokładnej daty odwrócenia<br>• Używaj jako potwierdzenie, nie jedyne źródło<br>• Legacy vs Disaggregated vs TFF — różne typy</div></div>'
-  + '</div>'
-  + '<div class="sl">Źródła</div>'
-  + '<div class="cot-links">'
-  + '<a class="cotlnk" href="https://dankostecki.github.io/cot/" target="_blank"><div class="cotlnk-ico">&#128202;</div><div class="cotlnk-t">Panel COT — Dan Kostecki</div><div class="cotlnk-d">Interaktywny panel z danymi CFTC po polsku. Wykresy historyczne, porównanie grup, filtry. Najlepsze narzędzie.</div><div class="cotlnk-u">dankostecki.github.io/cot</div></a>'
-  + '<a class="cotlnk" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank"><div class="cotlnk-ico">&#127963;</div><div class="cotlnk-t">CFTC.gov — oryginalne dane</div><div class="cotlnk-d">Oficjalne raporty COT. CSV, arkusze. Piątek 15:30 ET. Dane z poprzedniego wtorku.</div><div class="cotlnk-u">cftc.gov/MarketReports</div></a>'
-  + '<a class="cotlnk" href="https://graplynnosci.substack.com/" target="_blank"><div class="cotlnk-ico">&#9997;</div><div class="cotlnk-t">Gra Płynności — Dan Kostecki</div><div class="cotlnk-d">Substack z analizami płynności, M2, COT. Szczegółowe wyjaśnienie M0/M1/M2 i błędów interpretacyjnych.</div><div class="cotlnk-u">graplynnosci.substack.com</div></a>'
-  + '</div></div>';
+  el.innerHTML='<div class="wrap">'
+  +'<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 15px;margin-bottom:12px;font-size:10.5px;color:var(--t1);line-height:1.75">CFTC — piątek 15:30 ET, dane z wtorku. <b style="color:var(--t0)">Zasada:</b> podążaj za komercyjnymi. <b>Hedge funds zwiększające long przy VIX&gt;28 = +7 pkt scoring.</b></div>'
+  +'<div class="sec">Trzy grupy graczy</div>'
+  +'<div class="cot-grid">'
+  +'<div class="ca" style="border-left:2px solid var(--B)"><div class="ca-n" style="color:var(--B)">Komercyjne (Hedgers)</div><div class="ca-sub">Producenci, banki, korporacje</div><div class="ca-d">Hedgują realne ryzyko biznesowe. Nie spekulują. Gdy masowo LONG (rzadkość) = mocny sygnał.</div><div class="ca-rule" style="background:rgba(42,157,245,.08);color:var(--B);border:1px solid rgba(42,157,245,.2)">Masowy long = okazja rynkowa (rzadkie)</div></div>'
+  +'<div class="ca" style="border-left:2px solid var(--V)"><div class="ca-n" style="color:var(--V)">Non-Commercial (Large Specs)</div><div class="ca-sub">Hedge fundy, CTA, asset managers</div><div class="ca-d">Trend followers. Ekstrema = contrarian. <b>Long przy panice (+7 pkt) — kluczowy sygnał byczo.</b></div><div class="ca-rule" style="background:rgba(155,126,248,.08);color:var(--V);border:1px solid rgba(155,126,248,.2)">Long przy VIX&gt;28 = +7 | short przy euforii = −7</div></div>'
+  +'<div class="ca" style="border-left:2px solid var(--Y)"><div class="ca-n" style="color:var(--Y)">Small Speculators</div><div class="ca-sub">Retail, małe fundy</div><div class="ca-d">Non-reportable. Historycznie najsłabszy smart money. Ekstremalny optimizm = sell signal (contrarian).</div><div class="ca-rule" style="background:rgba(245,192,64,.08);color:var(--Y);border:1px solid rgba(245,192,64,.2)">Rekord bullish = uwaga na szczyt</div></div>'
+  +'</div>'
+  +'<div class="sec">E-Mini S&amp;P500 — net positioning (orientacyjny)</div>'
+  +'<div class="chartbox"><div class="chdr"><span class="ch-t">Hedge Funds net long vs Dealers — E-mini SP500</span><span class="ch-s">tys. kontraktów · dane orientacyjne / CFTC quarterly</span></div><div class="chbody"><div id="ch-cot" style="height:200px"></div></div></div>'
+  +'<div style="background:rgba(245,192,64,.06);border:1px solid rgba(245,192,64,.15);border-radius:var(--r);padding:7px 11px;margin-bottom:10px;font-size:9.5px;color:var(--Y)">Dane orientacyjne. Aktualne: <a href="https://dankostecki.github.io/cot/" target="_blank" style="color:var(--B)">Panel COT Dana Kosteckiego →</a> | <a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" style="color:var(--B)">CFTC.gov →</a></div>'
+  +'<div class="sec">Pozycjonowanie na rynkach</div>'
+  +'<div class="cotm">'+mks.map(cm).join('')+'</div>'
+  +'<div class="lgrid">'
+  +'<a class="lnk" href="https://dankostecki.github.io/cot/" target="_blank">Panel COT (Dan Kostecki)</a>'
+  +'<a class="lnk" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank">CFTC.gov oficjalne</a>'
+  +'<a class="lnk" href="https://graplynnosci.substack.com/" target="_blank">Gra Płynności</a>'
+  +'<a class="lnk" href="https://www.tradingster.com/cot" target="_blank">TradingSter charts</a>'
+  +'</div></div>';
+  setTimeout(function(){ plotCOT('ch-cot'); },50);
 }
 
-/* ═══ RENDER LIQUIDITY ═══ */
-function renderLiquidity() {
-  var el = document.getElementById('p-liquidity');
-  if (!el) return;
-  var f = D.f||{};
-  var m2 = (f.m2&&f.m2.current) ? f.m2.current : null;
-  var m2yoy = (f.m2&&f.m2.yoy!=null) ? f.m2.yoy : null;
-  var fedb = (f.fed_bs&&f.fed_bs.current) ? f.fed_bs.current/1e6 : null;
-  var m2yoyC = m2yoy!=null?(m2yoy>3?'#00e5a0':m2yoy<0?'#ff4060':'#ffc820'):'#7a9fc0';
-  var m2yoyStr = m2yoy!=null?((m2yoy>=0?'+':'')+m2yoy.toFixed(1)+'%'):'&#8230;';
-  el.innerHTML = '<div class="wrap">'
-  + '<div class="liq-intro"><div style="font-family:var(--ff);font-size:13px;font-weight:700;margin-bottom:8px">&#128167; Płynność = paliwo dla rynków finansowych</div><div style="font-size:10.5px;color:var(--t1);line-height:1.75">Gdy płynność rośnie → aktywa rosną. Gdy maleje → aktywa pod presją.<br><b>Kluczowy błąd:</b> "Fed drukuje M2" — nieprawda. <b>Fed kontroluje tylko M0</b>. M2 rośnie głównie przez <b>akcję kredytową banków komercyjnych</b>. Szczegóły: <a href="https://graplynnosci.substack.com/p/m2-co-warto-wiedziec-o-tym-agregacie" target="_blank" style="color:#3db8f5">Gra Płynności, Dan Kostecki &#8594;</a></div></div>'
-  + '<div class="sl">Warstwy podaży pieniądza</div>'
-  + '<div class="liq-layers">'
-  + '<div class="ll" style="border-left:3px solid #3db8f5"><div class="ll-tag"><span style="color:#3db8f5">M0</span><span class="ll-sub">Baza monetarna</span></div><div class="ll-def"><b>Co to:</b> Gotówka + rezerwy banków w Fed.<br><b>Kto kontroluje:</b> <span style="color:#3db8f5">Fed bezpośrednio</span> — QE tworzy rezerwy, QT je niszczy.<br><b>Ważne:</b> Rezerwy NIE wchodzą do gospodarki — to pieniądz między bankami a Fed.<br>Bilans Fed: <b style="color:#3db8f5">'+(fedb?fedb.toFixed(2)+' bln$':'&#8230;')+'</b></div><div class="ll-sig" style="background:rgba(61,184,245,.08);color:#3db8f5;border:1px solid rgba(61,184,245,.2)">QE &#8594; bilans rośnie &#8594; akcje/obligacje rosną. QT = odwrotnie.</div></div>'
-  + '<div class="ll" style="border-left:3px solid #00e5a0"><div class="ll-tag"><span style="color:#00e5a0">M1</span><span class="ll-sub">Pieniądz trans.</span></div><div class="ll-def"><b>Co to:</b> M0 + gotówka poza bankami + depozyty na żądanie (RORy).<br><b>Kto kontroluje:</b> <span style="color:#00e5a0">Banki + gospodarka</span> — udzielenie kredytu = powstanie depozytu = wzrost M1.<br>M1 = pieniądz gotowy do natychmiastowego wydania.</div><div class="ll-sig" style="background:rgba(0,229,160,.08);color:#00e5a0;border:1px solid rgba(0,229,160,.2)">Wzrost M1 = gospodarka pożycza i wydaje = zyski firm rosną.</div></div>'
-  + '<div class="ll" style="border-left:3px solid #ffc820"><div class="ll-tag"><span style="color:#ffc820">M2</span><span class="ll-sub">Szeroka podaż</span></div><div class="ll-def"><b>Co to:</b> M1 + lokaty do 2 lat + fundusze rynku pieniężnego.<br><b>Kto kontroluje:</b> <span style="color:#ffc820">Głównie rynek</span> — zachowania firm/ludzi, akcja kredytowa banków. Fed ma pośredni wpływ.<br>USA M2: <b style="color:#3db8f5">'+(m2?('$'+(m2/1000).toFixed(1)+'T'):'&#8230;')+'</b> YoY: <b style="color:'+m2yoyC+'">'+m2yoyStr+'</b></div><div class="ll-sig" style="background:rgba(255,200,32,.08);color:#ffc820;border:1px solid rgba(255,200,32,.2)">M2 YoY &gt;4% = płynność rośnie = dobry rok. M2 YoY &lt;0% = kontrakcja (2022!).</div></div>'
-  + '<div class="ll" style="border-left:3px solid #a78bfa"><div class="ll-tag"><span style="color:#a78bfa">G-M2</span><span class="ll-sub">Globalna</span></div><div class="ll-def"><b>Co to:</b> Suma M2 Fed+ECB+BOJ+PBOC+BoE… w USD.<br>Kapitał przepływa globalnie — wzrost globalnej M2 zasila wszystkie rynki.<br><b>Uwaga:</b> Wiele stron myli M0 (rezerwy) z M2. Błąd często w analizach krypto. <a href="https://graplynnosci.substack.com/p/m2-co-warto-wiedziec-o-tym-agregacie" target="_blank" style="color:#3db8f5">&#8594;</a></div><div class="ll-sig" style="background:rgba(167,139,250,.08);color:#a78bfa;border:1px solid rgba(167,139,250,.2)">Global M2 koreluje z BTC ~6 mies. wyprzedzeniem i z SP500.</div></div>'
-  + '</div>'
-  + '<div class="sl">Cykl płynności — 4 fazy inwestycyjne</div>'
-  + '<div class="liq-cycle">'
-  + '<div class="cyc" style="border-left:3px solid #00e5a0"><div class="cyc-n" style="color:#00e5a0">&#9312;</div><div class="cyc-t">Ekspansja</div><div class="cyc-d">Fed obniża stopy lub QE. M2 rośnie. Kredyt tanieje. Inwestorzy szukają zwrotu poza obligacjami.</div><div class="cyc-a" style="background:rgba(0,229,160,.1);color:#00e5a0;border:1px solid rgba(0,229,160,.2)">&#8594; KUP akcje, krypto</div></div>'
-  + '<div class="cyc" style="border-left:3px solid #3db8f5"><div class="cyc-n" style="color:#3db8f5">&#9313;</div><div class="cyc-t">Szczyt/Zacieśnienie</div><div class="cyc-d">Fed zaczyna podwyżki lub QT. Płynność zaczyna maleć. M2 spowalnia. Akcje osiągają szczyty z wyprzedzeniem.</div><div class="cyc-a" style="background:rgba(61,184,245,.1);color:#3db8f5;border:1px solid rgba(61,184,245,.2)">&#8594; Redukuj ryzyko</div></div>'
-  + '<div class="cyc" style="border-left:3px solid #ff4060"><div class="cyc-n" style="color:#ff4060">&#9314;</div><div class="cyc-t">Kontrakcja</div><div class="cyc-d">M2 spada. Kredyt kurczy się. Recesja. 2022: Fed +4.25pp, M2 -4% = akcje -25%, BTC -75%.</div><div class="cyc-a" style="background:rgba(255,64,96,.1);color:#ff4060;border:1px solid rgba(255,64,96,.2)">&#8594; IB01, EDO, gotówka</div></div>'
-  + '<div class="cyc" style="border-left:3px solid #ffc820"><div class="cyc-n" style="color:#ffc820">&#9315;</div><div class="cyc-t">Dołek / Pivot</div><div class="cyc-d">Fed zatrzymuje podwyżki. Sygnały przywrócenia płynności. VIX wysoki. F&amp;G ekstremalne = najlepszy moment DCA.</div><div class="cyc-a" style="background:rgba(255,200,32,.1);color:#ffc820;border:1px solid rgba(255,200,32,.2)">&#8594; KUP agresywnie</div></div>'
-  + '</div>'
-  + '<div class="sl">Jak fundusze grają — przepływy kapitału</div>'
-  + '<div class="liq-flow"><table class="lft"><thead><tr><th>Rynek</th><th>Fundusze (Large Spec)</th><th>Wpływ M2/płynności</th><th>COT sygnał</th></tr></thead><tbody>'
-  + '<tr><td style="color:#3db8f5;font-weight:700">Akcje (ES, NQ)</td><td>Systematic trend: long w hossie, short w bessie</td><td>M2 rośnie &#8594; P/E rośnie &#8594; akcje rosną</td><td>Non-comm rekordowo long = szczyt. Short = dno.</td></tr>'
-  + '<tr style="background:rgba(255,255,255,.01)"><td style="color:#ffc820;font-weight:700">Obligacje (TY)</td><td>Makro fundy: short = zakład na inflację</td><td>QE Fed = ceny obligacji rosną</td><td>Duże short non-comm = rynek dyskontuje podwyżki</td></tr>'
-  + '<tr><td style="color:#ffc820;font-weight:700">Złoto (GC)</td><td>Long = hedge inflacyjny, stopy realne ujemne</td><td>Real rates spada &#8594; złoto rośnie</td><td>Producenci zawsze short (hedge). Non-comm long = trend.</td></tr>'
-  + '<tr style="background:rgba(255,255,255,.01)"><td style="color:#ff8c42;font-weight:700">Ropa (CL)</td><td>CTA trend following: long/short wg ceny</td><td>Wzrost M2 + ożywienie &#8594; popyt na ropę</td><td>Niski non-comm long = brak spekulacji, negatywne</td></tr>'
-  + '<tr><td style="color:#a78bfa;font-weight:700">Krypto (BTC)</td><td>Spekulacyjne long w cyklu bull (post-halving)</td><td>Global M2 YoY koreluje (6M wyprzedzenie)</td><td>BTC rośnie 6-12 mies. po Global M2 pivot</td></tr>'
-  + '</tbody></table></div>'
-  + '<div class="sl">Źródła</div>'
-  + '<div class="liq-src">'
-  + '<a class="lsrc" href="https://graplynnosci.substack.com/p/m2-co-warto-wiedziec-o-tym-agregacie" target="_blank"><div class="lsrc-ico">&#9997;</div><div class="lsrc-t">M2 — co warto wiedzieć</div><div class="lsrc-d">Wyjaśnienie M0/M1/M2 po polsku. Obala mit "Fed drukuje M2". Rola banków komercyjnych. Dan Kostecki.</div><div class="lsrc-u">graplynnosci.substack.com</div></a>'
-  + '<a class="lsrc" href="https://fred.stlouisfed.org/series/M2SL" target="_blank"><div class="lsrc-ico">&#127963;</div><div class="lsrc-t">FRED — M2 Money Stock</div><div class="lsrc-d">Oficjalne dane M2 od Fed St. Louis. Tygodniowe/miesięczne, historyczne od 1959.</div><div class="lsrc-u">fred.stlouisfed.org/series/M2SL</div></a>'
-  + '<a class="lsrc" href="https://fred.stlouisfed.org/series/WALCL" target="_blank"><div class="lsrc-ico">&#128201;</div><div class="lsrc-t">FRED — Bilans Fed</div><div class="lsrc-d">Total Assets Fed (QE/QT). Aktualnie: '+(fedb?fedb.toFixed(2)+' bln$':'&#8230;')+'. Wskaźnik polityki monetarnej M0.</div><div class="lsrc-u">fred.stlouisfed.org/series/WALCL</div></a>'
-  + '</div></div>';
-}
-
-/* ═══ RENDER PORTFOLIO ═══ */
-function renderPortfolio() {
-  var el = document.getElementById('p-portfolio');
-  if (!el) return;
-  var f = D.f||{};
-  var sp12m = D.sp12m!=null ? D.sp12m : ((f.sp500fred&&f.sp500fred.yoy!=null)?f.sp500fred.yoy:17.7);
-  var ib01 = (f.ib01_yield&&f.ib01_yield.current!=null) ? f.ib01_yield.current : 4.15;
-  var dm = sp12m > ib01;
-  var sched = buildSched();
-  var rC = ['','#00e5a0','#00e5a0','#84cc16','#ffc820','#ff8c42','#ff4060','#dc2626'];
-  function rbar(r) {
-    var h = '<div class="rb">';
-    for (var i=0;i<7;i++) h += '<div class="rs" style="background:'+(i<r?rC[r]:'var(--s4)')+'"></div>';
-    h += '<span style="font-size:9px;color:'+rC[r]+';margin-left:4px">'+r+'/7</span></div>';
-    return h;
+/* ═══════════════════════════════
+   RENDER: INDICATORS
+═══════════════════════════════ */
+function renderIndicators(){
+  var el=document.getElementById('p-indicators');if(!el)return;
+  var f=D.f||{},q=D.q||{};
+  function fv(k){return(f[k]&&f[k].current!=null)?f[k].current:null;}
+  function fc(k,d,s){d=d||2;s=s||'';return f[k]?Number(f[k].current).toFixed(d)+s:'…';}
+  function fy(k,d){d=d||1;return(f[k]&&f[k].yoy!=null)?((f[k].yoy>=0?'+':'')+f[k].yoy.toFixed(d)+'%'):'…';}
+  var fed=fv('fedfunds')!=null?fv('fedfunds'):ST.fed;
+  var cpi=f.cpi&&f.cpi.yoy!=null?f.cpi.yoy:null;
+  var yc=fv('yield_curve'),hy=fv('hy_spread')!=null?fv('hy_spread'):2.84;
+  var sahm=fv('sahm')!=null?fv('sahm'):0.30,unrate=fv('unrate');
+  var vix=(q.vix&&q.vix.price)||(fv('vixfred')!=null?fv('vixfred'):29.5);
+  function ic(t,s,v,vc,dt,sg,desc,buy,sell){
+    var cls=sg==='g'?'G':sg==='r'?'R':'Y';
+    var p=sg==='g'?'pG':sg==='r'?'pR':'pY',pl=sg==='g'?'▲ Byczo':sg==='r'?'▼ Niedźwiedzi':'— Neutral';
+    return'<div class="ic '+cls+'"><div class="ic-h"><div class="ic-t">'+t+'</div><div class="ic-s">'+s+'</div></div><div class="ic-v" style="color:'+vc+'">'+v+'</div><div class="ic-d">'+dt+'</div><span class="ic-badge chip '+p+'">'+pl+'</span><div class="ic-desc">'+desc+'</div><div class="ic-io"><span style="color:var(--G)">✓</span> '+buy+'<br><span style="color:var(--R)">✗</span> '+sell+'</div></div>';
   }
-  var ports = PORTS.map(function(p) {
-    return '<div class="pc" style="border-color:'+p.color+'20;background:linear-gradient(160deg,'+p.color+'05,transparent)">'
-      + '<div class="pc-id" style="color:'+p.color+'">'+p.id+'</div>'
-      + '<div class="pc-nm">'+p.name+'</div>'
-      + '<div class="pc-b">'+(p.bud_usd?'<span style="color:#00e5a0">$'+p.bud_usd+'</span>':'')+' '+(p.bud_eur?'<span style="color:#ffc820">&#8364;'+p.bud_eur+'</span>':'')+'</div>'
-      + '<div class="pc-tp" style="background:'+p.color+'15;color:'+p.color+'">'+p.type+'</div>'
-      + '<div class="pc-et">'+p.etfs.join('<br>')+'</div>'
-      + '<div class="pc-dm" style="color:'+(dm?p.color:'#ffc820')+'">DM: '+(dm?p.etfs[0].split(' ')[0]:p.dm_safe)+'</div>'
-      + (p.special?'<div class="pc-sp">'+p.special+'</div>':'')
-      + '</div>';
-  }).join('');
-  var schedRows = sched.slice(0,35).map(function(r) {
-    var etf = dm ? r.p.etfs[0].split(' ')[0] : r.p.dm_safe;
-    var sea = r.boost > 1;
-    return '<tr><td style="color:var(--t3)">T'+r.w+'</td><td style="color:var(--t1);white-space:nowrap">Czw '+r.day+'</td>'
-      + '<td><span class="ptag" style="background:'+r.p.color+'20;color:'+r.p.color+'">'+r.p.id+'</span></td>'
-      + '<td style="color:'+(dm?'#00e5a0':'#ffc820')+';font-weight:700">'+etf+'</td>'
-      + '<td style="color:'+(sea?'#00e5a0':'var(--t1)')+'">'+(r.usd?'$'+r.usd:'')+'</td>'
-      + '<td style="color:'+(sea?'#00e5a0':'#ffc820')+'">'+(r.eur?'&#8364;'+r.eur:'')+'</td>'
-      + '<td style="font-size:9.5px;color:'+(sea?'#00e5a0':'var(--t3)')+'">'+(sea?'&#11088; +30%':'')+'</td></tr>';
-  }).join('');
-  var etblRows = ETFS_DATA.map(function(e) {
-    return '<tr><td style="color:'+e.color+';font-weight:700">'+e.id+'</td>'
-      + '<td style="font-size:10px;color:var(--t2)">'+e.isin+'</td>'
-      + '<td style="color:'+(e.ter<0.1?'#00e5a0':'var(--t1)')+';font-weight:600">'+e.ter+'%</td>'
-      + '<td style="text-align:center">'+e.holds.toLocaleString()+'</td>'
-      + '<td>'+rbar(e.risk)+'</td>'
-      + '<td style="font-size:9.5px">'+(e.risk===2?'Obligacje':'Akcje')+'</td>'
-      + '<td><a href="'+e.link+'" target="_blank" style="color:var(--B);font-size:9.5px">justETF &#8594;</a></td></tr>';
-  }).join('');
-  el.innerHTML = '<div class="wrap">'
-  + '<div class="dmb '+(dm?'bull':'bear')+'">'
-  + '<div><div class="dm-l2">Dual Momentum Signal</div><div class="dm-s" style="color:'+(dm?'#00e5a0':'#ffc820')+'">'+(dm?'&#128200; Kup akcje ETF':'&#128201; Przejdź na IB01')+'</div></div>'
-  + '<div class="dm-n">SP500 12M: <b style="color:'+(dm?'#00e5a0':'#ff4060')+'">'+pctStr(sp12m)+'</b> vs IB01: <b>'+ib01.toFixed(2)+'%</b> &bull; Spread: <b style="color:'+(dm?'#00e5a0':'#ff4060')+'">'+(sp12m-ib01).toFixed(1)+' pp</b></div>'
-  + '<div class="dm-note">'+(dm?'Kontynuuj DCA w akcje.':'DCA przenieść na IB01 lub EDO.')+' Sprawdzaj 1. dnia miesiąca.</div>'
-  + '</div>'
-  + '<div class="sl">Moje 5 portfeli</div>'
-  + '<div class="pgrid">'+ports+'</div>'
-  + '<div class="sl">Harmonogram 2026 — co czwartek</div>'
-  + '<div class="sw"><table class="stbl"><thead><tr><th>Tyg</th><th>Data</th><th>Portfel</th><th>Kup ETF</th><th>USD</th><th>EUR</th><th>Uwaga</th></tr></thead><tbody>'+schedRows+'<tr><td colspan="7" style="padding:8px 11px;font-size:9.5px;color:var(--t3);text-align:center">&#8230; rotacja P1&#8594;P5 do końca 2026</td></tr></tbody></table></div>'
-  + '<div class="rc"><b>Zasady DCA 2026:</b> Czwartek (+0.11% avg) &bull; <b style="color:#00e5a0">+30% Sierpień/Wrzesień</b> &bull; Dual Momentum: sprawdzaj 1. miesiąca &bull; <b style="color:#00e5a0">VIX&gt;30=okazja, nie zagrożenie</b> &bull; Rebalans 28 Grudnia &bull; IKZE limit ~9 388 PLN &bull; IKE limit ~23 470 PLN</div>'
-  + '<div class="sl">Baza ETF</div>'
-  + '<div class="ew"><table class="etbl"><thead><tr><th>ETF</th><th>ISIN</th><th>TER</th><th>Holdings</th><th>Ryzyko SRI</th><th>Typ</th><th>Link</th></tr></thead><tbody>'+etblRows+'</tbody></table></div>'
-  + '</div>';
+  el.innerHTML='<div class="wrap">'
+  +'<div class="sec">Fed i polityka monetarna</div>'
+  +'<div class="igrid">'
+  +ic('Fed Funds Rate','FRED FEDFUNDS',fv('fedfunds')!=null?fc('fedfunds',2,'%'):'3.75%',(fed>4?'var(--R)':fed>2?'var(--Y)':'var(--G)'),f.fedfunds?f.fedfunds.date:ST.fedDate,fed<3?'g':fed>4.5?'r':'y','Fed: '+fed.toFixed(2)+'%. Cięcie −25bp Gru 2025. Niższe stopy → wyższe P/E.','Stopa spada → P/E rośnie','Stopa >5% → presja na wyceny')
+  +ic('M2 YoY','FRED M2SL',fy('m2',1),'var(--t1)',f.m2?f.m2.date:'—',(f.m2&&f.m2.yoy>4)?'g':(f.m2&&f.m2.yoy<0)?'r':'y','M2: '+((f.m2&&f.m2.current)?'$'+(f.m2.current/1000).toFixed(1)+'T':'…')+'. Fed kontroluje tylko M0, nie M2.','M2 YoY >4% → płynność rośnie','M2 <0% → kontrakcja (2022!)')
+  +ic('Bilans Fed (QE/QT)','FRED WALCL',f.fed_bs&&f.fed_bs.current?(f.fed_bs.current/1e6).toFixed(2)+' T$':'…','var(--t1)',f.fed_bs?f.fed_bs.date:'—','y','QE = skup obligacji = rezerwy M0. QT = redukcja. Szczyt 2022: ~9T$.','QE: bilans rośnie → wspiera rynki','QT: odpływ płynności')
+  +'</div>'
+  +'<div class="sec">Inflacja</div>'
+  +'<div class="igrid">'
+  +ic('CPI Inflacja YoY','FRED CPIAUCSL',fy('cpi',2),(cpi!=null?(cpi>4?'var(--R)':cpi>2.5?'var(--Y)':'var(--G)'):'var(--t1)'),f.cpi?f.cpi.date:'—',cpi!=null?(cpi<2.5?'g':cpi>4?'r':'y'):'y','Cel Fed: 2%. >4% = podwyżki stóp.','<2.5% → Fed może ciąć','>4% → podwyżki, bear market')
+  +ic('Core CPI','FRED CPILFESL',fy('core_cpi',2),(f.core_cpi&&f.core_cpi.yoy!=null?(f.core_cpi.yoy>3?'var(--R)':f.core_cpi.yoy>2.5?'var(--Y)':'var(--G)'):'var(--t1)'),f.core_cpi?f.core_cpi.date:'—',(f.core_cpi&&f.core_cpi.yoy!=null?(f.core_cpi.yoy<2.5?'g':f.core_cpi.yoy>3?'r':'y'):'y'),'Inflacja bazowa bez żywności/energii. Fed cel Core PCE ~2%.','Core CPI <2.5% → komfortowy','>3% → lepka inflacja')
+  +ic('TIPS 10Y Breakeven','FRED T10YIE',fc('tips10y',2,'%'),'var(--t1)',f.tips10y?f.tips10y.date:'—',(fv('tips10y')!=null?(fv('tips10y')<2.5?'g':fv('tips10y')>3?'r':'y'):'y'),'Oczekiwania inflacyjne 10Y. <2% = cel Fed wiarygodny.','<2% → cel realizowalny','>3% → premia inflacyjna')
+  +'</div>'
+  +'<div class="sec">Rynek pracy i cykl</div>'
+  +'<div class="igrid">'
+  +ic('Sahm Rule','FRED SAHMREALTIME',fc('sahm',2),(sahm>=0.5?'var(--R)':sahm>=0.3?'var(--Y)':'var(--G)'),f.sahm?f.sahm.date:'—',sahm<0.3?'g':sahm>0.5?'r':'y','Wzrost bezrobocia >0.5pp nad 12M minimum = recesja. Teraz: '+sahm.toFixed(2)+' (próg 0.50).','<0.30 → brak recesji','>0.50 → RECESJA w toku')
+  +ic('Bezrobocie USA','FRED UNRATE',fc('unrate',1,'%'),(unrate!=null?(unrate>5?'var(--R)':unrate>4?'var(--Y)':'var(--G)'):'var(--t1)'),f.unrate?f.unrate.date:'—',(unrate!=null?(unrate<4?'g':unrate>5?'r':'y'):'y'),'Full employment: 4-4.5%. Gwałtowny wzrost = recesja.','<4.5% → pełne zatrudnienie','>5% i rośnie → alarm recesyjny')
+  +ic('ISM PMI','TradingEconomics Lut 2026',ST.ism.toFixed(1),'var(--G)',ST.ismDate,'g','PMI '+ST.ism+' (>50=ekspansja). Lut 2026.','>55 → silna ekspansja','<45 → kontrakcja, ryzyko recesji')
+  +'</div>'
+  +'<div class="sec">Rynki finansowe</div>'
+  +'<div class="igrid">'
+  +ic('Yield Curve 10Y-2Y','FRED T10Y2Y',fc('yield_curve',2,'%'),(yc!=null?(yc<-0.2?'var(--R)':yc<0.5?'var(--Y)':'var(--G)'):'var(--t1)'),f.yield_curve?f.yield_curve.date:'—',(yc!=null?(yc>0.5?'g':yc<-0.2?'r':'y'):'y'),'Inwersja <0% = recesja za 12-18M (98% hist.). Normalizacja = bull.','Pozytywna → normalny cykl','<−0.2% → inwersja = alarm')
+  +ic('HY Spread','FRED BAMLH0A0HYM2',hy.toFixed(2)+'%',(hy>6?'var(--R)':hy>4.5?'var(--Y)':'var(--G)'),f.hy_spread?f.hy_spread.date:'FRED',(hy<3.5?'g':hy>6?'r':'y'),'HY vs Treasuries. GFC: 22%, COVID: 11%.','<3.5% → risk-on','>6% → stres kredytowy')
+  +ic('CAPE Shiller','multpl.com Mar 2026',ST.cape+'x','var(--R)','Mar 2026','r','S&P / 10-letnie zyski. Norma: 16x. Teraz: '+ST.cape+'x — drogie.','<15x → hist. tanie','>35x → zwrot ~3-5% (zawsze bear)')
+  +ic('VIX','stooq / FRED VIXCLS',vix.toFixed(1),(vix>=30?'var(--G)':vix<18?'var(--R)':'var(--t1)'),q.vix?q.vix.date:f.vixfred?f.vixfred.date:'—',(vix>=28?'g':vix<18?'r':'y'),'Kontrariański. VIX>30=panika=okazja.','VIX>30 → DCA','VIX<15 → euforia, nie zwiększaj')
+  +'</div>'
+  +'<div class="sec">Rynki — szybkie linki</div>'
+  +'<div class="lgrid">'
+  +'<a class="lnk" href="https://stooq.pl/t/?i=510" target="_blank">US Indeksy stooq</a>'
+  +'<a class="lnk" href="https://edition.cnn.com/markets" target="_blank">CNN Markets live</a>'
+  +'<a class="lnk" href="https://www.wsj.com/market-data/stocks" target="_blank">WSJ Market Data</a>'
+  +'<a class="lnk" href="https://tradingeconomics.com/stocks" target="_blank">TradingEconomics</a>'
+  +'<a class="lnk" href="https://www.money.pl/gielda/indeksy_gpw/" target="_blank">GPW money.pl</a>'
+  +'<a class="lnk" href="https://touch.biznesradar.pl/gielda/etf" target="_blank">BiznesRadar ETF</a>'
+  +'<a class="lnk" href="https://www.google.com/finance/quote/ISAC:LSE" target="_blank">ISAC Google Finance</a>'
+  +'<a class="lnk" href="https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/" target="_blank">F&G History (finhacker)</a>'
+  +'<a class="lnk" href="https://fred.stlouisfed.org/series/SOFRVOL" target="_blank">SOFR Volume FRED</a>'
+  +'<a class="lnk" href="https://bossa.pl/notowania/indeksy-swiatowe" target="_blank">Bossa Świat</a>'
+  +'<a class="lnk" href="https://stooq.pl/t/?i=544" target="_blank">Surowce stooq</a>'
+  +'<a class="lnk" href="https://stooq.pl/t/?i=539" target="_blank">Krypto stooq</a>'
+  +'</div></div>';
 }
 
-/* ═══ RENDER DATA ═══ */
-function renderData() {
-  var el = document.getElementById('p-data');
-  if (!el) return;
-  var sq = Object.keys(D.q||{}).length;
-  var fr = Object.keys(D.f||{}).length;
-  var sp12m = D.sp12m!=null ? D.sp12m : ((D.f&&D.f.sp500fred&&D.f.sp500fred.yoy!=null)?D.f.sp500fred.yoy:17.7);
-  var srcRows = [
-    ['stooq.com','Ceny live CSV',sq+'/'+Object.keys(SQ).length+' OK','#00e5a0'],
-    ['FRED St. Louis Fed','Dane makro',fr+'/'+Object.keys(FM).length+' OK','#00e5a0'],
-    ['CNN / proxy','Fear &amp; Greed',D.fg?(D.fg.score+' ('+D.fg.source+')'):'&#8230;','#ffc820'],
-    ['alternative.me','Crypto F&amp;G',D.cfg?(D.cfg.score+'/100'):'&#8230;','#ffc820'],
-    ['fiscaldata.treasury.gov','Dług USA',D.treasury?(D.treasury[0]&&D.treasury[0].total?D.treasury[0].total.toFixed(1)+' bln$':'ok'):'&#8230;','#ffc820'],
-    ['portfel.dzonyiks.workers.dev','Cloudflare Proxy','Aktywny &#10003;','#00e5a0'],
-    ['TradingEconomics','Fed, ISM','Mar 2026 &#10003;','#00e5a0'],
-    ['CFTC.gov','COT raporty','Dane strukturalne','#3db8f5'],
-  ];
-  var logHtml = LOG.slice(0,60).map(function(l) {
-    var c = l.state==='er'?'#ff4060':l.state==='ok'?'#00e5a0':'#ffc820';
-    var lc = l.state==='er'?'#fca5a5':'var(--t1)';
-    var ic = l.state==='er'?'&#10007;':l.state==='ok'?'&#10003;':'&#8635;';
-    return '<div class="lr"><span class="lts">'+l.ts+'</span><span class="lic" style="color:'+c+'">'+ic+'</span><span class="lmsg" style="color:'+lc+'">'+l.msg+'</span></div>';
+/* ═══════════════════════════════
+   RENDER: PORTFOLIO
+═══════════════════════════════ */
+function renderPortfolio(){
+  var el=document.getElementById('p-portfolio');if(!el)return;
+  var f=D.f||{};
+  var sp12m=D.sp12m!=null?D.sp12m:((f.sp500fred&&f.sp500fred.yoy!=null)?f.sp500fred.yoy:17.7);
+  var ib01=(f.ib01_yield&&f.ib01_yield.current!=null)?f.ib01_yield.current:4.15;
+  var dm=sp12m>ib01,sched=buildSched();
+  var rC=['','#00e5a8','#00e5a8','#84cc16','#f5c040','#ff7c3e','#ff3355','#dc2626'];
+  function rb(r){var h='<div class="rbar">';for(var i=0;i<7;i++)h+='<div class="rs" style="background:'+(i<r?rC[r]:'var(--bg4)')+'"></div>';return h+'<span style="font-size:8.5px;color:'+rC[r]+';margin-left:4px">'+r+'/7</span></div>';}
+  var ports=PORTS.map(function(p){
+    return'<div class="pc" style="border-color:'+p.color+'20">'
+      +'<div class="pc-id" style="color:'+p.color+'">'+p.id+'</div><div class="pc-nm">'+p.name+'</div>'
+      +'<div class="pc-b">'+(p.usd?'<span style="color:var(--G)">$'+p.usd+'</span>':'')+' '+(p.eur?'<span style="color:var(--Y)">€'+p.eur+'</span>':'')+'</div>'
+      +'<div class="pc-tp" style="background:'+p.color+'15;color:'+p.color+'">'+p.type+'</div>'
+      +'<div class="pc-et">'+p.etfs.join('<br>')+'</div>'
+      +'<div class="pc-dm" style="color:'+(dm?p.color:'var(--Y)')+'">DM: '+(dm?p.etfs[0].split(' ')[0]:p.safe)+'</div>'
+      +(p.sp?'<div style="font-size:8px;color:var(--Y);margin-top:3px">'+p.sp+'</div>':'')
+      +'</div>';
   }).join('');
-  el.innerHTML = '<div class="wrap">'
-  + '<div class="dstats">'
-  + '<div class="ds"><div class="ds-l">Stooq.com</div><div class="ds-n" style="color:'+(sq>12?'#00e5a0':'#ffc820')+'">'+sq+'</div><div class="ds-s">symboli z '+Object.keys(SQ).length+'</div></div>'
-  + '<div class="ds"><div class="ds-l">FRED Makro</div><div class="ds-n" style="color:'+(fr>12?'#00e5a0':'#ffc820')+'">'+fr+'</div><div class="ds-s">serii z '+Object.keys(FM).length+'</div></div>'
-  + '<div class="ds"><div class="ds-l">SP500 12M</div><div class="ds-n" style="color:#00e5a0">'+pctStr(sp12m)+'</div><div class="ds-s">'+(D.sp12m_src||'&#8212;')+'</div></div>'
-  + '</div>'
-  + '<div class="sl">Źródła i status</div>'
-  + '<div class="srct"><table class="stx"><tbody>'+srcRows.map(function(r,i){return '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,.01)')+'"><td style="color:var(--t0);font-weight:500;width:200px">'+r[0]+'</td><td style="color:var(--t2);font-size:10px">'+r[1]+'</td><td style="color:'+r[3]+';font-weight:600">'+r[2]+'</td></tr>';}).join('')+'</tbody></table></div>'
-  + '<div class="sl">Log</div>'
-  + '<div class="log">'+(logHtml||'<div style="color:var(--t3)">Brak logów&#8230;</div>')+'</div>'
-  + '</div>';
+  var sr=sched.slice(0,35).map(function(r){
+    var etf=dm?r.p.etfs[0].split(' ')[0]:r.p.safe,sea=r.boost>1;
+    return'<tr><td style="color:var(--t3)">T'+r.w+'</td><td style="white-space:nowrap">Czw '+r.day+'</td>'
+      +'<td><span class="ptag" style="background:'+r.p.color+'20;color:'+r.p.color+'">'+r.p.id+'</span></td>'
+      +'<td style="color:'+(dm?'var(--G)':'var(--Y)')+';font-weight:600">'+etf+'</td>'
+      +'<td style="color:'+(sea?'var(--G)':'var(--t1)')+'">'+(r.usd?'$'+r.usd:'')+'</td>'
+      +'<td style="color:'+(sea?'var(--G)':'var(--Y)')+'">'+(r.eur?'€'+r.eur:'')+'</td>'
+      +'<td style="font-size:9px;color:'+(sea?'var(--G)':'var(--t3)')+'">'+(sea?'★ +30%':'')+'</td></tr>';
+  }).join('');
+  var er=ETF_DATA.map(function(e){return'<tr><td style="color:'+e.c+';font-weight:700">'+e.id+'</td><td style="font-size:9.5px;color:var(--t2)">'+e.isin+'</td><td style="color:'+(e.ter<0.1?'var(--G)':'var(--t1)')+';font-weight:600">'+e.ter+'%</td><td style="text-align:center">'+e.h.toLocaleString()+'</td><td>'+rb(e.r)+'</td><td><a href="https://www.justetf.com/en/etf-profile.html?isin='+e.isin+'" target="_blank" style="color:var(--B);font-size:9px">justETF →</a></td></tr>';}).join('');
+  el.innerHTML='<div class="wrap">'
+  +'<div class="dmbar '+(dm?'bull':'bear')+'">'
+  +'<div><div class="dml">Dual Momentum Signal</div><div class="dms" style="color:'+(dm?'var(--G)':'var(--Y)')+'">'+(dm?'▲ Kup akcje ETF':'▼ Przejdź na IB01')+'</div></div>'
+  +'<div class="dmn">SP500 12M: <b style="color:'+(dm?'var(--G)':'var(--R)')+'">'+pS(sp12m)+'</b> vs IB01: <b>'+ib01.toFixed(2)+'%</b><br>Spread: '+(sp12m-ib01).toFixed(1)+' pp · '+(dm?'Kontynuuj DCA w akcje.':'Przenieś na IB01/EDO.')+'</div>'
+  +'</div>'
+  +'<div class="sec">5 portfeli — DCA 2026</div><div class="pgrid">'+ports+'</div>'
+  +'<div class="sec">Harmonogram — co Czwartek</div>'
+  +'<div class="tblwrap"><table class="stbl"><thead><tr><th>Tyg</th><th>Data</th><th>Port</th><th>Kup ETF</th><th>USD</th><th>EUR</th><th>Uwaga</th></tr></thead><tbody>'+sr+'<tr><td colspan="7" style="padding:7px 11px;font-size:9px;color:var(--t3);text-align:center">… rotacja P1→P5 do 2026 Q4</td></tr></tbody></table></div>'
+  +'<div class="rcbox"><b>Zasady DCA:</b> Czwartek (+0.11% avg) · <b style="color:var(--G)">+30% Sierpień/Wrzesień</b> · Dual Momentum: sprawdzaj 1. miesiąca · <b style="color:var(--G)">VIX&gt;30 = zwiększaj DCA</b> · Rebalans 28 Gru · IKZE ~9 388 PLN · IKE ~23 470 PLN</div>'
+  +'<div class="sec">Baza ETF</div>'
+  +'<div class="tblwrap"><table class="stbl"><thead><tr><th>ETF</th><th>ISIN</th><th>TER</th><th>Holdings</th><th>Ryzyko SRI</th><th>Link</th></tr></thead><tbody>'+er+'</tbody></table></div>'
+  +'</div>';
 }
 
-/* ═══ PIPELINE ═══ */
-async function fetchAll() {
-  setS('ld', 'Start…');
-  await Promise.all([fetchStooq(), fetchSP500_12M()]);
-  renderTicker(); renderDecision(); renderPortfolio(); renderCOT(); renderLiquidity();
-  await Promise.all([fetchFG(), fetchCryptoFG()]);
-  renderDecision();
+/* ═══════════════════════════════
+   RENDER: JOURNAL
+═══════════════════════════════ */
+function renderJournal(){
+  var el=document.getElementById('p-journal');if(!el)return;
+  var entries=jLoad();
+  var tc={'kupuję':'var(--G)','sprzedaję':'var(--R)','obserwuję':'var(--B)','analiza':'var(--V)','notatka':'var(--t1)'};
+  var listH=entries.length?entries.map(function(e){
+    var c=tc[e.tag]||'var(--t1)';
+    return'<div class="je"><div class="je-hd"><span class="je-dt">'+e.date+'</span><span class="je-tag" style="background:rgba(255,255,255,.04);color:'+c+';border:1px solid rgba(255,255,255,.1)">'+e.tag+'</span><button class="jdel" data-id="'+e.id+'">✕</button></div><div class="je-body">'+e.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')+'</div>'+(e.score!=null?'<div class="je-score">Score: <b style="color:var(--B)">'+e.score+'/100</b> · <b>'+e.verdict+'</b></div>':'')+'</div>';
+  }).join(''):'<div style="color:var(--t3);text-align:center;padding:30px;font-size:11px">Brak wpisów — dodaj pierwszą notatkę maklera</div>';
+  el.innerHTML='<div class="wrap">'
+  +'<div class="sec">Dziennik maklera — '+(entries.length)+' wpisów</div>'
+  +'<div class="jtop"><textarea id="jt" placeholder="Co obserwujesz? Dlaczego kupujesz/sprzedajesz/czekasz? VIX '+((SC&&SC.vix)||29.5).toFixed(0)+', F&G '+((SC&&SC.fg)||'?')+'…"></textarea>'
+  +'<div class="jmeta"><select class="jsel" id="jtag"><option value="notatka">📝 Notatka</option><option value="kupuję">📈 Kupuję</option><option value="sprzedaję">📉 Sprzedaję</option><option value="obserwuję">👁 Obserwuję</option><option value="analiza">🔬 Analiza</option></select>'
+  +(SC?'<div style="font-size:9.5px;color:var(--t1);padding:3px 0">Score: <b style="color:var(--B)">'+SC.norm+'/100</b><br>'+SC.verdict+'</div>':'')
+  +'<button class="jbtn" id="jsave">ZAPISZ</button></div></div>'
+  +'<div class="jlist" id="jlist">'+listH+'</div>'
+  +'</div>';
+  document.getElementById('jsave').addEventListener('click',function(){
+    var txt=document.getElementById('jt').value.trim(),tag=document.getElementById('jtag').value;
+    if(!txt)return; jAdd(txt,tag); renderJournal();
+  });
+  el.querySelectorAll('.jdel').forEach(function(btn){
+    btn.addEventListener('click',function(){ jDel(parseInt(btn.getAttribute('data-id'))); renderJournal(); });
+  });
+}
+
+/* ═══════════════════════════════
+   RENDER: SOURCES
+═══════════════════════════════ */
+function renderSources(){
+  var el=document.getElementById('p-sources');if(!el)return;
+  var sq=Object.keys(D.q||{}).length,fr=Object.keys(D.f||{}).length;
+  function sri(key,s){
+    var st=s.status==='live'?'ss-live':s.status==='fail'?'ss-fail':s.status==='static'?'ss-static':'ss-unused';
+    var stxt=s.status==='live'?'LIVE':s.status==='fail'?'FAIL':s.status==='unused'?'BRAK':s.status.toUpperCase();
+    return'<div class="sri" data-key="'+key+'"><div><div class="sri-name">'+s.name+'</div><div class="sri-url">'+(s.url||'—')+'</div><div class="sri-desc">'+s.desc+'</div></div><div style="text-align:center"><span class="ss '+st+'">'+stxt+'</span></div><div class="src-actions"><button class="bts" data-test="'+key+'">TEST</button>'+(s.editable?'<button class="bts" data-edit="'+key+'">EDYTUJ</button>':'')+'</div></div>';
+  }
+  var logH=LOG.slice(0,60).map(function(l){
+    var c=l.state==='er'?'var(--R)':l.state==='ok'?'var(--G)':'var(--Y)',mc=l.state==='er'?'#fca5a5':'var(--t1)',ic=l.state==='er'?'✗':l.state==='ok'?'✓':'↻';
+    return'<div class="lr"><span class="lts">'+l.ts+'</span><span class="lic" style="color:'+c+'">'+ic+'</span><span class="lmsg" style="color:'+mc+'">'+l.msg+'</span></div>';
+  }).join('');
+  el.innerHTML='<div class="wrap">'
+  +'<div class="dstats">'
+  +'<div class="ds"><div class="ds-l">Stooq</div><div class="ds-n" style="color:'+(sq>12?'var(--G)':'var(--Y)')+'">'+sq+'</div><div class="ds-s">/ '+Object.keys(SQ).length+' symboli</div></div>'
+  +'<div class="ds"><div class="ds-l">FRED</div><div class="ds-n" style="color:'+(fr>12?'var(--G)':'var(--Y)')+'">'+fr+'</div><div class="ds-s">/ '+Object.keys(FM).length+' serii</div></div>'
+  +'<div class="ds"><div class="ds-l">F&amp;G</div><div class="ds-n" style="color:'+(D.fg?'var(--G)':'var(--R)')+'">'+(D.fg?D.fg.score:'—')+'</div><div class="ds-s">'+(D.fg?D.fg.source:'nie załadowano')+'</div></div>'
+  +'<div class="ds"><div class="ds-l">SP500 12M</div><div class="ds-n" style="color:var(--G)">'+pS(D.sp12m)+'</div><div class="ds-s">'+(D.sp12m_src||'—')+'</div></div>'
+  +'</div>'
+  +'<div class="sec">Zarządzanie źródłami danych</div>'
+  +'<div class="src-list" id="srclist">'+Object.keys(SRCS).map(function(k){return sri(k,SRCS[k]);}).join('')+'</div>'
+  +'<div class="sec" style="margin-top:16px">Dodaj / edytuj własne źródło</div>'
+  +'<div class="cform">'
+  +'<div class="frow"><div class="ff"><label>Klucz</label><select id="cf-k"><option value="custom1">custom1</option><option value="custom2">custom2</option></select></div><div class="ff"><label>Nazwa</label><input type="text" id="cf-n" placeholder="np. własny endpoint FRED"></div></div>'
+  +'<div class="frow"><div class="ff" style="grid-column:1/-1"><label>URL</label><input type="url" id="cf-u" placeholder="https://fred.stlouisfed.org/graph/fredgraph.csv?id=SERIES_ID"></div></div>'
+  +'<div class="frow"><div class="ff" style="grid-column:1/-1"><label>Opis</label><input type="text" id="cf-d" placeholder="Co zwraca ten endpoint?"></div></div>'
+  +'<div style="display:flex;gap:8px"><button class="jbtn" id="cf-save">ZAPISZ</button><button class="btn" id="cf-test">TESTUJ URL</button></div>'
+  +'<div class="tres" id="cf-res"></div>'
+  +'</div>'
+  +'<div class="sec">Log zdarzeń</div>'
+  +'<div class="logbox">'+(logH||'<div style="color:var(--t3)">Brak logów…</div>')+'</div>'
+  +'</div>';
+  /* wire buttons */
+  el.querySelectorAll('[data-test]').forEach(function(btn){
+    btn.addEventListener('click',function(){ testSrc(btn.getAttribute('data-test')); });
+  });
+  el.querySelectorAll('[data-edit]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var k=btn.getAttribute('data-edit'),s=SRCS[k];
+      if(!s)return;
+      document.getElementById('cf-k').value=k;
+      document.getElementById('cf-n').value=s.name;
+      document.getElementById('cf-u').value=s.url;
+      document.getElementById('cf-d').value=s.desc;
+    });
+  });
+  document.getElementById('cf-save').addEventListener('click',function(){
+    var k=document.getElementById('cf-k').value,n=document.getElementById('cf-n').value.trim(),u=document.getElementById('cf-u').value.trim(),d=document.getElementById('cf-d').value.trim();
+    if(!u)return; SRCS[k]={name:n||k,url:u,desc:d||'Własne',status:'unknown',editable:true}; renderSources();
+  });
+  document.getElementById('cf-test').addEventListener('click',async function(){
+    var u=document.getElementById('cf-u').value.trim(),r=document.getElementById('cf-res');
+    if(!u||!r)return; r.style.display='block';r.className='tres';r.textContent='Testowanie…';
+    try{
+      var res=await pGet(u,10000),txt=await res.text();
+      var ok=txt.trim().charAt(0)!=='<'&&txt.length>20;
+      r.className='tres '+(ok?'tok':'tfail');r.textContent=ok?'OK — '+txt.slice(0,120):'FAIL — odpowiedź HTML lub pusta';
+    }catch(e){r.className='tres tfail';r.textContent='FAIL — '+e.message;}
+  });
+}
+async function testSrc(key){
+  var s=SRCS[key];if(!s||!s.url)return;
+  setS('ld','Test: '+s.name+'…');
+  try{
+    var r=await pGet(s.url,9000),txt=await r.text();
+    s.status=txt.trim().charAt(0)!=='<'&&txt.length>20?'live':'fail';
+    setS(s.status==='live'?'ok':'er',s.name+': '+(s.status==='live'?'OK':'FAIL'));
+  }catch(e){s.status='fail';setS('er',s.name+': '+e.message);}
+  renderSources();
+}
+
+/* ═══════════════════════════════
+   PIPELINE
+═══════════════════════════════ */
+async function fetchAll(){
+  setS('ld','Inicjalizacja…');
+  await Promise.all([fetchStooq(),fetchSP12M()]);
+  renderTicker(); calcScore(); renderDecision();
+  await Promise.all([fetchFG(),fetchCryptoFG()]);
+  calcScore(); renderDecision();
   await fetchFred();
-  renderDecision(); renderIndicators(); renderPortfolio(); renderLiquidity();
+  calcScore(); renderDecision(); renderIndicators(); renderPortfolio(); renderLiquidity();
   await fetchTreasury();
-  renderData();
-  var tot = Object.keys(D.q||{}).length + Object.keys(D.f||{}).length;
-  setS('ok', 'Załadowane — ' + tot + ' serii danych');
-  var e = document.getElementById('lu');
-  if (e) e.textContent = 'Odśw: ' + new Date().toLocaleTimeString('pl-PL');
+  var tot=Object.keys(D.q||{}).length+Object.keys(D.f||{}).length;
+  setS('ok','Załadowane — '+tot+' serii danych');
+  var lu=document.getElementById('lupd');if(lu)lu.textContent='odśw. '+new Date().toLocaleTimeString('pl-PL');
+  var at=document.querySelector('.tab.on');
+  if(at){var t=at.getAttribute('data-t');if(t==='sources')renderSources();if(t==='cot')renderCOT();}
 }
-setInterval(fetchAll, 10*60*1000);
+setInterval(fetchAll,10*60*1000);
 
-/* ═══ TABS ═══ */
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.tab').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on'); });
-      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
+/* ═══════════════════════════════
+   TABS
+═══════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.tab').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+      document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
       btn.classList.add('on');
-      var t = btn.getAttribute('data-t');
-      var panel = document.getElementById('p-' + t);
-      if (panel) panel.classList.add('on');
-      if (t==='indicators') renderIndicators();
-      if (t==='cot') renderCOT();
-      if (t==='liquidity') renderLiquidity();
-      if (t==='portfolio') renderPortfolio();
-      if (t==='data') renderData();
+      var t=btn.getAttribute('data-t');
+      var panel=document.getElementById('p-'+t);if(panel)panel.classList.add('on');
+      if(t==='sentiment')renderSentiment();
+      if(t==='liquidity')renderLiquidity();
+      if(t==='cot')renderCOT();
+      if(t==='indicators')renderIndicators();
+      if(t==='portfolio')renderPortfolio();
+      if(t==='journal')renderJournal();
+      if(t==='sources')renderSources();
     });
   });
-  var r = document.getElementById('btnR');
-  if (r) r.addEventListener('click', fetchAll);
+  document.getElementById('bR').addEventListener('click',fetchAll);
+  renderJournal();
   fetchAll();
 });
 </script>
