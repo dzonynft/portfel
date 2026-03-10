@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>MacroTerminal — Decyzje Inwestycyjne</title>
+<meta name="description" content="Panel makroekonomiczny: VIX, Fear&Greed, FRED, Dual Momentum — kiedy kupować ETF?">
+<meta name="viewport" content="width=device-width, initial-scale=0.8">
+<meta property="og:title" content="MacroTerminal">
+<meta property="og:description" content="Live macro dashboard: VIX, F&G, FRED data, buy/sell signals">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap');
+:root{
+  --bg0:#060a0f;--bg1:#0a1018;--bg2:#0f1825;--bg3:#141f30;--bg4:#1a2840;
+  --b1:#1e3048;--b2:#284060;--b3:#345280;
+  --g:#00ff88;--g2:#00cc66;--g3:#008844;
+  --r:#ff1a4e;--r2:#cc1040;
+  --y:#ffcc00;--y2:#c89800;
+  --o:#ff6600;
+  --bl:#00aaff;--bl2:#007acc;
+  --p:#aa44ff;
+  --t1:#e8f4ff;--t2:#7ab0d0;--t3:#3a5878;--t4:#1e3048;
+  --mono:'Space Mono',monospace;
+  --head:'Syne',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var(--t1);font-family:var(--mono);font-size:11px;}
+
+/* ═══ SCANLINE OVERLAY ═══ */
+body::before{content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);
+  pointer-events:none;z-index:9999;}
+
+/* ═══ LAYOUT ═══ */
+.app{display:grid;grid-template-rows:48px 26px 40px 1fr;width:100vw;height:100vh;overflow:hidden;}
+
+/* ═══ TOPBAR ═══ */
+.topbar{
+  background:linear-gradient(90deg,var(--bg1),var(--bg2));
+  border-bottom:1px solid var(--b2);
+  display:flex;align-items:center;gap:14px;padding:0 16px;
+  position:relative;
+}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--g) 30%,var(--bl) 70%,transparent 100%);
+  opacity:.4;}
+.logo{font-family:var(--head);font-size:16px;font-weight:800;letter-spacing:3px;
+  background:linear-gradient(90deg,var(--g),var(--bl));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-sub{font-size:7px;letter-spacing:4px;color:var(--t3);margin-top:-1px;}
+.badge{font-size:7.5px;letter-spacing:1.5px;padding:2px 9px;border-radius:1px;border:1px solid;white-space:nowrap;font-family:var(--mono);}
+.badge-live{color:var(--g);border-color:var(--g);background:rgba(0,255,136,.06);}
+.badge-load{color:var(--y);border-color:var(--y);background:rgba(255,204,0,.05);animation:blink 1s infinite;}
+.badge-err{color:var(--r);border-color:var(--r);background:rgba(255,26,78,.06);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.clock{font-size:9px;color:var(--t2);letter-spacing:1px;}
+.btn{font-size:8px;letter-spacing:1px;padding:4px 12px;border:1px solid var(--b2);
+  background:transparent;color:var(--t2);font-family:var(--mono);cursor:pointer;border-radius:1px;transition:all .15s;}
+.btn:hover{border-color:var(--g);color:var(--g);}
+
+/* ═══ TICKER ═══ */
+.ticker{background:var(--bg1);border-bottom:1px solid var(--b1);display:flex;align-items:center;overflow:hidden;}
+.ticker-track{display:flex;gap:0;animation:scroll-ticker 90s linear infinite;white-space:nowrap;}
+.ticker-track:hover{animation-play-state:paused;}
+@keyframes scroll-ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--b1);height:26px;}
+.ti-n{font-size:7.5px;color:var(--t3);}
+.ti-p{font-size:10px;font-weight:700;}
+.ti-c{font-size:7.5px;font-weight:700;}
+.up{color:var(--g)}.dn{color:var(--r)}.neu{color:var(--t2)}
+
+/* ═══ MAIN TABS ═══ */
+.main-tabs{background:var(--bg1);border-bottom:2px solid var(--b1);display:flex;align-items:stretch;}
+.tab-btn{
+  padding:0 22px;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--t3);
+  cursor:pointer;border:none;background:transparent;font-family:var(--head);
+  border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;
+  white-space:nowrap;
+}
+.tab-btn:hover{color:var(--t1);}
+.tab-btn.active{color:var(--g);border-bottom-color:var(--g);}
+.tab-right{margin-left:auto;display:flex;align-items:center;padding-right:12px;gap:8px;}
+
+/* ═══ PANELS ═══ */
+.panel{display:none;height:100%;overflow-y:auto;overflow-x:hidden;}
+.panel.active{display:block;}
+.panel::-webkit-scrollbar{width:3px;}
+.panel::-webkit-scrollbar-thumb{background:var(--b2);}
+.panel-content{padding:14px 16px;}
+
+/* ═══ DECISION PANEL ═══ */
+.decision-grid{display:grid;grid-template-columns:320px 1fr;gap:14px;margin-bottom:14px;}
+.verdict-box{
+  background:var(--bg2);border:2px solid var(--b2);border-radius:3px;
+  padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;position:relative;overflow:hidden;min-height:220px;
+}
+.verdict-box::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 30%,var(--verdict-clr,#00ff88)08,transparent 70%);
+  transition:all .5s;}
+.verdict-label{font-size:8px;letter-spacing:4px;color:var(--t3);font-family:var(--head);margin-bottom:12px;}
+.verdict-word{font-family:var(--head);font-size:42px;font-weight:800;line-height:1;
+  color:var(--verdict-clr,var(--g));text-shadow:0 0 30px var(--verdict-clr,var(--g));
+  margin-bottom:8px;}
+.verdict-score{font-size:11px;font-weight:700;color:var(--t2);margin-bottom:14px;}
+.verdict-why{font-size:8.5px;color:var(--t2);line-height:1.7;max-width:260px;}
+.verdict-signal-row{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;justify-content:center;}
+.vsig{font-size:7px;padding:2px 8px;border-radius:1px;letter-spacing:1px;}
+.vsig-bull{background:rgba(0,255,136,.1);color:var(--g);border:1px solid rgba(0,255,136,.2);}
+.vsig-bear{background:rgba(255,26,78,.1);color:var(--r);border:1px solid rgba(255,26,78,.2);}
+.vsig-neu{background:rgba(255,204,0,.08);color:var(--y);border:1px solid rgba(255,204,0,.2);}
+
+/* ═══ FEAR GAUGES ═══ */
+.fear-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.gauge-card{background:var(--bg2);border:1px solid var(--b1);border-radius:3px;padding:14px;}
+.gauge-label-sm{font-size:7px;letter-spacing:3px;color:var(--t3);text-transform:uppercase;font-family:var(--head);margin-bottom:4px;}
+.gauge-big-num{font-size:48px;font-weight:700;line-height:1;margin:4px 0;}
+.gauge-text{font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:10px;}
+.gauge-bar-wrap{position:relative;height:6px;background:var(--bg0);border-radius:3px;overflow:hidden;margin-bottom:8px;}
+.gauge-bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#ff1a4e,#ff6600,#ffcc00,#00cc66,#00ff88);transition:width .8s ease;}
+.gauge-bar-dot{position:absolute;top:-4px;width:14px;height:14px;background:white;border-radius:50%;
+  border:2px solid var(--bg0);transform:translateX(-50%);transition:left .8s ease;box-shadow:0 0 8px rgba(255,255,255,.5);}
+.gauge-context{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:6px;}
+.gc-item{background:var(--bg3);border-radius:1px;padding:4px 6px;text-align:center;}
+.gc-lbl{font-size:6.5px;color:var(--t3);}
+.gc-val{font-size:10px;font-weight:700;margin-top:1px;}
+
+/* ═══ HISTORY CARDS ═══ */
+.history-section{margin-bottom:14px;}
+.sec-title{font-family:var(--head);font-size:8px;letter-spacing:3px;color:var(--t3);
+  text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--b1);}
+.history-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.hcard{background:var(--bg2);border:1px solid var(--b1);border-radius:3px;padding:10px;position:relative;overflow:hidden;}
+.hcard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--hc-color,var(--b2));}
+.hcard-era{font-size:7px;letter-spacing:2px;color:var(--t3);font-family:var(--head);}
+.hcard-label{font-size:9.5px;font-weight:700;color:var(--t1);margin:3px 0 6px;}
+.hcard-body{font-size:7.5px;color:var(--t2);line-height:1.7;}
+.hcard-result{margin-top:6px;font-size:8px;font-weight:700;}
+
+/* ═══ SPARKLINE ═══ */
+.sparkline-wrap{display:flex;align-items:flex-end;gap:2px;height:36px;}
+.spark-bar{background:var(--b2);border-radius:1px;min-width:4px;transition:background .2s;}
+.spark-bar:hover{background:var(--bl);}
+.spark-bar.hi{background:var(--g);}
+.spark-bar.lo{background:var(--r);}
+.spark-bar.cur{background:var(--y);}
+
+/* ═══ SIGNALS TABLE ═══ */
+.signals-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:3px;overflow:hidden;}
+.signal-row{display:grid;grid-template-columns:140px 70px 70px 1fr;align-items:center;
+  padding:6px 12px;border-bottom:1px solid var(--b1);}
+.signal-row:hover{background:rgba(255,255,255,.02);}
+.signal-row.hdr{background:var(--bg3);font-size:6.5px;letter-spacing:2px;color:var(--t3);font-family:var(--head);}
+.signal-grp{font-size:7px;font-weight:700;color:var(--t3);letter-spacing:1px;}
+.signal-name{font-size:8.5px;color:var(--t1);padding-left:8px;}
+.signal-val{font-size:10px;font-weight:700;text-align:center;}
+.signal-sig{padding:2px 7px;font-size:6.5px;letter-spacing:1px;border-radius:1px;text-align:center;font-weight:700;}
+.sig-bull{background:rgba(0,255,136,.1);color:var(--g);border:1px solid rgba(0,255,136,.2);}
+.sig-bear{background:rgba(255,26,78,.1);color:var(--r);border:1px solid rgba(255,26,78,.2);}
+.sig-neu{background:rgba(255,204,0,.08);color:var(--y);border:1px solid rgba(255,204,0,.2);}
+.signal-desc{font-size:7px;color:var(--t3);padding-left:8px;}
+.signal-grp-hdr{background:var(--bg3);padding:4px 12px;font-size:7px;letter-spacing:2px;color:var(--t3);font-family:var(--head);border-bottom:1px solid var(--b1);}
+
+/* ═══ INDICATORS (WSKAŹNIKI) ═══ */
+.ind-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.ind-card{background:var(--bg2);border:1px solid var(--b1);border-radius:3px;padding:12px;transition:border-color .15s;}
+.ind-card:hover{border-color:var(--b2);}
+.ind-card.bull{border-left:3px solid var(--g);}
+.ind-card.bear{border-left:3px solid var(--r);}
+.ind-card.neu{border-left:3px solid var(--y);}
+.ind-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.ind-title{font-size:7.5px;font-weight:700;color:var(--t2);font-family:var(--head);}
+.ind-src{font-size:6px;color:var(--t4);}
+.ind-value{font-size:26px;font-weight:700;line-height:1;margin-bottom:3px;}
+.ind-sub{font-size:7.5px;color:var(--t3);}
+.ind-desc{font-size:7.5px;color:var(--t3);line-height:1.6;margin-top:6px;padding-top:6px;border-top:1px solid var(--b1);}
+.ind-history{margin-top:6px;font-size:7px;color:var(--t4);}
+.ind-signal{font-size:7px;font-weight:700;padding:1px 6px;border-radius:1px;margin-top:4px;display:inline-block;}
+
+/* ═══ PORTFOLIO ═══ */
+.port-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+.port-card{background:var(--bg2);border:1px solid var(--b1);border-radius:3px;padding:10px;text-align:center;transition:all .15s;}
+.port-card.active-dm{border-color:var(--g);box-shadow:0 0 12px rgba(0,255,136,.1);}
+.port-card.safe-dm{border-color:var(--y);}
+.port-id{font-family:var(--head);font-size:14px;font-weight:800;margin-bottom:3px;}
+.port-name{font-size:7px;color:var(--t2);margin-bottom:4px;}
+.port-budget{font-size:11px;font-weight:700;}
+.port-type{font-size:6.5px;padding:2px 6px;border-radius:1px;margin-top:4px;display:inline-block;}
+.port-etfs{font-size:6.5px;color:var(--t3);margin-top:4px;line-height:1.5;}
+.port-dm{font-size:7px;font-weight:700;margin-top:5px;}
+
+/* ═══ ROTATION TABLE ═══ */
+.rot-table{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:12px;}
+.rot-table th{background:var(--bg3);color:var(--t3);padding:5px 10px;text-align:left;
+  font-size:6.5px;letter-spacing:1.5px;font-family:var(--head);border-bottom:1px solid var(--b1);}
+.rot-table td{padding:4px 10px;border-bottom:1px solid var(--b1);color:var(--t2);}
+.rot-table tr:hover td{background:rgba(255,255,255,.015);}
+.port-tag{padding:1px 6px;border-radius:1px;font-weight:700;font-size:7px;}
+
+/* ═══ ETF TABLE ═══ */
+.etf-table{width:100%;border-collapse:collapse;font-size:8.5px;margin-bottom:12px;}
+.etf-table th{background:var(--bg3);color:var(--t3);padding:6px 10px;text-align:left;
+  font-size:6.5px;letter-spacing:1.5px;font-family:var(--head);border:1px solid var(--b1);}
+.etf-table td{padding:5px 10px;border:1px solid var(--b1);color:var(--t2);}
+.etf-table td:first-child{color:var(--t1);font-weight:700;}
+.etf-table tr:hover td{background:rgba(255,255,255,.02);}
+.risk-bar{display:flex;gap:2px;align-items:center;}
+.risk-seg{width:8px;height:8px;border-radius:1px;}
+
+/* ═══ DATA PANEL ═══ */
+.log-table{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:12px;}
+.log-table td{padding:4px 10px;border-bottom:1px solid var(--b1);}
+.log-table tr:hover td{background:rgba(255,255,255,.015);}
+
+/* ═══ DEBUG ═══ */
+.debug-log{background:var(--bg1);border:1px solid var(--b1);border-radius:2px;padding:10px;
+  font-size:8px;line-height:1.8;max-height:400px;overflow-y:auto;}
+
+/* ═══ MISC ═══ */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:300px;gap:14px;}
+.spinner{width:32px;height:32px;border:2px solid var(--b1);border-top-color:var(--g);
+  border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:10px;color:var(--t2);letter-spacing:2px;}
+a{color:var(--bl);text-decoration:none;}
+a:hover{color:var(--g);}
+
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:var(--bg0);}
+::-webkit-scrollbar-thumb{background:var(--b2);}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="logo">MACROTERMINAL</div>
+      <div class="logo-sub">v23 · INVESTMENT INTELLIGENCE</div>
+    </div>
+    <div id="statusBadge" class="badge badge-load">● INIT</div>
+    <div class="topbar-right">
+      <button class="btn" id="btnRefreshAll">⟳ ODŚWIEŻ</button>
+      <div class="clock" id="clock">—</div>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="tab-btn active" data-tab="decision">🎯 CO KUPIĆ?</button>
+    <button class="tab-btn" data-tab="indicators">📊 WSKAŹNIKI</button>
+    <button class="tab-btn" data-tab="portfolio">💼 PORTFEL</button>
+    <button class="tab-btn" data-tab="data">⚙️ DANE</button>
+    <div class="tab-right">
+      <span id="lastUpdate" style="font-size:7px;color:var(--t4)">—</span>
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <!-- 🎯 CO KUPIĆ -->
+  <div class="panel active" id="panel-decision">
+    <div class="panel-content">
+      <div class="loading-wrap"><div class="spinner"></div><div class="loading-txt">ŁADOWANIE DANYCH…</div></div>
+    </div>
+  </div>
+
+  <!-- 📊 WSKAŹNIKI -->
+  <div class="panel" id="panel-indicators">
+    <div class="panel-content">
+      <div class="loading-wrap"><div class="spinner"></div><div class="loading-txt">ŁADOWANIE FRED…</div></div>
+    </div>
+  </div>
+
+  <!-- 💼 PORTFEL -->
+  <div class="panel" id="panel-portfolio">
+    <div class="panel-content">
+      <div class="loading-wrap"><div class="spinner"></div><div class="loading-txt">ŁADOWANIE…</div></div>
+    </div>
+  </div>
+
+  <!-- ⚙️ DANE -->
+  <div class="panel" id="panel-data">
+    <div class="panel-content" id="body-data">
+      <div class="loading-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</div>
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════════
+// MACRO TERMINAL v23 — app.js
+// 4 tabs: CO KUPIĆ | WSKAŹNIKI | PORTFEL | DANE
+// Sources: stooq.com (z fallback bossa.pl) + FRED + alternative.me
+// ══════════════════════════════════════════════════════════════
+
+const D = {};  // global data store
+
+// ── Debug log ─────────────────────────────────────────────────
+const _log = [];
+function dbg(status, msg, isErr=false) {
+  const ts = new Date().toLocaleTimeString('pl-PL');
+  _log.unshift({ ts, status, msg, isErr });
+  if (_log.length > 60) _log.pop();
+  const el = document.getElementById('statusBadge');
+  if (el) {
+    el.textContent = '● ' + msg.slice(0,55);
+    el.className = 'badge ' + (isErr ? 'badge-err' : status==='ok' ? 'badge-live' : 'badge-load');
+  }
+}
+
+// ── Clock ─────────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  const el = document.getElementById('clock');
+  if (el) el.textContent =
+    n.toLocaleDateString('pl-PL',{weekday:'short',day:'2-digit',month:'short'}) +
+    ' ' + n.toLocaleTimeString('pl-PL');
+}
+setInterval(tick, 1000); tick();
+
+// ── Formatowanie ──────────────────────────────────────────────
+const fmt    = (v,d=2) => v==null||isNaN(v)?'—':Number(v).toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtPct = p => p==null?'—':(p>=0?'+':'')+Number(p).toFixed(2)+'%';
+const cls    = p => p>0?'up':p<0?'dn':'neu';
+const fgColor = s => s==null?'#7ab0d0':s<=24?'#ff1a4e':s<=44?'#ff6600':s<=55?'#ffcc00':s<=74?'#00cc66':'#00ff88';
+const fgLabel = s => s==null?'—':s<=24?'EXTREME FEAR':s<=44?'FEAR':s<=55?'NEUTRAL':s<=74?'GREED':'EXTREME GREED';
+
+// ── Fetch z timeout ────────────────────────────────────────────
+async function httpGet(url, ms=12000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r;
+  } catch(e) { clearTimeout(t); throw e; }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOURCE 1: STOOQ.COM CSV
+// ══════════════════════════════════════════════════════════════
+const STOOQ_SYMBOLS = {
+  sp500:'^spx', nasdaq:'^ndx', dj:'^dji', russell:'^rut',
+  gold:'xauusd', silver:'xagusd', oil:'cl.f', natgas:'ng.f', copper:'hg.f',
+  usdpln:'usdpln', eurpln:'eurpln', eurusd:'eurusd',
+  gbpusd:'gbpusd', usdjpy:'usdjpy', dxy:'dxy',
+  us10y:'10usy.b', us2y:'2usy.b', us30y:'30usy.b',
+  btcusd:'btcusd', ethusd:'ethusd',
+  wig20:'wig20',
+  spy:'spy.us', qqq:'qqq.us', vix:'^vix',
+};
+
+async function stooqOne(sym) {
+  const url = `https://stooq.com/q/d/l/?s=${encodeURIComponent(sym)}&i=d`;
+  const r = await httpGet(url, 10000);
+  const txt = await r.text();
+  if (!txt || txt.includes('No data') || txt.trim().length < 20) throw new Error('brak danych');
+  const lines = txt.trim().split('\n').filter(l => l && !l.startsWith('Date') && !l.startsWith('Dat'));
+  if (!lines.length) throw new Error('pusta odpowiedź');
+  const parse = l => { const p=l.split(','); return { close:parseFloat(p[4]), date:p[0] }; };
+  const last = parse(lines[lines.length-1]);
+  const prev = lines.length>1 ? parse(lines[lines.length-2]) : last;
+  if (isNaN(last.close)) throw new Error('nieprawidłowa wartość');
+  return { price:last.close, prev:prev.close,
+    change: prev.close ? (last.close-prev.close)/prev.close*100 : 0,
+    date:last.date, symbol:sym };
+}
+
+async function fetchStooq() {
+  dbg('load','stooq.com: pobieranie cen...');
+  const keys = Object.keys(STOOQ_SYMBOLS);
+  const results = await Promise.allSettled(keys.map(k => stooqOne(STOOQ_SYMBOLS[k])));
+  D.quotes = {};
+  let ok=0, fail=0;
+  results.forEach((r,i) => {
+    const k = keys[i];
+    if (r.status==='fulfilled') { D.quotes[k]=r.value; ok++; }
+    else { fail++; dbg('err',`stooq/${k}: ${r.reason?.message}`,true); }
+  });
+  dbg('ok',`stooq: ${ok} OK, ${fail} błędów`);
+}
+
+// SP500 12M exact range
+async function fetchSP500_12M() {
+  try {
+    const now = new Date();
+    const ya = new Date(now); ya.setFullYear(ya.getFullYear()-1);
+    const f8 = d => d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+    const url = `https://stooq.com/q/d/l/?s=%5Espx&d1=${f8(ya)}&d2=${f8(now)}&i=w`;
+    const r = await httpGet(url,12000);
+    const txt = await r.text();
+    if (!txt||txt.includes('No data')) throw new Error('brak danych');
+    const lines = txt.trim().split('\n').filter(l=>l&&!l.startsWith('Date'));
+    if (lines.length<2) throw new Error('za mało danych');
+    const parse = l => parseFloat(l.split(',')[4]);
+    const first=parse(lines[0]), last=parse(lines[lines.length-1]);
+    if (!first||!last||isNaN(first)||isNaN(last)) throw new Error('nieprawidłowe dane');
+    D.sp500_12m = (last-first)/first*100;
+    D.sp500_12m_src = 'stooq ^SPX 1Y range ✓';
+    dbg('ok',`SP500 12M: +${D.sp500_12m.toFixed(1)}%`);
+  } catch(e) {
+    dbg('err',`SP500 12M: ${e.message} — fallback`,true);
+    D.sp500_12m = null;
+    D.sp500_12m_src = 'FRED fallback';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOURCE 2: FRED CSV
+// ══════════════════════════════════════════════════════════════
+const FRED_IDS = {
+  fedfunds:'FEDFUNDS', m2:'M2SL', yield_curve:'T10Y2Y', fed_bs:'WALCL',
+  cpi:'CPIAUCSL', core_cpi:'CPILFESL', tips10y:'T10YIE',
+  realrate:'REAINTRATREARAT10Y', unrate:'UNRATE',
+  sahm:'SAHMREALTIME', jolts:'JTSJOL',
+  hy_spread:'BAMLH0A0HYM2', ig_spread:'BAMLC0A0CM',
+  nfci:'NFCI', epu:'USEPUINDXM',
+  emv_infl:'EMVMACROINFLATION', emv_overall:'EMVOVERALLEMV',
+  indprod:'INDPRO', vixfred:'VIXCLS', sp500fred:'SP500', ib01_yield:'DGS1MO',
+};
+
+async function fredOne(id) {
+  const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}`;
+  const r = await httpGet(url,15000);
+  const txt = await r.text();
+  const rows = txt.trim().split('\n').slice(1)
+    .map(l=>{ const [d,v]=l.split(','); return {date:d?.trim(),val:v?.trim()==='.'?null:parseFloat(v)}; })
+    .filter(d=>d.date&&d.val!==null&&isFinite(d.val));
+  if (!rows.length) throw new Error('pusta seria');
+  const last=rows[rows.length-1], prev1=rows.length>1?rows[rows.length-2]:last;
+  const prev12=rows.length>12?rows[rows.length-13]:rows[0];
+  return { current:last.val, date:last.date, prev:prev1.val,
+    yoy:prev12.val?(last.val-prev12.val)/Math.abs(prev12.val)*100:null,
+    series:rows.slice(-24) };
+}
+
+async function fetchFred() {
+  dbg('load','FRED: pobieranie danych makro...');
+  D.fred = {};
+  const keys = Object.keys(FRED_IDS);
+  let ok=0, fail=0;
+  for (let i=0; i<keys.length; i+=4) {
+    const batch = keys.slice(i,i+4);
+    dbg('load',`FRED batch ${Math.floor(i/4)+1}/${Math.ceil(keys.length/4)}: ${batch.join(', ')}`);
+    const results = await Promise.allSettled(batch.map(k=>fredOne(FRED_IDS[k])));
+    results.forEach((r,j)=>{
+      const k=batch[j];
+      if (r.status==='fulfilled') { D.fred[k]=r.value; ok++; }
+      else { fail++; dbg('err',`FRED/${FRED_IDS[k]}: ${r.reason?.message}`,true); }
+    });
+    if (i+4<keys.length) await new Promise(res=>setTimeout(res,100));
+  }
+  dbg('ok',`FRED: ${ok} OK, ${fail} błędów`);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOURCE 3: FEAR & GREED
+// ══════════════════════════════════════════════════════════════
+async function fetchFG() {
+  dbg('load','Fear & Greed: CNN...');
+  try {
+    const r = await httpGet('https://production.dataviz.cnn.io/index/fearandgreed/graphdata',8000);
+    const j = await r.json();
+    const fg=j.fear_and_greed||{};
+    D.fg = { score:Math.round(fg.score||0), rating:fg.rating||'unknown',
+      prev_close:Math.round(fg.previous_close||0),
+      prev_week:Math.round(fg.previous_1_week||0),
+      prev_month:Math.round(fg.previous_1_month||0), source:'CNN' };
+    dbg('ok',`Fear & Greed: ${D.fg.score} — ${D.fg.rating}`);
+    return;
+  } catch(e) { dbg('err',`CNN F&G: ${e.message}`,true); }
+  // fallback
+  try {
+    dbg('load','Fear & Greed: feargreedmeter.com...');
+    const r = await httpGet('https://feargreedmeter.com/',10000);
+    const html = await r.text();
+    const m = html.match(/Fear and Greed Index:\s*(\d+)/i);
+    const score = m ? parseInt(m[1]) : 50;
+    D.fg = { score, rating:fgLabel(score).toLowerCase(),
+      prev_close:null, prev_week:null, prev_month:null, source:'feargreedmeter.com' };
+    dbg('ok',`Fear & Greed: ${D.fg.score}`);
+  } catch(e) { dbg('err',`F&G fallback: ${e.message}`,true); D.fg = null; }
+}
+
+async function fetchCryptoFG() {
+  dbg('load','Crypto F&G: alternative.me...');
+  try {
+    const r = await httpGet('https://api.alternative.me/fng/?limit=30&format=json',8000);
+    const j = await r.json();
+    const entries=j?.data||[];
+    if (!entries.length) throw new Error('pusta odpowiedź');
+    D.cryptoFg = {
+      score:parseInt(entries[0].value), rating:entries[0].value_classification,
+      history:entries.slice(0,14).map(e=>({
+        date:new Date(parseInt(e.timestamp)*1000).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),
+        score:parseInt(e.value), label:e.value_classification,
+      })),
+    };
+    dbg('ok',`Crypto F&G: ${D.cryptoFg.score}`);
+  } catch(e) { dbg('err',`Crypto F&G: ${e.message}`,true); D.cryptoFg=null; }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOURCE 4: TREASURY + WORLD BANK
+// ══════════════════════════════════════════════════════════════
+async function fetchTreasury() {
+  try {
+    const url='https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?fields=record_date,tot_pub_debt_out_amt&sort=-record_date&limit=12&format=json';
+    const r=await httpGet(url,10000);
+    const j=await r.json();
+    D.treasury=(j?.data||[]).map(d=>({ date:d.record_date, total:parseFloat(d.tot_pub_debt_out_amt)/1e12 }));
+    dbg('ok',`Treasury: dług ${D.treasury[0]?.total.toFixed(2)} T$`);
+  } catch(e) { dbg('err',`Treasury: ${e.message}`,true); D.treasury=null; }
+}
+
+// ══════════════════════════════════════════════════════════════
+// STATIC REFERENCE DATA (verified Mar 2026)
+// ══════════════════════════════════════════════════════════════
+const STATIC = {
+  fed_rate:   { val:3.75, date:'Gru 2025', note:'Obniżka -25bp w grudniu 2025' },
+  ism_pmi:    { val:52.4, date:'Lut 2026', note:'ISM Manufacturing PMI > 50 = ekspansja' },
+  cape:       { val:36.2, date:'Mar 2026', note:'Shiller CAPE. Historyczna norma: ~16. Drogie.' },
+  buffett:    { val:196,  date:'Mar 2026', note:'Buffett Indicator: Mkt Cap/GDP. >120% = drogie.' },
+  us10y_te:   { val:4.10, date:'13 Lut 2026', note:'TradingEconomics' },
+  pl10y_te:   { val:5.19, date:'Gru 2024', note:'TradingEconomics' },
+};
+
+// ══════════════════════════════════════════════════════════════
+// PORTFOLIOS & SCHEDULE
+// ══════════════════════════════════════════════════════════════
+const PORTFOLIOS = [
+  { id:'P1', name:'USD Global', color:'#00ff88', type:'Makler USD',
+    budget_usd:2000, budget_eur:null,
+    etfs:['ISAC'], dm_safe:'IB01',
+    special:null },
+  { id:'P2', name:'USD World+Val', color:'#00aaff', type:'Makler USD',
+    budget_usd:3000, budget_eur:null,
+    etfs:['SWRD 70%','IWVL 30%'], dm_safe:'IB01',
+    special:null },
+  { id:'P3', name:'IKZE Polska', color:'#ffcc00', type:'IKZE GPW PLN',
+    budget_usd:null, budget_eur:2000,
+    etfs:['ETFBSWIG80 40%','ETFBMWIG40 35%','ETFBWIG20 25%'], dm_safe:'Gotówka IKZE',
+    special:'💎 ZERO Belka po 65r.ż.' },
+  { id:'P4', name:'IKE World+PL', color:'#ff6600', type:'IKE XETRA+GPW',
+    budget_usd:null, budget_eur:1750,
+    etfs:['VWCE.DE 50%','ETFDIVPL 25%','VWHE.DE 25%'], dm_safe:'ETFDIVPL',
+    special:'💎 ZERO Belka po 60r.ż.' },
+  { id:'P5', name:'EUR Mixed', color:'#aa44ff', type:'Makler EUR',
+    budget_usd:1500, budget_eur:1250,
+    etfs:['LYP6.DE 40%','MWEQ.DE 40%','WEBN.DE 20%'], dm_safe:'IB01',
+    special:null },
+];
+
+const ETF_LIST = [
+  { id:'IB01', name:'USD Treasury 0-1yr', isin:'IE00BGSF1X88', ter:0.07, holds:63,  risk:2, type:'obligacje', color:'#00ff88', link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BGSF1X88' },
+  { id:'CSPX', name:'iShares Core S&P 500', isin:'IE00B5BMR087', ter:0.07, holds:503, risk:6, type:'akcje',    color:'#00aaff', link:'https://www.justetf.com/en/etf-profile.html?isin=IE00B5BMR087' },
+  { id:'ISAC', name:'iShares MSCI ACWI',   isin:'IE00B6R52259', ter:0.20, holds:2372,risk:6, type:'akcje',    color:'#00aaff', link:'https://www.justetf.com/en/etf-profile.html?isin=IE00B6R52259' },
+  { id:'SWRD', name:'SPDR MSCI World',     isin:'IE00BFY0GT14', ter:0.12, holds:1515,risk:6, type:'akcje',    color:'#00aaff', link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BFY0GT14' },
+  { id:'IWVL', name:'iShares Edge MSCI World Value', isin:'IE00BP3QZB59', ter:0.25, holds:399, risk:6, type:'akcje', color:'#ff6600', link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BP3QZB59' },
+  { id:'VWCE', name:'Vanguard FTSE All-World', isin:'IE00BK5BQT80', ter:0.22, holds:3704,risk:6, type:'akcje', color:'#00aaff', link:'https://www.justetf.com/en/etf-profile.html?isin=IE00BK5BQT80' },
+  { id:'WEBN', name:'Amundi MSCI World Internet', isin:'IE0003XJA0J9', ter:0.50, holds:30,  risk:7, type:'akcje', color:'#aa44ff', link:'https://www.justetf.com/en/etf-profile.html?isin=IE0003XJA0J9' },
+];
+
+// Build schedule
+function buildSchedule() {
+  const schedule = [];
+  const start = new Date(2026,2,12); // 12 Mar 2026
+  for (let w=1; w<=42; w++) {
+    const d = new Date(start.getTime()+(w-1)*7*86400000);
+    const mNum = d.getMonth()+1;
+    const boost = (mNum===8||mNum===9) ? 1.3 : 1.0;
+    const p = PORTFOLIOS[(w-1)%5];
+    schedule.push({
+      w, p, d,
+      day: d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),
+      mNum, boost,
+      usd: p.budget_usd ? Math.round(p.budget_usd/52*boost) : null,
+      eur: p.budget_eur ? Math.round(p.budget_eur/52*boost) : null,
+    });
+  }
+  return schedule;
+}
+
+// ══════════════════════════════════════════════════════════════
+// COMPOSITE SCORE ENGINE
+// ══════════════════════════════════════════════════════════════
+function computeScore() {
+  const q=D.quotes||{}, f=D.fred||{};
+  const vix    = q.vix?.price || f.vixfred?.current || 29.49;
+  const fg     = D.fg?.score;
+  const sp12m  = D.sp500_12m ?? f.sp500fred?.yoy ?? 17.7;
+  const ib01   = f.ib01_yield?.current ?? 4.15;
+  const cape   = STATIC.cape.val;
+  const buffett= STATIC.buffett.val;
+  const sahm   = f.sahm?.current ?? 0.30;
+  const yc     = f.yield_curve?.current;
+  const hy     = f.hy_spread?.current ?? 2.84;
+  const fed    = f.fedfunds?.current ?? STATIC.fed_rate.val;
+  const cpi    = f.cpi?.yoy;
+  const ism    = STATIC.ism_pmi.val;
+
+  const signals = [
+    // [name, group, weight, signal(-1/0/1), val, unit, desc]
+    ['VIX',              'SENTYMENT', 3, vix>=30?1:vix<18?-1:0,       vix.toFixed(1),  '',  'Kontrariański: wysoki VIX = okazja zakupu'],
+    ['Fear & Greed',     'SENTYMENT', 2, fg!=null?(fg<=35?1:fg>=65?-1:0):0, fg??'—',   '',  'Niski F&G = strach rynkowy = czas kupowania'],
+    ['Dual Momentum 12M','MOMENTUM',  3, sp12m>ib01?1:-1,             sp12m.toFixed(1),'%', `SP500 vs IB01 (${ib01.toFixed(2)}%)`],
+    ['CAPE Shiller',     'WYCENA',    1, -1,                           cape.toFixed(1), 'x', 'Zawsze niedrogie tylko historycznie <16x'],
+    ['Buffett Indicator','WYCENA',    1, buffett>150?-1:buffett<100?1:0, buffett+'%',  '',  'Mkt Cap/GDP. Teraz: bardzo drogie.'],
+    ['Sahm Rule',        'CYKL',      3, sahm<0.30?1:sahm>0.50?-1:0, sahm.toFixed(2),'',  'Reguła Sahm: >0.50 = recesja (teraz OK)'],
+    ['Yield Curve 10Y2Y','CYKL',      2, yc!=null?(yc>0.5?1:yc<-0.2?-1:0):0, yc!=null?yc.toFixed(2)+'%':'…','', '>0% = normalna, <0% = inwersja/recesja'],
+    ['HY Spread',        'CYKL',      2, hy<3.5?1:hy>6?-1:0,         hy.toFixed(2),  '%', '<3.5% = risk-on, >6% = stres kredytowy'],
+    ['ISM PMI',          'CYKL',      1, ism>52?1:ism<47?-1:0,        ism.toFixed(1), '',  '>50 = ekspansja przemysłowa'],
+    ['Fed Rate',         'FED',       1, fed<3?1:fed>5?-1:0,          fed.toFixed(2), '%', 'Cięcia Fed = bull. Wzrosty = bear.'],
+    ['CPI Inflacja',     'FED',       1, cpi!=null?(cpi<2.5?1:cpi>4?-1:0):0, cpi!=null?cpi.toFixed(1)+'%':'…','', 'Cel Fed: 2%. Wysoka CPI = zaciskanie.'],
+  ];
+
+  const totalW = signals.reduce((a,s)=>a+s[2],0);
+  const maxScore = totalW;
+  let rawScore = signals.reduce((a,s)=>a+s[1]*s[2],0);
+  const norm = (rawScore+maxScore)/(2*maxScore)*100;
+
+  let verdict, color, why;
+  if (norm>=68) { verdict='KUP'; color='#00ff88'; }
+  else if (norm>=55) { verdict='KUP OSTROŻNIE'; color='#00cc66'; }
+  else if (norm>=42) { verdict='TRZYMAJ / DCA'; color='#ffcc00'; }
+  else if (norm>=28) { verdict='WSTRZYMAJ'; color='#ff6600'; }
+  else { verdict='UNIKAJ / REDUKUJ'; color='#ff1a4e'; }
+
+  // VIX override
+  if (vix>=28 && norm>=30) {
+    verdict='KUP (DOŁEK?)';
+    color='#00ff88';
+  }
+
+  const bulls = signals.filter(s=>s[1]>0).map(s=>s[0]);
+  const bears = signals.filter(s=>s[1]<0).map(s=>s[0]);
+  const dm_bull = sp12m > ib01;
+
+  return { signals, norm, verdict, color, why, vix, fg, sp12m, ib01, dm_bull, bulls, bears, fed, cpi, sahm, yc, hy, ism };
+}
+
+// ══════════════════════════════════════════════════════════════
+// HISTORICAL ANALOGIES
+// ══════════════════════════════════════════════════════════════
+const HISTORY = [
+  {
+    era:'2009 — DOŁEK', label:'Kryzys GFC',
+    color:'#00ff88',
+    metrics:[
+      {n:'VIX',v:'56 → 80',note:'Ekstremalny strach'},
+      {n:'CAPE',v:'13x',note:'Historycznie tanie'},
+      {n:'HY Spread',v:'22%',note:'Katastrofa kredytów'},
+      {n:'F&G',v:'2 (EXTREME)',note:'Panika totalna'},
+      {n:'Sahm',v:'4.5%',note:'Głęboka recesja'},
+      {n:'SP500 12M',v:'-56%',note:'Dno bessy'},
+    ],
+    result:'Zakup Marzec 2009 → +300% przez 10 lat. Klasyczne dno.',
+    lesson:'Kup przy max strachu + CAPE<15 + VIX>50. Ignoruj "tym razem inaczej".',
+    signal:'MEGA KUP',
+  },
+  {
+    era:'2020 — KORONAWIRUS',
+    label:'COVID Crash',
+    color:'#00aaff',
+    metrics:[
+      {n:'VIX',v:'85 (rekord)',note:'Historyczny szczyt VIX'},
+      {n:'CAPE',v:'24x',note:'Lekko drogie'},
+      {n:'HY Spread',v:'11%',note:'Stres kredytowy'},
+      {n:'F&G',v:'2 (EXTREME)',note:'Panika'},
+      {n:'Sahm',v:'3.0%',note:'Gwałtowna recesja'},
+      {n:'SP500 12M',v:'-34%',note:'Szybka bessa'},
+    ],
+    result:'Zakup Marzec 2020 → +100% przez 18 miesięcy. Najszybsza hossa w historii.',
+    lesson:'Koronawirus = egzogeniczne szok. DCA podczas paniki + VIX>60 = złota okazja.',
+    signal:'SILNY KUP',
+  },
+  {
+    era:'2021 Q4 — SZCZYT',
+    label:'Euforyczny Szczyt',
+    color:'#ff1a4e',
+    metrics:[
+      {n:'VIX',v:'15 (niski)',note:'Brak strachu'},
+      {n:'CAPE',v:'38x',note:'Bardzo drogie'},
+      {n:'HY Spread',v:'2.8%',note:'Minimalny'},
+      {n:'F&G',v:'80 (GREED)',note:'Euforia'},
+      {n:'Sahm',v:'0.0',note:'Brak ryzyka'},
+      {n:'SP500 12M',v:'+40%',note:'Euforia'},
+    ],
+    result:'Po szczycie 2021 → -25% w 2022. Kto kupił przy F&G>80 → rok strat.',
+    lesson:'Euforia = czas zmniejszenia. Niski VIX + CAPE>35 + F&G>75 = niebezpiecznie.',
+    signal:'UNIKAJ',
+  },
+  {
+    era:'MAR 2026 — TERAZ',
+    label:'Obecna sytuacja',
+    color:'#ffcc00',
+    isNow:true,
+    metrics:[],
+    result:'',
+    lesson:'Porównaj wskaźniki z historycznymi analogiami. Decyzja oparta na danych.',
+    signal:'OBLICZANE...',
+  },
+];
+
+// ══════════════════════════════════════════════════════════════
+// RENDER TICKER
+// ══════════════════════════════════════════════════════════════
+function renderTicker() {
+  const items=[
+    ['S&P 500','sp500',0],['NASDAQ','nasdaq',0],['VIX','vix',2],
+    ['ZŁOTO','gold',2],['ROPA','oil',2],['BTC','btcusd',0],
+    ['ETH','ethusd',2],['USD/PLN','usdpln',4],['EUR/PLN','eurpln',4],
+    ['EUR/USD','eurusd',4],['WIG20','wig20',0],['MIEDŹ','copper',3],
+  ];
+  let html='';
+  for (let p=0;p<2;p++) items.forEach(([name,key,dec])=>{
+    const d=D.quotes?.[key];
+    const price=d?fmt(d.price,dec):'…';
+    const chg=d?fmtPct(d.change):'';
+    const cl=d?cls(d.change):'neu';
+    html+=`<div class="ti"><span class="ti-n">${name}</span><span class="ti-p ${cl}">${price}</span><span class="ti-c ${cl}">${chg}</span></div>`;
+  });
+  const el=document.getElementById('tickerTrack');
+  if(el) el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER: CO KUPIĆ? (Panel 1)
+// ══════════════════════════════════════════════════════════════
+function renderDecision() {
+  const el = document.getElementById('panel-decision');
+  if (!el) return;
+
+  const sc = computeScore();
+  const q = D.quotes||{}, f = D.fred||{};
+  const vix = sc.vix;
+  const vixColor = vix>=30?'#00ff88':vix>=25?'#ffcc00':vix<18?'#ff1a4e':'#7ab0d0';
+  const fgScore = sc.fg;
+  const fgC = fgColor(fgScore);
+
+  // Build sparkline for F&G history (14 days)
+  const cfgHist = D.cryptoFg?.history||[];
+  const maxFg = Math.max(...cfgHist.map(x=>x.score),80);
+  const sparkFg = cfgHist.map((x,i)=>{
+    const h = Math.round((x.score/maxFg)*36);
+    const isLo=x.score<=30, isHi=x.score>=65, isCur=i===0;
+    return `<div class="spark-bar ${isCur?'cur':isHi?'hi':isLo?'lo':''}" style="height:${h}px" title="${x.date}: ${x.score}"></div>`;
+  }).join('');
+
+  // Fill HISTORY current metrics
+  const nowH = HISTORY[3];
+  nowH.metrics = [
+    {n:'VIX',v:vix.toFixed(1),note:vix>=28?'Podwyższony = okazja?':'Normalny'},
+    {n:'CAPE',v:STATIC.cape.val+'x',note:'Drogie historycznie'},
+    {n:'HY Spread',v:(f.hy_spread?.current??sc.hy).toFixed(2)+'%',note:sc.hy<3.5?'Risk-on ✓':'Uwaga'},
+    {n:'F&G',v:fgScore??'…',note:fgScore!=null?fgLabel(fgScore):'ładuje…'},
+    {n:'Sahm',v:sc.sahm.toFixed(2),note:sc.sahm<0.5?'OK – brak recesji':'UWAGA!'},
+    {n:'SP500 12M',v:(sc.sp12m>=0?'+':'')+sc.sp12m.toFixed(1)+'%',note:'Momentum'},
+  ];
+  nowH.result = `Wynik kompozytowy: ${sc.norm.toFixed(0)}/100 → ${sc.verdict}`;
+  nowH.signal = sc.verdict;
+
+  const histCards = HISTORY.map(h=>`
+<div class="hcard" style="--hc-color:${h.color}">
+  <div class="hcard-era" style="color:${h.color}">${h.era}</div>
+  <div class="hcard-label">${h.label}</div>
+  <div class="hcard-body">
+    ${h.metrics.map(m=>`<div style="display:flex;justify-content:space-between;padding:1.5px 0;border-bottom:1px solid #1a2840">
+      <span style="color:#3a5878">${m.n}</span>
+      <span style="color:${h.isNow?'var(--y)':'var(--t1)'}"><strong>${m.v}</strong></span>
+    </div>`).join('')}
+  </div>
+  <div class="hcard-result" style="color:${h.color};font-size:7px;line-height:1.5;margin-top:6px">${h.result}</div>
+  <div style="margin-top:6px;padding:4px 8px;background:${h.color}12;border-radius:1px;font-size:7px;font-weight:700;color:${h.color};letter-spacing:1px;text-align:center">${h.signal}</div>
+</div>`).join('');
+
+  // Signals table
+  const sigGroups = {};
+  sc.signals.forEach(s=>{ if(!sigGroups[s[1]]) sigGroups[s[1]]=[]; sigGroups[s[1]].push(s); });
+  const sigRows = Object.entries(sigGroups).map(([grp,sigs])=>`
+<div class="signal-grp-hdr">${grp}</div>
+${sigs.map(s=>{
+  const c = s[1]>0?'sig-bull':s[1]<0?'sig-bear':'sig-neu';
+  const lbl = s[1]>0?'BYCZO':s[1]<0?'NIED.':'NEUTR.';
+  return `<div class="signal-row">
+    <div class="signal-name">${s[0]}</div>
+    <div class="signal-val" style="color:${s[1]>0?'#00ff88':s[1]<0?'#ff1a4e':'#ffcc00'}">${s[3]}${s[4]}</div>
+    <div style="text-align:center"><span class="signal-sig ${c}">${lbl}</span></div>
+    <div class="signal-desc">${s[6]}</div>
+  </div>`;
+}).join('')}`).join('');
+
+  el.innerHTML = `<div class="panel-content">
+<!-- MAIN DECISION ROW -->
+<div class="decision-grid">
+  <!-- VERDICT BOX -->
+  <div class="verdict-box" style="--verdict-clr:${sc.color}">
+    <div class="verdict-label">DECYZJA INWESTYCYJNA</div>
+    <div class="verdict-word" style="color:${sc.color}">${sc.verdict}</div>
+    <div class="verdict-score">Wynik kompozytowy: ${sc.norm.toFixed(0)} / 100</div>
+    <div class="verdict-why">
+      ${sc.bulls.length?`<div style="margin-bottom:4px"><span style="color:#00ff88">✓ BULL:</span> ${sc.bulls.join(', ')}</div>`:''}
+      ${sc.bears.length?`<div><span style="color:#ff1a4e">✗ BEAR:</span> ${sc.bears.join(', ')}</div>`:''}
+    </div>
+    <div class="verdict-signal-row">
+      <span class="vsig ${sc.dm_bull?'vsig-bull':'vsig-bear'}">DM: ${sc.dm_bull?'📈 AKCJE':'📉 IB01'}</span>
+      <span class="vsig ${vix>=28?'vsig-bull':'vsig-neu'}">VIX: ${vix.toFixed(1)}</span>
+      <span class="vsig ${fgScore!=null&&fgScore<=35?'vsig-bull':fgScore!=null&&fgScore>=65?'vsig-bear':'vsig-neu'}">F&G: ${fgScore??'…'}</span>
+    </div>
+    <div style="margin-top:12px;font-size:7px;color:var(--t3);line-height:1.7">
+      ${vix>=28?'<strong style="color:#00ff88">⚡ VIX>28 → Kontrariańska okazja zakupu!</strong><br>':''}
+      Dual Momentum: SP500 <strong style="color:${sc.dm_bull?'#00ff88':'#ff1a4e'}">${sc.sp12m>=0?'+':''}${sc.sp12m.toFixed(1)}%</strong>
+      vs IB01 <strong>${sc.ib01.toFixed(2)}%</strong>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE: FEAR GAUGES -->
+  <div>
+    <div class="fear-row">
+      <!-- VIX -->
+      <div class="gauge-card">
+        <div class="gauge-label-sm">VIX — INDEKS STRACHU</div>
+        <div class="gauge-big-num" style="color:${vixColor}">${vix.toFixed(1)}</div>
+        <div class="gauge-text" style="color:${vixColor}">${vix>=30?'PODWYŻSZONY — OKAZJA?':vix>=25?'WYSOKI':vix<18?'NISKI — EUFORIA':'NORMALNY'}</div>
+        <div class="gauge-bar-wrap">
+          <div class="gauge-bar-fill" style="width:${Math.min(vix/80*100,100)}%"></div>
+          <div class="gauge-bar-dot" style="left:${Math.min(vix/80*100,100)}%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:6.5px;color:#3a5878;margin-top:2px">
+          <span>0</span><span>15 (niski)</span><span>28 (sygnał)</span><span>40+</span>
+        </div>
+        <div style="margin-top:8px;font-size:7.5px;color:#7ab0d0;line-height:1.7">
+          <strong style="color:#e8f4ff">Jak czytać VIX:</strong><br>
+          VIX mierzy oczekiwaną zmienność S&P 500.<br>
+          <span style="color:#00ff88">VIX &gt;30 = rynek panikuje</span> → historycznie dobry moment na DCA<br>
+          <span style="color:#ff1a4e">VIX &lt;15 = euforia</span> → nie zwiększaj pozycji<br>
+          <strong>Marzec 2009: VIX=56 / COVID: VIX=85 → obie = megaokazje</strong>
+        </div>
+      </div>
+
+      <!-- FEAR & GREED -->
+      <div class="gauge-card">
+        <div class="gauge-label-sm">FEAR &amp; GREED — AKCJE (CNN)</div>
+        <div class="gauge-big-num" style="color:${fgC}">${fgScore??'…'}</div>
+        <div class="gauge-text" style="color:${fgC}">${fgLabel(fgScore)}</div>
+        <div class="gauge-bar-wrap">
+          <div class="gauge-bar-fill" style="width:${(fgScore??50)}%"></div>
+          <div class="gauge-bar-dot" style="left:${(fgScore??50)}%"></div>
+        </div>
+        <div class="gauge-context">
+          <div class="gc-item"><div class="gc-lbl">Wczoraj</div><div class="gc-val" style="color:${fgColor(D.fg?.prev_close)}">${D.fg?.prev_close??'—'}</div></div>
+          <div class="gc-item"><div class="gc-lbl">Tydzień</div><div class="gc-val" style="color:${fgColor(D.fg?.prev_week)}">${D.fg?.prev_week??'—'}</div></div>
+          <div class="gc-item"><div class="gc-lbl">Miesiąc</div><div class="gc-val" style="color:${fgColor(D.fg?.prev_month)}">${D.fg?.prev_month??'—'}</div></div>
+        </div>
+        <div style="margin-top:8px;font-size:7.5px;color:#7ab0d0;line-height:1.7">
+          <strong style="color:#e8f4ff">Jak czytać F&G:</strong><br>
+          0–24: <span style="color:#ff1a4e">EXTREME FEAR</span> = kup agresywnie<br>
+          25–44: <span style="color:#ff6600">FEAR</span> = kup normalnie<br>
+          75–100: <span style="color:#ff1a4e">GREED</span> = wstrzymaj, zmniejsz
+        </div>
+      </div>
+    </div>
+
+    <!-- CRYPTO F&G -->
+    <div class="gauge-card" style="margin-bottom:0">
+      <div class="gauge-label-sm">CRYPTO FEAR &amp; GREED — 14 DNI HISTORII</div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div>
+          <div class="gauge-big-num" style="color:${fgColor(D.cryptoFg?.score)};font-size:32px">${D.cryptoFg?.score??'…'}</div>
+          <div class="gauge-text" style="color:${fgColor(D.cryptoFg?.score)};font-size:8px">${fgLabel(D.cryptoFg?.score)}</div>
+        </div>
+        <div style="flex:1">
+          <div class="sparkline-wrap" style="gap:3px">
+            ${sparkFg||'<div style="color:#3a5878;font-size:8px">ładuje…</div>'}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:6.5px;color:#3a5878;margin-top:2px">
+            <span>←14 dni temu</span><span>Dziś→</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORICAL ANALOGIES -->
+<div class="history-section">
+  <div class="sec-title">📖 HISTORIA: JAK BYŁO PRZY PODOBNYCH WARUNKACH?</div>
+  <div class="history-grid">${histCards}</div>
+</div>
+
+<!-- SIGNALS TABLE -->
+<div class="history-section">
+  <div class="sec-title">⚡ SZCZEGÓŁOWE SYGNAŁY (${sc.signals.length} wskaźników · wagi ${sc.signals.reduce((a,s)=>a+s[2],0)} pkt)</div>
+  <div class="signals-wrap">
+    <div class="signal-row hdr">
+      <div>WSKAŹNIK</div>
+      <div style="text-align:center">WARTOŚĆ</div>
+      <div style="text-align:center">SYGNAŁ</div>
+      <div>INTERPRETACJA</div>
+    </div>
+    ${sigRows}
+  </div>
+</div>
+
+<!-- BOTTOM NOTE -->
+<div style="background:#0a1018;border:1px solid #1e3048;border-radius:3px;padding:10px 14px;font-size:7.5px;color:#3a5878;line-height:1.8;margin-top:4px">
+  <strong style="color:#7ab0d0">Howard Marks — "Where Are We in the Cycle?":</strong>
+  Nie jesteśmy na euforycznym szczycie (2021: CAPE 38, VIX 15, F&G 80) ani na historycznym dnie (2009: VIX 56, CAPE 13, HY 22%).
+  ${vix>=28?`<br><strong style="color:#00ff88">VIX >28 sugeruje podwyższony strach — kontrariańsko pozytywne dla DCA.</strong>`:''}
+  ${sc.dm_bull?`<br><strong style="color:#00ff88">Dual Momentum: SP500 (${sc.sp12m.toFixed(1)}%) > IB01 (${sc.ib01.toFixed(2)}%) → kontynuuj inwestowanie w akcje ETF.</strong>`:`<br><strong style="color:#ffcc00">Dual Momentum: SP500 < IB01 → przejdź na IB01/EDO jako safe asset.</strong>`}
+  <br>Strategia: regularny DCA w Czwartki, +30% w Sierpniu/Wrześniu, rebalans w Grudniu.
+</div>
+</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER: WSKAŹNIKI (Panel 2)
+// ══════════════════════════════════════════════════════════════
+function renderIndicators() {
+  const el = document.getElementById('panel-indicators');
+  if (!el) return;
+  const f=D.fred||{}, q=D.quotes||{};
+  const fv=k=>f[k]?.current??null;
+  const fc=(k,d=2,s='')=>f[k]?Number(f[k].current).toFixed(d)+s:'…';
+  const fcyoy=(k,d=1)=>f[k]?.yoy!=null?((f[k].yoy>=0?'+':'')+f[k].yoy.toFixed(d)+'%'):'…';
+  const sig=(bull,bear)=>bull?'bull':bear?'bear':'neu';
+
+  // Card builder
+  const iCard=(title,src,value,valueColor,cls2,date,desc,buy,sell,signal)=>`
+<div class="ind-card ${signal}">
+  <div class="ind-header">
+    <div class="ind-title">${title}</div>
+    <div class="ind-src">${src}</div>
+  </div>
+  <div class="ind-value" style="color:${valueColor}">${value}</div>
+  <div class="ind-sub">${date||'—'}</div>
+  <div style="margin-top:5px">
+    <span class="ind-signal ${signal==='bull'?'sig-bull':signal==='bear'?'sig-bear':'sig-neu'}">${signal==='bull'?'🟢 BYCZO':signal==='bear'?'🔴 NIEDŹ.':'🟡 NEUTRAL'}</span>
+  </div>
+  <div class="ind-desc">${desc}</div>
+  <div class="ind-history" style="margin-top:4px">
+    <span style="color:#00ff88">✓ ${buy}</span><br>
+    <span style="color:#ff1a4e">✗ ${sell}</span>
+  </div>
+</div>`;
+
+  const fedRate = fv('fedfunds') ?? STATIC.fed_rate.val;
+  const cpiYoY = f.cpi?.yoy;
+  const coreCpi = f.core_cpi?.yoy;
+  const yc = fv('yield_curve');
+  const hy = fv('hy_spread') ?? 2.84;
+  const sahm = fv('sahm') ?? 0.30;
+  const nfci = fv('nfci');
+  const unrate = fv('unrate');
+  const tips = fv('tips10y');
+  const epu = fv('epu');
+  const us10y = q.us10y?.price ?? STATIC.us10y_te.val;
+  const vix = q.vix?.price ?? fv('vixfred') ?? 29.49;
+
+  el.innerHTML=`<div class="panel-content">
+<div class="sec-title">🏦 FED I POLITYKA MONETARNA</div>
+<div class="ind-grid">
+  ${iCard('Fed Funds Rate','FRED FEDFUNDS + TE',
+    fv('fedfunds')!=null?fc('fedfunds',2,'%'):'3.75%',
+    fedRate>4?'#ff1a4e':fedRate>2?'#ffcc00':'#00ff88',
+    '',
+    f.fedfunds?.date??STATIC.fed_rate.date,
+    `Główna stopa Fed. Aktualna: ${fedRate.toFixed(2)}% (obniżka -25bp Gru 2025). Kolejna oczekiwana w 2026 jeśli CPI <2.5%. Niskie stopy = tanie pieniądze = wzrost wycen akcji.`,
+    'Stopa spada → tańszy kredyt, P/E rośnie, akcje w górę',
+    'Stopa >5% → zaciskanie, presja na wyceny',
+    sig(fedRate<3, fedRate>4.5))}
+
+  ${iCard('M2 — Podaż Pieniądza YoY','FRED M2SL',
+    fcyoy('m2',1),
+    '#7ab0d0','',
+    f.m2?.date,
+    `Roczna zmiana podaży pieniądza M2 (gotówka + depozyty + fundusze). Wzrost M2 = inflacja, ale też wsparcie dla aktywów. Kontrakcja M2 = deflacja i presja na rynki.`,
+    'M2 rośnie szybko → płynność zasila akcje i nieruchomości',
+    'M2 spada → deflacyjna presja, zmniejsz ryzykowne aktywa',
+    sig(f.m2?.yoy!=null&&f.m2.yoy>4, f.m2?.yoy!=null&&f.m2.yoy<0))}
+
+  ${iCard('Bilans Fed (QE/QT)','FRED WALCL',
+    f.fed_bs?.current ? (f.fed_bs.current/1e6).toFixed(2)+' T$' : '…',
+    '#7ab0d0','', f.fed_bs?.date,
+    'Bilans rezerwy federalnej. QE (Quantitative Easing) = Fed skupuje obligacje → płynność. QT = redukuje bilans → zaciskanie. Szczyt 2022: ~9T$.',
+    'Bilans rośnie (QE) → płynność wspiera akcje',
+    'Bilans spada (QT) → zaciskanie, redukuje wyceny',
+    sig(false, false))}
+</div>
+
+<div class="sec-title">📉 INFLACJA</div>
+<div class="ind-grid">
+  ${iCard('CPI — Inflacja USA YoY','FRED CPIAUCSL',
+    fcyoy('cpi',2),
+    cpiYoY!=null?(cpiYoY>4?'#ff1a4e':cpiYoY>2.5?'#ffcc00':'#00ff88'):'#7ab0d0',
+    '', f.cpi?.date,
+    `Roczna zmiana indeksu cen konsumenta. Cel Fed: 2%. Inflacja >4% zmusza Fed do podnoszenia stóp. Deflacja (<0%) groźna dla gospodark.`,
+    'CPI <2.5% → Fed może ciąć stopy, akcje rosną',
+    'CPI >4% → Fed musi podwyższać, bear market',
+    sig(cpiYoY!=null&&cpiYoY<2.5, cpiYoY!=null&&cpiYoY>4))}
+
+  ${iCard('Core CPI (bez żyw./energii) YoY','FRED CPILFESL',
+    fcyoy('core_cpi',2),
+    coreCpi!=null?(coreCpi>3?'#ff1a4e':coreCpi>2.5?'#ffcc00':'#00ff88'):'#7ab0d0',
+    '', f.core_cpi?.date,
+    `Inflacja bazowa (bez zmiennych cen żywności i energii) — bardziej stabilna. Fed używa Core PCE (podobny), ale Core CPI jest bliski proxy. Cel: 2%.`,
+    'Core CPI <2.5% → trwały trend dezinflacyjny, Fed komfortowy',
+    'Core CPI >3% → lepka inflacja, Fed restrykcyjny dłużej',
+    sig(coreCpi!=null&&coreCpi<2.5, coreCpi!=null&&coreCpi>3))}
+
+  ${iCard('TIPS 10Y — Oczekiwania Inflacyjne','FRED T10YIE',
+    fc('tips10y',2,'%'),
+    '#7ab0d0','', f.tips10y?.date,
+    'Breakeven inflation rate: różnica między 10Y Treasury a 10Y TIPS. Mierzy rynkowe oczekiwania inflacji na 10 lat. Odzwierciedla wiarygodność polityki Fed.',
+    'TIPS <2% → rynek wierzy w kontrolę inflacji przez Fed',
+    'TIPS >3% → rynek nie wierzy Fed, premie inflacyjne rosną',
+    sig(tips!=null&&tips<2.5, tips!=null&&tips>3))}
+</div>
+
+<div class="sec-title">💼 RYNEK PRACY I GOSPODARKA</div>
+<div class="ind-grid">
+  ${iCard('Sahm Rule — Ryzyko Recesji','FRED SAHMREALTIME',
+    fc('sahm',2),
+    sahm>=0.5?'#ff1a4e':sahm>=0.3?'#ffcc00':'#00ff88',
+    '', f.sahm?.date,
+    `Reguła Sahm: jeśli 3-miesięczna śr. bezrobocia wzrośnie o >0.5pp ponad minimum z 12 miesięcy → recesja. Aktualnie: ${(fv('sahm')??0.30).toFixed(2)} (poniżej progu 0.50 = OK).`,
+    'Sahm <0.30 → brak oznak recesji, gospodarka zdrowa',
+    'Sahm >0.50 → recesja WŁAŚNIE SIĘ ZACZYNA, redukuj ryzyko',
+    sig(sahm<0.3, sahm>0.5))}
+
+  ${iCard('Bezrobocie USA (UNRATE)','FRED UNRATE',
+    fc('unrate',1,'%'),
+    unrate!=null?(unrate>5?'#ff1a4e':unrate>4?'#ffcc00':'#00ff88'):'#7ab0d0',
+    '', f.unrate?.date,
+    'Stopa bezrobocia USA. Full employment ≈ 4–4.5%. Gwałtowny wzrost = sygnał recesji (Sahm Rule). Niskie bezrobocie = silna konsumpcja.',
+    'UNRATE <4.5% → pełne zatrudnienie, konsumpcja mocna',
+    'UNRATE >5% + rośnie szybko → recesja, sprzedaj cykliczne',
+    sig(unrate!=null&&unrate<4, unrate!=null&&unrate>5))}
+
+  ${iCard('ISM PMI — Aktywność Przemysłu','TradingEconomics Lut 2026',
+    STATIC.ism_pmi.val.toFixed(1),
+    '#00ff88','', STATIC.ism_pmi.date,
+    `ISM Manufacturing PMI: ${STATIC.ism_pmi.val} (Lut 2026). Powyżej 50 = ekspansja, poniżej 50 = kontrakcja. Jeden z najważniejszych wskaźników wyprzedzających. Lut 2026 > konsensus 51.8.`,
+    'PMI >55 → silna ekspansja, zyski firm rosną, akcje rosną',
+    'PMI <45 → kontrakcja, ryzyko recesji',
+    sig(STATIC.ism_pmi.val>52, STATIC.ism_pmi.val<47))}
+</div>
+
+<div class="sec-title">📈 RYNKI FINANSOWE I KREDYT</div>
+<div class="ind-grid">
+  ${iCard('Yield Curve 10Y-2Y','FRED T10Y2Y',
+    fc('yield_curve',2,'%'),
+    yc!=null?(yc<-0.2?'#ff1a4e':yc<0.5?'#ffcc00':'#00ff88'):'#7ab0d0',
+    '', f.yield_curve?.date,
+    'Różnica rentowności obligacji 10-letniej i 2-letniej. Normalnie 10Y>2Y. Inwersja (<0%) = recesja w ciągu 12-18 miesięcy (98% skuteczność historyczna). Normalizacja = faza końcowa tightening.',
+    'Yield curve >0.5% → normalna krzywa, gospodarka w ekspansji',
+    'Yield curve <-0.2% → inwersja, recesja na horyzoncie',
+    sig(yc!=null&&yc>0.5, yc!=null&&yc<-0.2))}
+
+  ${iCard('HY Spread — Stres Kredytowy','FRED BAMLH0A0HYM2',
+    (fv('hy_spread')??2.84).toFixed(2)+'%',
+    hy>6?'#ff1a4e':hy>4.5?'#ffcc00':'#00ff88',
+    '', f.hy_spread?.date??'FRED Feb 2026',
+    `Spread obligacji high-yield vs Treasuries. Mierzy "strach" na rynku kredytowym. Aktualnie: ${hy.toFixed(2)}%. GFC 2008: 22%. COVID: 11%. Normal: ~3-5%. Niski spread = optymizm.`,
+    'HY spread <3.5% → rynek kredytowy spokojny, risk-on',
+    'HY spread >6% → stres kredytowy, wyprzedaj ryzykowne aktywa',
+    sig(hy<3.5, hy>6))}
+
+  ${iCard('NFCI — Warunki Finansowe','FRED NFCI (Chicago Fed)',
+    fc('nfci',2),
+    nfci!=null?(nfci>0.5?'#ff1a4e':nfci>0?'#ffcc00':'#00ff88'):'#7ab0d0',
+    '', f.nfci?.date,
+    'National Financial Conditions Index. 0 = norma historyczna. Ujemny = łagodne warunki (tanie kredyty, płynność). Dodatni = zaciskanie finansowe.',
+    'NFCI <-0.5 → luźne warunki, płynność zasila akcje',
+    'NFCI >0.5 → zaciskanie, ograniczona płynność',
+    sig(nfci!=null&&nfci<-0.5, nfci!=null&&nfci>0.5))}
+</div>
+
+<div class="sec-title">🌍 GLOBALNY RYNEK — CENY LIVE</div>
+<div class="ind-grid">
+  ${iCard('VIX — Volatility Index','stooq ^vix + FRED VIXCLS',
+    vix.toFixed(1),
+    vix>=30?'#00ff88':vix>=25?'#ffcc00':vix<18?'#ff1a4e':'#7ab0d0',
+    '', q.vix?.date??f.vixfred?.date,
+    `VIX mierzy oczekiwaną zmienność S&P 500 przez 30 dni. Kontrariański wskaźnik: WYSOKI VIX = strach = okazja kupna. Marzec 2009: 56. COVID 2020: 85. Obecny: ${vix.toFixed(1)}.`,
+    'VIX >30 → rynek panikuje → klasyczny czas DCA',
+    'VIX <15 → euforia → nie zwiększaj pozycji',
+    sig(vix>=28, vix<18))}
+
+  ${iCard('US 10Y Yield','stooq 10usy.b + TE',
+    q.us10y?.price!=null ? q.us10y.price.toFixed(2)+'%' : STATIC.us10y_te.val+'%',
+    '#7ab0d0','',
+    q.us10y?.date??STATIC.us10y_te.date,
+    `Rentowność 10-letniej obligacji USA. "Risk-free rate" – wpływa na wyceny akcji (DCF). Rośnie = droższe pieniądze = P/E spada. Aktualnie: ${(q.us10y?.price??STATIC.us10y_te.val).toFixed(2)}%.`,
+    'Yield spada → tańszy koszt kapitału, akcje droże',
+    'Yield >5% → "konkurencja" dla akcji, odpływ z rynku',
+    sig(false, (q.us10y?.price??STATIC.us10y_te.val)>5))}
+
+  ${iCard('CAPE Shiller P/E','multpl.com (Mar 2026)',
+    STATIC.cape.val+'x',
+    '#ff6600','', 'Mar 2026',
+    `Shiller Cyclically Adjusted P/E: wycena S&P 500 vs 10-letnie średnie zyski. Historyczna norma: 16x. Szczyt 2000: 44x. Szczyt 2021: 38x. Teraz: ${STATIC.cape.val}x — historycznie drogie.`,
+    'CAPE <15x → historycznie tanie, mocny buy signal',
+    'CAPE >35x → drogie, obniżone oczekiwane zwroty przez 10 lat',
+    'bear')}
+</div>
+
+<div class="sec-title">🔗 LINKI DO TABEL RYNKOWYCH</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+  ${[
+    ['🇺🇸 US Indeksy','https://stooq.pl/t/?i=510'],
+    ['🇪🇺 EU Indeksy','https://stooq.pl/t/?i=511'],
+    ['🌏 Azja/Świat','https://stooq.pl/t/?i=512'],
+    ['🏛️ Obligacje','https://stooq.pl/t/?i=536'],
+    ['🛢️ Surowce','https://stooq.pl/t/?i=544'],
+    ['💱 Waluty','https://stooq.pl/t/?i=591'],
+    ['₿ Krypto','https://stooq.pl/t/?i=539'],
+    ['🇵🇱 Bossa Świat','https://bossa.pl/notowania/indeksy-swiatowe'],
+  ].map(([nm,url])=>`<a href="${url}" target="_blank" style="display:block;padding:8px 10px;background:#0f1825;border:1px solid #1e3048;border-radius:2px;font-size:8px;font-weight:600;color:#00aaff;text-align:center">${nm}</a>`).join('')}
+</div>
+</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER: PORTFEL (Panel 3)
+// ══════════════════════════════════════════════════════════════
+function renderPortfolio() {
+  const el = document.getElementById('panel-portfolio');
+  if (!el) return;
+  const f=D.fred||{};
+  const sp12m  = D.sp500_12m ?? f.sp500fred?.yoy ?? 17.7;
+  const ib01   = f.ib01_yield?.current ?? 4.15;
+  const dm_bull= sp12m > ib01;
+  const SCHED  = buildSchedule();
+
+  const portCards = PORTFOLIOS.map(p=>{
+    const isActive = dm_bull ? p.type!=='obligacje' : true;
+    return `<div class="port-card ${dm_bull?'active-dm':'safe-dm'}" style="border-color:${p.color}30">
+      <div class="port-id" style="color:${p.color}">${p.id}</div>
+      <div class="port-name">${p.name}</div>
+      <div class="port-budget">
+        ${p.budget_usd?`<span style="color:#00ff88">$${p.budget_usd}/rok</span>`:''}
+        ${p.budget_eur?`<span style="color:#ffcc00">€${p.budget_eur}/rok</span>`:''}
+      </div>
+      <div class="port-type" style="background:${p.color}15;color:${p.color}">${p.type}</div>
+      <div class="port-etfs">${p.etfs.join('<br>')}</div>
+      <div class="port-dm" style="color:${dm_bull?p.color:'#ffcc00'}">
+        DM: ${dm_bull?p.etfs[0].split(' ')[0]:p.dm_safe}
+      </div>
+      ${p.special?`<div style="font-size:6.5px;color:#ffcc00;margin-top:4px">${p.special}</div>`:''}
+    </div>`;
+  }).join('');
+
+  const rotRows = SCHED.slice(0,35).map(r=>{
+    const etfNow = dm_bull ? r.p.etfs[0].split(' ')[0] : r.p.dm_safe;
+    const isSea = r.boost>1;
+    return `<tr>
+      <td style="color:#3a5878">T${r.w}</td>
+      <td style="color:#7ab0d0;white-space:nowrap">Czw ${r.day}</td>
+      <td><span class="port-tag" style="background:${r.p.color}20;color:${r.p.color}">${r.p.id}</span></td>
+      <td style="color:${dm_bull?'#00ff88':'#ffcc00'};font-weight:700">${etfNow}</td>
+      <td style="color:${isSea?'#00ff88':'#7ab0d0'}">${r.usd?'$'+r.usd:''}</td>
+      <td style="color:${isSea?'#00ff88':'#ffcc00'}">${r.eur?'€'+r.eur:''}</td>
+      <td style="color:${isSea?'#00ff88':'#3a5878'};font-size:7px">${isSea?'⭐ +30% sezon':''}</td>
+    </tr>`;
+  }).join('');
+
+  const riskColors = ['','#00ff88','#00cc66','#88cc44','#ffcc00','#ff8800','#ff4422','#ff1a4e'];
+  const riskBar = (r,max=7)=>`<div class="risk-bar">${Array.from({length:max},(_,i)=>`<div class="risk-seg" style="background:${i<r?riskColors[r]:'#1e3048'}"></div>`).join('')} <span style="font-size:7px;color:${riskColors[r]};margin-left:4px">${r}/7</span></div>`;
+
+  el.innerHTML=`<div class="panel-content">
+<!-- DM SIGNAL BAR -->
+<div style="background:${dm_bull?'rgba(0,255,136,.06)':'rgba(255,204,0,.06)'};border:1px solid ${dm_bull?'rgba(0,255,136,.2)':'rgba(255,204,0,.2)'};border-radius:3px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <div>
+    <div style="font-size:7px;letter-spacing:2px;color:#3a5878;font-family:'Syne',sans-serif">DUAL MOMENTUM — AKTUALNY SYGNAŁ</div>
+    <div style="font-size:18px;font-weight:800;color:${dm_bull?'#00ff88':'#ffcc00'}">${dm_bull?'📈 KUP AKCJE':'📉 BEZPIECZNE ETF'}</div>
+  </div>
+  <div style="font-size:8.5px;color:#7ab0d0;line-height:1.8">
+    SP500 12M: <strong style="color:${dm_bull?'#00ff88':'#ff1a4e'}">${sp12m>=0?'+':''}${sp12m.toFixed(1)}%</strong>
+    vs IB01: <strong>${ib01.toFixed(2)}%</strong>
+    &nbsp;|&nbsp; Spread: <strong style="color:${dm_bull?'#00ff88':'#ff1a4e'}">${(sp12m-ib01).toFixed(1)}pp</strong>
+  </div>
+  <div style="font-size:7.5px;color:#3a5878">
+    ${dm_bull?'Inwestuj w ETF akcyjne wg harmonogramu rotacji.':'Przesuń DCA z akcji do IB01 lub EDO.'}
+    Sprawdzaj 1. dnia każdego miesiąca.
+  </div>
+</div>
+
+<!-- PORTFOLIO CARDS -->
+<div class="sec-title">💼 MOJE 5 PORTFELI — ROTACJA 5-TYGODNIOWA</div>
+<div class="port-grid">${portCards}</div>
+
+<!-- ROTATION SCHEDULE -->
+<div class="sec-title">📅 HARMONOGRAM ZAKUPÓW 2026 — CO CZWARTEK</div>
+<div style="background:#0a1018;border:1px solid #1e3048;border-radius:3px;overflow:hidden;margin-bottom:12px">
+  <table class="rot-table" style="width:100%">
+    <thead><tr>
+      <th>TYG</th><th>DATA</th><th>PORTF.</th><th>KUP ETF</th><th>USD</th><th>EUR</th><th>UWAGA</th>
+    </tr></thead>
+    <tbody>${rotRows}
+    <tr><td colspan="7" style="padding:6px 10px;font-size:7px;color:#3a5878;text-align:center">…kolejne tygodnie: rotacja P1→P2→P3→P4→P5→P1…</td></tr>
+    </tbody>
+  </table>
+</div>
+<div style="background:#0a1018;border:1px solid #1e3048;border-radius:3px;padding:10px 14px;font-size:7.5px;color:#3a5878;line-height:1.9;margin-bottom:12px">
+  <strong style="color:#7ab0d0">📋 Zasady DCA:</strong>
+  &nbsp; 1. Kupuj w <strong style="color:#e8f4ff">Czwartek lub Piątek</strong> (najlepsze dni statystycznie +0.11%)
+  &nbsp; | &nbsp; 2. <strong style="color:#00ff88">+30% w Sierpniu i Wrześniu</strong> (najgorsze miesiące = najlepszy DCA)
+  &nbsp; | &nbsp; 3. Sprawdzaj Dual Momentum <strong style="color:#e8f4ff">1. dnia miesiąca</strong>
+  &nbsp; | &nbsp; 4. <strong style="color:#00ff88">Nie panikuj przy VIX >30</strong> — to okazja
+  &nbsp; | &nbsp; 5. Rebalans <strong style="color:#e8f4ff">28 Grudnia</strong>
+  &nbsp; | &nbsp; IKZE limit 2026: ~9,388 PLN &nbsp; IKE limit: ~23,470 PLN
+</div>
+
+<!-- ETF BASE -->
+<div class="sec-title">📋 BAZA ETF — TER / HOLDINGS / RYZYKO</div>
+<table class="etf-table">
+  <thead><tr>
+    <th>ETF</th><th>ISIN</th><th>TER</th><th>HOLDINGS</th><th>RYZYKO SRI</th><th>TYP</th><th>LINK</th>
+  </tr></thead>
+  <tbody>
+  ${ETF_LIST.map(e=>`<tr>
+    <td style="color:${e.color};font-family:'Syne',sans-serif">${e.id}</td>
+    <td style="font-size:8px;color:#3a5878">${e.isin}</td>
+    <td style="color:${e.ter<0.1?'#00ff88':'#7ab0d0'}">${e.ter}%</td>
+    <td style="text-align:center">${e.holds.toLocaleString()}</td>
+    <td>${riskBar(e.risk)}</td>
+    <td style="font-size:7.5px">${e.type}</td>
+    <td><a href="${e.link}" target="_blank" style="font-size:7.5px">justETF →</a></td>
+  </tr>`).join('')}
+  </tbody>
+</table>
+</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER: DANE (Panel 4)
+// ══════════════════════════════════════════════════════════════
+function renderData() {
+  const el = document.getElementById('panel-data');
+  if (!el) return;
+  const stooqOk = Object.keys(D.quotes||{}).length;
+  const fredOk  = Object.keys(D.fred||{}).length;
+  const sp12m   = D.sp500_12m ?? D.fred?.sp500fred?.yoy ?? 17.7;
+
+  const logHtml = _log.slice(0,50).map(l=>`
+<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid #0a1018">
+  <span style="color:#1e3048;flex-shrink:0;font-size:7px">${l.ts}</span>
+  <span style="color:${l.isErr?'#ff1a4e':l.status==='ok'?'#00ff88':'#ffcc00'};flex-shrink:0">${l.isErr?'✗':l.status==='ok'?'✓':'⟳'}</span>
+  <span style="color:${l.isErr?'#ff8080':'#7ab0d0'};font-size:8px">${l.msg}</span>
+</div>`).join('');
+
+  el.innerHTML=`<div id="body-data" style="padding:14px 16px">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+  <div style="background:#0f1825;border:1px solid ${stooqOk>15?'rgba(0,255,136,.2)':'rgba(255,204,0,.2)'};border-radius:3px;padding:12px">
+    <div style="font-size:7px;letter-spacing:2px;color:#3a5878;font-family:'Syne',sans-serif;margin-bottom:5px">STOOQ.COM — CENY LIVE</div>
+    <div style="font-size:24px;font-weight:800;color:${stooqOk>15?'#00ff88':'#ffcc00'}">${stooqOk}</div>
+    <div style="font-size:8px;color:#3a5878">symboli załadowanych</div>
+  </div>
+  <div style="background:#0f1825;border:1px solid ${fredOk>15?'rgba(0,255,136,.2)':'rgba(255,204,0,.2)'};border-radius:3px;padding:12px">
+    <div style="font-size:7px;letter-spacing:2px;color:#3a5878;font-family:'Syne',sans-serif;margin-bottom:5px">FRED — MAKRO SERIE</div>
+    <div style="font-size:24px;font-weight:800;color:${fredOk>15?'#00ff88':'#ffcc00'}">${fredOk}</div>
+    <div style="font-size:8px;color:#3a5878">serii z ${Object.keys(FRED_IDS).length} możliwych</div>
+  </div>
+  <div style="background:#0f1825;border:1px solid rgba(0,255,136,.2);border-radius:3px;padding:12px">
+    <div style="font-size:7px;letter-spacing:2px;color:#3a5878;font-family:'Syne',sans-serif;margin-bottom:5px">SP500 12M RETURN</div>
+    <div style="font-size:24px;font-weight:800;color:#00ff88">${sp12m>=0?'+':''}${sp12m.toFixed(1)}%</div>
+    <div style="font-size:8px;color:#3a5878">${D.sp500_12m_src||'—'}</div>
+  </div>
+</div>
+
+<div class="sec-title" style="font-size:8px;letter-spacing:2px;color:#3a5878;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #1e3048">📡 STATUS ŹRÓDEŁ</div>
+<table style="width:100%;border-collapse:collapse;font-size:8px;margin-bottom:12px">
+  <thead><tr style="background:#0f1825">
+    <th style="padding:5px 10px;text-align:left;color:#3a5878;font-size:6.5px;letter-spacing:1.5px;border:1px solid #1e3048">ŹRÓDŁO</th>
+    <th style="padding:5px 10px;text-align:left;color:#3a5878;font-size:6.5px;letter-spacing:1.5px;border:1px solid #1e3048">STATUS</th>
+    <th style="padding:5px 10px;text-align:left;color:#3a5878;font-size:6.5px;letter-spacing:1.5px;border:1px solid #1e3048">UWAGA</th>
+  </tr></thead>
+  <tbody>
+  ${[
+    ['stooq.com (^spx, xauusd, cl.f, ^vix itd.)',`${stooqOk}/${Object.keys(STOOQ_SYMBOLS).length} ✓ LIVE`,'CSV quotes na żywo'],
+    ['stooq.com SP500 12M range','1Y weekly range ✓',D.sp500_12m_src||'—'],
+    [`FRED (${fredOk} serii)`,`${fredOk}/${Object.keys(FRED_IDS).length} OK`,'CSV makro — opóźnienie 1 mies.'],
+    ['CNN / feargreedmeter.com',D.fg?`${D.fg.score} (${D.fg.source})`:'ładuje…','Fear & Greed Index'],
+    ['api.alternative.me',D.cryptoFg?`${D.cryptoFg.score}/100`:'ładuje…','Crypto Fear & Greed'],
+    ['fiscaldata.treasury.gov',D.treasury?`${D.treasury[0]?.total.toFixed(1)}T$ ✓`:'ładuje…','Dług USA'],
+    ['tradingeconomics.com',`3.75% Fed, 52.4 ISM (Mar 2026)`,'Statyczne zweryfikowane dane'],
+    ['stooq.pl/t/?i=510–591','📎 kliknij link','Tabele indeksów, obligacji, walut'],
+    ['bossa.pl/notowania','📎 kliknij link','Notowania polskie + światowe'],
+    ['justetf.com','TER/Holdings statyczne','Performance blokuje JS → ręcznie'],
+    ['atlasetf.pl (EDO)','❌ JS blokuje','Zaloguj się manualnie'],
+  ].map(([src,st,note],i)=>`<tr style="background:${i%2?'transparent':'rgba(0,0,0,.2)'}">
+    <td style="padding:5px 10px;border:1px solid #1e3048;color:#7ab0d0">${src}</td>
+    <td style="padding:5px 10px;border:1px solid #1e3048;color:${st.includes('✓')||st.includes('LIVE')?'#00ff88':st.includes('❌')?'#ff1a4e':'#ffcc00'};font-weight:600">${st}</td>
+    <td style="padding:5px 10px;border:1px solid #1e3048;color:#3a5878;font-size:7.5px">${note}</td>
+  </tr>`).join('')}
+  </tbody>
+</table>
+
+<div class="sec-title" style="font-size:8px;letter-spacing:2px;color:#3a5878;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #1e3048">📋 LOG ZDARZEŃ (ostatnie 50)</div>
+<div class="debug-log">${logHtml||'<div style="color:#1e3048">Brak logów…</div>'}</div>
+</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// MAIN PIPELINE
+// ══════════════════════════════════════════════════════════════
+async function fetchAllData() {
+  dbg('load','══ START v23 ══');
+  // Phase 1: stooq + SP500 12M (parallel)
+  await Promise.all([fetchStooq(), fetchSP500_12M()]);
+  renderTicker();
+  renderDecision();
+  renderPortfolio();
+  // Phase 2: Fear & Greed (parallel)
+  await Promise.all([fetchFG(), fetchCryptoFG()]);
+  renderDecision();
+  // Phase 3: FRED (slow, batched)
+  await fetchFred();
+  renderDecision();
+  renderIndicators();
+  renderPortfolio();
+  // Phase 4: Treasury
+  await fetchTreasury();
+  renderData();
+  document.getElementById('lastUpdate').textContent =
+    'Odświeżono: ' + new Date().toLocaleTimeString('pl-PL');
+  const total = Object.keys(D.quotes||{}).length + Object.keys(D.fred||{}).length;
+  dbg('ok',`══ GOTOWE — ${total} serii danych ══`);
+}
+
+function refreshAll() { fetchAllData(); }
+setInterval(fetchAllData, 10*60*1000);
+
+// ══════════════════════════════════════════════════════════════
+// TAB SYSTEM
+// ══════════════════════════════════════════════════════════════
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panelId = 'panel-' + btn.dataset.tab;
+      const panel = document.getElementById(panelId);
+      if (panel) panel.classList.add('active');
+      // Lazy render on switch
+      if (btn.dataset.tab === 'indicators') renderIndicators();
+      if (btn.dataset.tab === 'portfolio')  renderPortfolio();
+      if (btn.dataset.tab === 'data')       renderData();
+    });
+  });
+  document.getElementById('btnRefreshAll')?.addEventListener('click', refreshAll);
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
+  fetchAllData();
+});
+
+</script>
+</body>
+</html>
