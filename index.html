@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>MacroTerminal v28</title>
+<title>MacroTerminal v28.1 (Optimized)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -81,13 +81,6 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .card.G{border-left:2px solid var(--G)}.card.R{border-left:2px solid var(--R)}.card.Y{border-left:2px solid var(--Y)}.card.B{border-left:2px solid var(--B)}
 .cp{padding:14px 16px}
 
-/* ── KPI ── */
-.kpi{padding:14px 16px}
-.kl{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1.2px;color:var(--t2);text-transform:uppercase;margin-bottom:5px}
-.kv{font-size:28px;font-weight:600;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums;font-family:var(--sans)}
-.ks{font-size:10px;color:var(--t1)}
-.kbadge{display:inline-block;margin-top:6px;font-family:var(--sans);font-size:8.5px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.4px}
-
 /* ── HERO DECISION ── */
 .hero{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--rl);padding:22px 26px;margin-bottom:14px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 90% at 0% 50%,var(--vhg,rgba(0,229,168,.07)),transparent 60%);pointer-events:none}
@@ -104,6 +97,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .cV{background:var(--Vd);color:var(--V);border-color:rgba(155,126,248,.28)}
 .h-rationale{font-size:11px;color:var(--t1);line-height:1.8;margin-top:12px;padding-top:12px;border-top:1px solid var(--br)}
 .h-right{display:flex;flex-direction:column;gap:10px;position:relative}
+
 /* ring */
 .ring-box{background:var(--bg3);border:1px solid var(--br2);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px}
 .ring-wrap{position:relative;flex-shrink:0}
@@ -112,19 +106,17 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .ri-v{font-family:var(--sans);font-size:20px;font-weight:700;line-height:1;margin-bottom:2px}
 .ri-l{font-size:8.5px;color:var(--t2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px}
 .ri-s{font-size:9.5px;color:var(--t1);line-height:1.65}
-/* score dims */
-.sdims{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
-.sdim{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 11px;text-align:center}
-.sdim-l{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.5px;color:var(--t2);text-transform:uppercase;margin-bottom:5px}
-.sdim-v{font-family:var(--sans);font-size:20px;font-weight:700;line-height:1;margin-bottom:2px}
-.sdim-p{font-size:10px;color:var(--t1)}
-.sdim-bar{height:3px;border-radius:99px;background:rgba(255,255,255,.06);margin-top:6px;overflow:hidden}
-.sdim-f{height:3px;border-radius:99px}
+
 /* dm */
 .dmcard{background:var(--bg3);border:1px solid var(--br2);border-radius:var(--r);padding:11px 13px}
 .dm-lbl{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;margin-bottom:4px}
 .dm-sig{font-family:var(--sans);font-size:14px;font-weight:700;margin-bottom:5px}
 .dm-n{font-size:9.5px;color:var(--t1);line-height:1.7}
+
+/* CRISIS MATRIX AND ALERTS */
+.alert-box{padding:14px;border-radius:var(--r);font-family:var(--sans);font-weight:700;text-align:center;letter-spacing:1px;margin-bottom:14px;}
+.alert-ok{background:rgba(0,229,168,.1);border:1px solid var(--Gb);color:var(--G);}
+.alert-crisis{background:var(--R);color:#fff;border:1px solid var(--R);}
 
 /* ── GAUGE ── */
 .gc{padding:14px 16px}
@@ -141,6 +133,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .gcc{background:var(--bg3);border-radius:4px;padding:5px 6px;text-align:center}
 .gcc-l{font-size:8px;color:var(--t2);margin-bottom:1px}.gcc-v{font-size:11.5px;font-weight:600;font-family:var(--sans)}
 .gc-exp{font-size:9.5px;color:var(--t1);line-height:1.65;margin-top:9px;padding-top:9px;border-top:1px solid var(--br)}
+
 /* returns table */
 .fg-rets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
 .fgr{background:var(--bg3);border-radius:4px;padding:7px 9px;text-align:center}
@@ -152,18 +145,6 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .sb{flex:1;min-width:4px;border-radius:2px 2px 0 0;background:var(--bg4)}
 .sbG{background:var(--G)}.sbR{background:var(--R)}.sbY{background:var(--Y)}
 
-/* ── CRISIS CARDS ── */
-.cg4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
-.cc{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;cursor:default}
-.cc:hover{transform:translateY(-2px);border-color:var(--br2)}
-.cc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
-.cc-era{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
-.cc-title{font-family:var(--sans);font-size:12px;font-weight:700;margin-bottom:8px}
-.cc-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--br)}.cc-row:last-of-type{border:none}
-.cc-k{font-size:8.5px;color:var(--t2)}.cc-v{font-size:9.5px;font-weight:600}
-.cc-res{font-size:9px;color:var(--t1);line-height:1.6;margin-top:8px;padding-top:7px;border-top:1px solid var(--br)}
-.cc-badge{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:.5px;font-family:var(--sans)}
-
 /* ── SIGNAL TABLE ── */
 .sigtbl{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
 .sg-grp{padding:5px 13px;background:rgba(255,255,255,.02);font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:1px;color:var(--t2);text-transform:uppercase;border-bottom:1px solid var(--br)}
@@ -174,6 +155,13 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .pill{font-family:var(--sans);font-size:8.5px;font-weight:700;padding:2px 8px;border-radius:3px;text-align:center;display:inline-block;letter-spacing:.3px}
 .pG{background:var(--Gd);color:var(--G);border:1px solid var(--Gb)}.pR{background:var(--Rd);color:var(--R);border:1px solid var(--Rb)}.pY{background:var(--Yd);color:var(--Y);border:1px solid rgba(245,192,64,.3)}
 .sg-d{font-size:9.5px;color:var(--t2);padding-left:10px}
+
+/* Matrix Matrix */
+.tblwrap{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.stbl{width:100%;border-collapse:collapse;font-size:10.5px}
+.stbl th{background:var(--bg3);color:var(--t2);padding:8px 12px;text-align:left;font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--br)}
+.stbl td{padding:8px 12px;border-bottom:1px solid var(--br);color:var(--t1)}
+.stbl tr:hover td{background:rgba(255,255,255,.015)}.stbl tr:last-child td{border-bottom:none}
 
 /* ── CHART BOX ── */
 .chartbox{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
@@ -208,7 +196,9 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .ll-def{font-size:10px;color:var(--t1);line-height:1.7}
 .ll-sig{font-size:9.5px;padding:6px 9px;border-radius:4px;line-height:1.6}
 .liqcyc{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
-.lyc{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px}
+.lyc{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px;transition: transform .3s, box-shadow .3s;}
+.lyc.active{transform:translateY(-3px);box-shadow: 0 0 0 2px var(--t0);}
+.lyc:not(.active){opacity: 0.6;}
 .lyc-n{font-family:var(--sans);font-size:20px;font-weight:700;margin-bottom:3px}
 .lyc-t{font-family:var(--sans);font-size:10.5px;font-weight:700;margin-bottom:4px}
 .lyc-d{font-size:9.5px;color:var(--t2);line-height:1.65}
@@ -249,11 +239,6 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 .pc-tp{font-size:7.5px;font-weight:700;padding:1px 6px;border-radius:2px;display:inline-block;margin-bottom:5px}
 .pc-et{font-size:8px;color:var(--t2);line-height:1.6;margin-bottom:5px}
 .pc-dm{font-size:9.5px;font-weight:700}
-.tblwrap{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
-.stbl{width:100%;border-collapse:collapse;font-size:10.5px}
-.stbl th{background:var(--bg3);color:var(--t2);padding:6px 11px;text-align:left;font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--br)}
-.stbl td{padding:6px 11px;border-bottom:1px solid var(--br);color:var(--t1)}
-.stbl tr:hover td{background:rgba(255,255,255,.015)}.stbl tr:last-child td{border-bottom:none}
 .ptag{padding:1px 6px;border-radius:2px;font-weight:700;font-size:8.5px}
 .rcbox{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 13px;font-size:10px;color:var(--t2);line-height:1.9;margin-bottom:12px}
 .rcbox b{color:var(--t0)}
@@ -321,7 +306,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v28</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v28.1</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -352,29 +337,23 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════
-   MacroTerminal v28 — Professional Investment Decision System
+   MacroTerminal v28.1 — Professional Investment Decision System
    
    DATA SOURCES:
    - stooq.com       → price CSV for all assets
-   - FRED St. Louis  → M2, Fed rate, WALCL, SOFRVOL, VIX, etc.
-   - CNN dataviz     → Fear & Greed Index live
-   - alternative.me  → Crypto Fear & Greed 30d
-   - treasury.gov    → US public debt
+   - FRED St. Louis  → Multi-fallback (API -> ivo-welch)
+   - finhacker.cz    → Fear & Greed Index live
    
    ALL fetches routed via Cloudflare Worker proxy:
    https://portfel.dzonyiks.workers.dev
-   
-   SCORING: 5 dimensions × (−10…+10) each
-   Sentiment + Liquidity + Positioning + Cycle + Momentum
-   Sum −50…+50 → mapped to verdict & 0-100 display score
 ═══════════════════════════════════════════════════════════ */
 
 /* ── SOURCES CONFIG (user-editable at runtime) ── */
 var SRCS = {
   proxy:    { name:'Cloudflare CORS Proxy', url:'https://portfel.dzonyiks.workers.dev', desc:'Routes all fetches — bypasses browser CORS', status:'live', editable:false },
   stooq:    { name:'stooq.com', url:'https://stooq.com/q/d/l/', desc:'Daily CSV: indices, FX, commodities, ETF', status:'unknown', editable:false },
-  fred:     { name:'FRED St. Louis Fed', url:'https://fred.stlouisfed.org/graph/fredgraph.csv', desc:'Macro: M2, WALCL, SOFRVOL, VIX, Sahm, HY, RRP…', status:'unknown', editable:false },
-  cnn:      { name:'CNN Fear & Greed', url:'https://production.dataviz.cnn.io/index/fearandgreed/graphdata', desc:'Live F&G score + history', status:'unknown', editable:false },
+  fred:     { name:'FRED St. Louis Fed', url:'https://api.stlouisfed.org', desc:'Macro data (API & Fallbacks)', status:'unknown', editable:false },
+  cnn:      { name:'Finhacker F&G', url:'https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/', desc:'Live F&G score from finhacker.cz HTML', status:'unknown', editable:false },
   cryptofg: { name:'alternative.me', url:'https://api.alternative.me/fng/?limit=30&format=json', desc:'Crypto Fear & Greed 30d', status:'unknown', editable:false },
   treasury: { name:'fiscaldata.treasury.gov', url:'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny', desc:'US national debt outstanding', status:'unknown', editable:false },
   cftc:     { name:'CFTC.gov COT', url:'https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm', desc:'Commitments of Traders — structural reference', status:'static', editable:false },
@@ -382,6 +361,7 @@ var SRCS = {
   custom2:  { name:'Własne źródło 2', url:'', desc:'Dodaj własny URL do testów', status:'unused', editable:true },
 };
 var PROXY = SRCS.proxy.url;
+var API_KEY = '03062bdea07a8594cad80e9a0574721e';
 
 /* ── STATE ── */
 var D = { q:{}, f:{}, fg:null, cfg:null, treasury:null, sp12m:null, sp12m_src:'—' };
@@ -482,26 +462,51 @@ var FM = {
   ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',move:'MOVE'
 };
 async function fOne(id) {
-  var r=await pGet('https://fred.stlouisfed.org/graph/fredgraph.csv?id='+id,18000);
-  var txt=await r.text();
-  if (txt.trim().charAt(0)==='<') throw new Error('got HTML');
-  var rows=txt.trim().split('\n').slice(1).map(function(l){
-    var p=l.split(','),d=(p[0]||'').trim(),v=(p[1]||'').trim();
-    return{date:d,val:(v==='.'||v==='')?null:parseFloat(v)};
-  }).filter(function(x){ return x.date&&x.val!==null&&isFinite(x.val); });
-  if (!rows.length) throw new Error('empty');
-  var last=rows[rows.length-1],p1=rows.length>1?rows[rows.length-2]:last;
-  var p3=rows.length>3?rows[rows.length-4]:rows[0];
-  var p6=rows.length>6?rows[rows.length-7]:rows[0];
-  var p12=rows.length>12?rows[rows.length-13]:rows[0];
-  return{
-    current:last.val,date:last.date,prev:p1.val,
-    trend3m:p3.val&&p3.val!==0?(last.val-p3.val)/Math.abs(p3.val)*100:null,
-    trend6m:p6.val&&p6.val!==0?(last.val-p6.val)/Math.abs(p6.val)*100:null,
-    yoy:p12.val&&p12.val!==0?(last.val-p12.val)/Math.abs(p12.val)*100:null,
-    series:rows.slice(-60)
-  };
+  var urls = [
+    'https://api.stlouisfed.org/fred/series/observations?series_id='+id+'&api_key='+API_KEY+'&file_type=csv',
+    'https://www.ivo-welch.info/cgi-bin/fredwrap?symbol='+id
+  ];
+  
+  for(var i=0; i<urls.length; i++) {
+    try {
+      var r = await pGet(urls[i], 15000);
+      var txt = await r.text();
+      
+      if (txt.trim().charAt(0) === '<' && txt.indexOf('DATE') === -1 && txt.indexOf('date') === -1) {
+          continue; // Pomiń odpowiedzi HTML
+      }
+      
+      var lines = txt.trim().split('\n');
+      var dataStart = lines.findIndex(l => l.indexOf('19') === 0 || l.indexOf('20') === 0);
+      if (dataStart === -1) continue;
+
+      var rows = lines.slice(dataStart).map(function(l){
+        var p = l.split(',');
+        var d = (p[0]||'').trim(), v = (p[1]||'').trim();
+        return {date:d, val:(v==='.'||v==='')?null:parseFloat(v)};
+      }).filter(function(x){ return x.date&&x.val!==null&&isFinite(x.val); });
+      
+      if (!rows.length) continue;
+      
+      var last=rows[rows.length-1],p1=rows.length>1?rows[rows.length-2]:last;
+      var p3=rows.length>3?rows[rows.length-4]:rows[0];
+      var p6=rows.length>6?rows[rows.length-7]:rows[0];
+      var p12=rows.length>12?rows[rows.length-13]:rows[0];
+      
+      return{
+        current:last.val,date:last.date,prev:p1.val,
+        trend3m:p3.val&&p3.val!==0?(last.val-p3.val)/Math.abs(p3.val)*100:null,
+        trend6m:p6.val&&p6.val!==0?(last.val-p6.val)/Math.abs(p6.val)*100:null,
+        yoy:p12.val&&p12.val!==0?(last.val-p12.val)/Math.abs(p12.val)*100:null,
+        series:rows.slice(-60)
+      };
+    } catch(e) {
+      console.warn('FRED Fallback step failed for', id);
+    }
+  }
+  throw new Error('All fallbacks failed for ' + id);
 }
+
 async function fetchFred() {
   setS('ld','FRED: dane makroekonomiczne…');
   D.f={}; var keys=Object.keys(FM); var ok=0,fail=0;
@@ -521,26 +526,28 @@ async function fetchFred() {
 }
 
 async function fetchFG() {
-  setS('ld','F&G CNN…'); D.fg=null;
-  /* CNN primary */
+  setS('ld','F&G Finhacker…'); D.fg=null;
   try {
-    var r=await pGet('https://production.dataviz.cnn.io/index/fearandgreed/graphdata',10000);
-    var txt=await r.text();
-    if (txt.trim().charAt(0)==='<') throw new Error('HTML response');
-    var j=JSON.parse(txt), fg=j.fear_and_greed||j;
-    var score=Math.round(parseFloat(fg.score||fg.current_value||0));
-    if (score>0&&score<=100){
-      D.fg={score:score,prev_close:Math.round(parseFloat(fg.previous_close||0))||null,prev_week:Math.round(parseFloat(fg.previous_1_week||0))||null,prev_month:Math.round(parseFloat(fg.previous_1_month||0))||null,source:'CNN'};
-      SRCS.cnn.status='live'; setS('ok','F&G CNN: '+score); return;
+    var r = await pGet(SRCS.cnn.url, 12000);
+    var txt = await r.text();
+    var match = txt.match(/<p id="fng-current">(\d+)<\/p>/);
+    if (match && match[1]) {
+        var score = parseInt(match[1], 10);
+        D.fg = {score: score, prev_close: null, prev_week: null, prev_month: null, source: 'finhacker.cz'};
+        SRCS.cnn.status='live'; setS('ok','F&G: '+score);
+        return;
     }
-    throw new Error('invalid score');
-  } catch(e){ SRCS.cnn.status='fail'; setS('er','CNN F&G: '+e.message); }
-  /* synthetic VIX-based fallback */
-  var vix=(D.q.vix&&D.q.vix.price)||(D.f.vixfred&&D.f.vixfred.current)||29;
-  var est=50;
-  if(vix>40)est=14;else if(vix>32)est=24;else if(vix>26)est=34;else if(vix>20)est=44;else if(vix<14)est=78;else if(vix<17)est=66;
-  D.fg={score:Math.round(est),prev_close:null,prev_week:null,prev_month:null,source:'ESTIMATE (VIX-based)'};
+    throw new Error('Brak znacznika id="fng-current" w HTML');
+  } catch(e) { 
+    SRCS.cnn.status='fail'; setS('er','F&G: '+e.message); 
+    // synthetic VIX-based fallback
+    var vix=(D.q.vix&&D.q.vix.price)||(D.f.vixfred&&D.f.vixfred.current)||29;
+    var est=50;
+    if(vix>40)est=14;else if(vix>32)est=24;else if(vix>26)est=34;else if(vix>20)est=44;else if(vix<14)est=78;else if(vix<17)est=66;
+    D.fg={score:Math.round(est),prev_close:null,prev_week:null,prev_month:null,source:'ESTIMATE (VIX-based)'};
+  }
 }
+
 async function fetchCryptoFG() {
   try {
     var r=await pGet('https://api.alternative.me/fng/?limit=30&format=json',9000);
@@ -601,7 +608,7 @@ function calcScore() {
   if(fed<3)s2+=2;else if(fed>5)s2-=2;
   s2=Math.max(-10,Math.min(10,s2));
 
-  /* 3. POSITIONING (COT proxy from VIX pattern + yield curve) */
+  /* 3. POSITIONING */
   var s3=0;
   if(vix>=40)s3=10;else if(vix>=30)s3=7;else if(vix>=25)s3=4;else if(vix>=20)s3=1;else if(vix<15)s3=-5;
   if(yc!=null){if(yc>0.5)s3=Math.min(10,s3+1);else if(yc<-0.2)s3=Math.max(-10,s3-2);}
@@ -629,7 +636,7 @@ function calcScore() {
   else if(total>=-5){verdict='NEUTRALNIE';color='#f5c040';vhg='rgba(245,192,64,.07)';}
   else if(total>=-20){verdict='REDUKUJ';color='#ff7c3e';vhg='rgba(255,124,62,.07)';}
   else{verdict='SPRZEDAJ';color='#ff3355';vhg='rgba(255,51,85,.08)';}
-  if(vix>=28&&total>=-10){verdict='KUP (PANIKA)';color='#00e5a8';vhg='rgba(0,229,168,.12)';}
+  if(vix>=30&&total>=-10){verdict='KUP (PANIKA)';color='#00e5a8';vhg='rgba(0,229,168,.12)';}
 
   var dims=[
     {label:'Sentyment',pts:s1,v:fg!=null?String(fg):vix.toFixed(0),sub:'VIX/F&G',max:10},
@@ -640,7 +647,6 @@ function calcScore() {
   ];
   SC={total:total,norm:norm,verdict:verdict,color:color,vhg:vhg,dims:dims,vix:vix,fg:fg,sp12m:sp12m,ib01:ib01,dm_bull:sp12m>ib01,sahm:sahm,yc:yc,hy:hy,fed:fed,cpi:cpi,m2yoy:m2yoy};
 
-  /* update topbar */
   var vp=document.getElementById('vp');
   if(vp){
     vp.textContent=verdict;
@@ -652,19 +658,6 @@ function calcScore() {
   if(tsn){tsn.textContent=norm;tsn.style.color=color;}
   return SC;
 }
-
-/* ═══════════════════════════════
-   HISTORICAL CRISES
-═══════════════════════════════ */
-var CRISES=[
-  {era:'Oct 2008',title:'Lehman Crash',color:'#ff3355',vix:80,fg:2,hy:22,sahm:3.5,sp:'-46%',fed:'0.5% emergency',drop:-46,rows:[['VIX','80 (rekord)'],['F&G','2'],['HY','22%'],['Sahm','3.5'],['SP500','-46%'],['Fed','0.5%']],res:'Dno Oct 2008 — ożywienie po QE1 Mar 2009',badge:'KRYZYS',bc:'rgba(255,51,85,.1)'},
-  {era:'Mar 2009',title:'Dołek GFC',color:'#00e5a8',vix:56,fg:2,hy:22,sahm:4.5,sp:'-56%',fed:'0.25% QE1',drop:-56,rows:[['VIX','56'],['F&G','2'],['HY','22%'],['Sahm','4.5'],['SP500','-56%'],['Fed','0.25% + QE1']],res:'Mar 2009 → +300% przez 10 lat — MEGA okazja',badge:'MEGA KUP',bc:'rgba(0,229,168,.1)'},
-  {era:'Dec 2018',title:'Q4 Sell-off',color:'#f5c040',vix:36,fg:6,hy:5.5,sahm:0.1,sp:'-20%',fed:'pauza podwyżek',drop:-20,rows:[['VIX','36'],['F&G','6'],['HY','5.5%'],['Sahm','0.1'],['SP500','-20%'],['Fed','pauzuje']],res:'Dno Dec 2018 → +35% do końca 2019',badge:'ZAKUP',bc:'rgba(245,192,64,.1)'},
-  {era:'Mar 2020',title:'COVID Crash',color:'#2a9df5',vix:85,fg:2,hy:11,sahm:3.0,sp:'-34%',fed:'0% + QE∞',drop:-34,rows:[['VIX','85 (max)'],['F&G','2'],['HY','11%'],['Sahm','3.0'],['SP500','-34%'],['Fed','0% + QE nieskończone']],res:'Mar 2020 → +100% w 18 miesięcy',badge:'SILNY KUP',bc:'rgba(42,157,245,.1)'},
-  {era:'Q4 2021',title:'Szczyt euforii',color:'#ff3355',vix:15,fg:80,hy:2.8,sahm:0,sp:'+40%',fed:'gołębi Fed',drop:0,rows:[['VIX','15 (niski)'],['F&G','80 GREED'],['HY','2.8%'],['Sahm','0'],['SP500','+40%'],['Fed','gołębi']],res:'Szczyt 2021 → -25% w 2022',badge:'UNIKAJ',bc:'rgba(255,51,85,.1)'},
-  {era:'2022',title:'Inflacyjna bessa',color:'#ff7c3e',vix:38,fg:15,hy:6.5,sahm:0.2,sp:'-25%',fed:'+4.25pp',drop:-25,rows:[['VIX','38'],['F&G','15'],['HY','6.5%'],['Sahm','0.2'],['SP500','-25%'],['Fed','+4.25pp w roku']],res:'Dno Oct 2022 → +30% do końca 2023',badge:'ZAKUP',bc:'rgba(255,124,62,.1)'},
-  {era:'Mar 2026',title:'TERAZ — live',color:'#f5c040',isNow:true,rows:[],res:'',badge:'',bc:'rgba(245,192,64,.1)'},
-];
 
 /* ═══════════════════════════════
    PLOTLY HELPERS
@@ -690,7 +683,6 @@ function plotFred(divId,key,color,label){
 
 function plotVIXCrisis(divId){
   if(!document.getElementById(divId))return;
-  /* Normalized VIX profiles — days from panic start, multiplied from real data */
   var profiles={
     '2008 Lehman':[1,1.4,2.2,4.5,9,15,22,32,46,62,80,72,58,44,34,26,20,16,13,11,10,9,8,8,7],
     '2011 EU debt':[1,1.2,1.6,2.3,4,7,11,17,24,30,36,32,26,20,16,13,11,10,9,8,8,7,7,6,6],
@@ -706,28 +698,6 @@ function plotVIXCrisis(divId){
   });
   traces.push({x:days,y:curTrace,mode:'lines',name:'TERAZ',line:{color:'#00e5a8',width:2.5},connectgaps:false});
   Plotly.newPlot(divId,traces,pLy({height:200,showlegend:true,legend:{orientation:'h',y:1.08,x:0,font:{size:8}},yaxis:{title:{text:'VIX',font:{size:9}},range:[0,95]},margin:{l:40,r:10,t:30,b:30}}),PLY);
-}
-
-function plotCrisisCompare(divId){
-  if(!document.getElementById(divId))return;
-  var cv=(SC&&SC.vix)||29.5, cfg=SC&&SC.fg!=null?SC.fg:38;
-  var items=CRISES.filter(function(c){return!c.isNow;});
-  var names=items.map(function(c){return c.era;}).concat(['TERAZ']);
-  var vixV=items.map(function(c){return c.vix;}).concat([cv]);
-  var fgV=items.map(function(c){return c.fg;}).concat([cfg]);
-  var cols=items.map(function(c){return c.color;}).concat(['#f5c040']);
-  Plotly.newPlot(divId,[
-    {x:names,y:vixV,type:'bar',name:'VIX',marker:{color:cols,opacity:.8}},
-    {x:names,y:fgV,type:'scatter',mode:'lines+markers',name:'F&G',yaxis:'y2',line:{color:'#2a9df5',width:1.5},marker:{size:6,color:'#2a9df5'}},
-  ],pLy({height:220,yaxis:{range:[0,100],title:{text:'VIX',font:{size:9}}},yaxis2:{overlaying:'y',side:'right',range:[0,100],title:{text:'F&G',font:{size:9}}},showlegend:true,legend:{orientation:'h',y:1.1,x:0,font:{size:9}},margin:{l:40,r:50,t:30,b:40}}),PLY);
-}
-
-function plotScoreDims(divId){
-  if(!document.getElementById(divId)||!SC)return;
-  var names=SC.dims.map(function(d){return d.label;});
-  var vals=SC.dims.map(function(d){return d.pts;});
-  var cols=vals.map(function(v){return v>=0?'#00e5a8':'#ff3355';});
-  Plotly.newPlot(divId,[{x:names,y:vals,type:'bar',marker:{color:cols,opacity:.85}}],pLy({height:160,showlegend:false,yaxis:{range:[-11,11],zerolinecolor:'rgba(255,255,255,.15)'},margin:{l:35,r:10,t:10,b:30}}),PLY);
 }
 
 function plotCOT(divId){
@@ -796,18 +766,12 @@ function renderTicker(){
 function renderDecision(){
   var el=document.getElementById('p-decision');if(!el)return;
   var sc=calcScore(),f=D.f||{};
-  /* update live crisis row */
-  var cx=CRISES[CRISES.length-1];
-  cx.rows=[['VIX',sc.vix.toFixed(1)+(sc.vix>=28?' ⚡':'')],['F&G',sc.fg!=null?(sc.fg+' '+fgL(sc.fg)):'…'],['HY Spread',sc.hy.toFixed(2)+'%'],['Sahm',sc.sahm.toFixed(2)+(sc.sahm>=0.5?' ⚠':'')],['SP500 12M',pS(sc.sp12m)],['Score',sc.norm+'/100']];
-  cx.res='Score: '+sc.norm+'/100 → '+sc.verdict; cx.badge=sc.verdict;
-  /* ring */
+  
+  var alertHtml = (sc.vix >= 30 || sc.sahm >= 0.5) ? 
+    '<div class="alert-box alert-crisis">🚨 ALARM KRYZYSOWY AKTYWNY (VIX ≥ 30 lub Sahm ≥ 0.50)</div>' : 
+    '<div class="alert-box alert-ok">✅ Brak bezpośredniego zagrożenia kryzysowego</div>';
+
   var R=34,Ci=2*Math.PI*R,dash=sc.norm/100*Ci;
-  /* score dims */
-  var dimH=sc.dims.map(function(d){
-    var pct=Math.round((d.pts+10)/20*100),c=d.pts>=0?'#00e5a8':'#ff3355';
-    return '<div class="sdim"><div class="sdim-l">'+d.label+'</div><div class="sdim-v" style="color:'+c+'">'+d.v+'</div><div class="sdim-p" style="color:'+c+'">'+(d.pts>=0?'+':'')+d.pts+' pkt</div><div class="sdim-bar"><div class="sdim-f" style="width:'+pct+'%;background:'+c+'"></div></div><div style="font-size:8px;color:var(--t2);margin-top:3px">'+d.sub+'</div></div>';
-  }).join('');
-  /* rationale */
   var bull=[],bear=[];
   if(sc.vix>=28)bull.push('VIX '+sc.vix.toFixed(0)+' (panika=okazja)');
   if(sc.fg!=null&&sc.fg<=35)bull.push('F&G='+sc.fg+' strach');
@@ -819,18 +783,13 @@ function renderDecision(){
   if(!sc.dm_bull)bear.push('SP500&lt;IB01 (momentum niedźwiedzi)');
   if(sc.sahm>=0.5)bear.push('Sahm='+sc.sahm.toFixed(2)+' RECESJA');
   if(ST.cape>35)bear.push('CAPE='+ST.cape+'x drogie');
+  
   var rat='';
   if(bull.length)rat+='<span style="color:var(--G)">▲ '+(bull.join(' · '))+'.</span><br>';
   if(bear.length)rat+='<span style="color:var(--R)">▼ '+(bear.join(' · '))+'.</span><br>';
   var vixCtx=sc.vix>=40?'Panika jak 2020/2008':sc.vix>=28?'Podwyższony jak 2018/2022':sc.vix>=20?'Umiarkowany (2011-like)':'Niski jak Q4 2021 — uwaga';
   rat+='<br><b style="color:var(--t0)">Kontekst:</b> VIX '+sc.vix.toFixed(1)+' — '+vixCtx+'. '+(sc.dm_bull?'Dual Momentum: SP500 &gt; IB01 → DCA w ISAC/VWCE.':'Dual Momentum: SP500 &lt; IB01 → przesuń do IB01.')+'<br><b style="color:var(--Y)">Avg czas od VIX &gt; 28 do lokalnego dołka: 2–5 tygodni (historia: 2011, 2018, 2022).</b>';
-  /* crisis grid */
-  var crH=CRISES.map(function(c,idx){
-    var rows=c.rows.map(function(r){return'<div class="cc-row"><span class="cc-k">'+r[0]+'</span><span class="cc-v" style="color:'+(c.isNow?'var(--Y)':'var(--t0)')+'">'+r[1]+'</span></div>';}).join('');
-    var badge=c.badge?('<span class="cc-badge" style="background:'+c.bc+';color:'+c.color+';border:1px solid '+c.color+'40">'+c.badge+'</span>'):'';
-    return '<style>.cc:nth-of-type('+(idx+1)+')::after{background:'+c.color+'}</style><div class="cc"><div class="cc-era" style="color:'+c.color+'">'+c.era+'</div><div class="cc-title">'+c.title+'</div>'+rows+'<div class="cc-res" style="color:'+c.color+'">'+c.res+'</div>'+badge+'</div>';
-  }).join('');
-  /* sig table */
+
   var sigsData=[
     {g:'Sentyment',sigs:[
       {n:'VIX',v:sc.vix.toFixed(1),s:sc.vix>=28?1:sc.vix<18?-1:0,d:'Kontrariański: >28=panika=okazja DCA · <15=euforia'},
@@ -845,9 +804,8 @@ function renderDecision(){
       {n:'CAPE Shiller',v:ST.cape+'x',s:-1,d:'36.2x, norma 16x — rynek drogi (zawsze bear)'},
     ]},
     {g:'Cykl',sigs:[
-      {n:'Sahm Rule',v:sc.sahm.toFixed(2),s:sc.sahm<0.3?1:sc.sahm>0.5?-1:0,d:'<0.30=ok · >0.50=RECESJA w toku'},
+      {n:'Sahm Rule',v:sc.sahm.toFixed(2),s:sc.sahm<0.3?1:sc.sahm>=0.5?-1:0,d:'<0.30=ok · ≥0.50=RECESJA w toku'},
       {n:'HY Spread',v:sc.hy.toFixed(2)+'%',s:sc.hy<3.5?1:sc.hy>6?-1:0,d:'<3.5%=risk-on · >6%=stres kredytowy'},
-      {n:'ISM PMI',v:ST.ism.toFixed(1),s:ST.ism>52?1:0,d:'>50=ekspansja ('+ST.ismDate+')'},
     ]},
   ];
   var sigH='<div class="sigtbl"><div class="sg-row hd"><div>Wskaźnik</div><div style="text-align:center">Wartość</div><div style="text-align:center">Sygnał</div><div>Interpretacja</div></div>';
@@ -861,6 +819,7 @@ function renderDecision(){
   sigH+='</div>';
 
   el.innerHTML='<div class="wrap fu">'
+  + alertHtml
   +'<div class="hero" style="--vhg:'+sc.vhg+'">'
   +'<div>'
   +'<div class="h-eye">Decision Engine · '+new Date().toLocaleDateString('pl-PL',{day:'2-digit',month:'long',year:'numeric'})+'</div>'
@@ -883,19 +842,27 @@ function renderDecision(){
   +'<div class="dmcard"><div class="dm-lbl">Dual Momentum</div><div class="dm-sig" style="color:'+(sc.dm_bull?'var(--G)':'var(--Y)')+'">'+(sc.dm_bull?'▲ AKCJE ETF':'▼ IB01')+'</div><div class="dm-n">SP500 12M: <b style="color:'+(sc.dm_bull?'var(--G)':'var(--R)')+'">'+pS(sc.sp12m)+'</b><br>IB01 yield: <b>'+sc.ib01.toFixed(2)+'%</b><br>Spread: <b style="color:'+(sc.dm_bull?'var(--G)':'var(--R)')+'">'+(sc.sp12m-sc.ib01).toFixed(1)+' pp</b></div></div>'
   +'</div>'
   +'</div>'
-  +'<div class="sec">System scoringowy — 5 wymiarów</div>'
-  +'<div class="sdims">'+dimH+'</div>'
-  +'<div class="chartbox"><div class="chdr"><span class="ch-t">Score per wymiar</span><span class="ch-s">−10…+10 każdy | suma: '+(sc.total>=0?'+':'')+sc.total+'</span></div><div class="chbody"><div id="ch-dims" style="height:160px"></div></div></div>'
-  +'<div class="sec">Porównanie do kryzysów historycznych</div>'
-  +'<div class="cg4">'+crH+'</div>'
-  +'<div class="chartbox"><div class="chdr"><span class="ch-t">VIX + F&amp;G: obecny rynek vs historia</span><span class="ch-s">kryzysy 2008/2018/2020/2022</span></div><div class="chbody"><div id="ch-crisis" style="height:220px"></div></div></div>'
+  
+  +'<div class="sec">Kryzysy historyczne (Matrix)</div>'
+  +'<div class="tblwrap"><table class="stbl">'
+  +'<thead><tr><th>Kryzys</th><th>VIX max</th><th>M2 YoY</th><th>Yield Inv</th><th>Sahm</th><th>Unrate</th></tr></thead>'
+  +'<tbody>'
+  +'<tr><td>2008 GFC</td><td>80</td><td>-0.5%</td><td>Tak</td><td>Tak</td><td>10%</td></tr>'
+  +'<tr><td>2020 CV</td><td>85</td><td>+25%</td><td>Nie</td><td>Tak</td><td>15%</td></tr>'
+  +'<tr><td style="color:var(--t0);font-weight:bold">Aktualnie</td>'
+  +'<td style="color:var(--t0)">'+sc.vix.toFixed(1)+'</td>'
+  +'<td style="color:var(--t0)">'+(sc.m2yoy!=null?pS(sc.m2yoy):'?')+'</td>'
+  +'<td style="color:var(--t0)">'+(sc.yc!=null?(sc.yc<0?'Tak':'Nie'):'?')+'</td>'
+  +'<td style="color:var(--t0)">'+(sc.sahm>=0.5?'Tak':'Nie')+'</td>'
+  +'<td style="color:var(--t0)">'+(f.unrate&&f.unrate.current?f.unrate.current.toFixed(1):'?')+'%</td></tr>'
+  +'</tbody></table></div>'
+  
   +'<div class="sec">Wszystkie sygnały</div>'
   +sigH
   +'<div style="margin-top:12px;background:rgba(0,229,168,.04);border:1px solid rgba(0,229,168,.1);border-radius:var(--r);padding:10px 13px;font-size:10.5px;color:var(--t1);line-height:1.8">'
   +'<b style="color:var(--t0)">Howard Marks: "Knowing Where We Stand"</b> — system analizuje 5 wymiarów: sentyment (VIX/F&amp;G), płynność (M2/SOFR), positioning (COT/VIX), cykl (Sahm/HY), momentum (DualMomentum/CAPE). Suma: '+(sc.total>=0?'+':'')+sc.total+'/50. Próg KUP: ≥+20 | Akumuluj: +5..+20 | Neutral: ±5 | Redukuj: −5..−20 | Sprzedaj: &lt;−20.'
   +'</div>'
   +'</div>';
-  setTimeout(function(){ plotScoreDims('ch-dims'); plotCrisisCompare('ch-crisis'); },50);
 }
 
 /* ═══════════════════════════════
@@ -911,7 +878,6 @@ function renderSentiment(){
   var h14=D.cfg?D.cfg.history:[];
   var mxs=Math.max.apply(null,h14.map(function(x){return x.score;}).concat([80]));
   var sparks=h14.map(function(x,i){var ht=Math.round(x.score/mxs*34);var cl=i===0?'sbY':x.score>=65?'sbG':x.score<=30?'sbR':'';return'<div class="sb '+cl+'" style="height:'+ht+'px" title="'+x.date+': '+x.score+'"></div>';}).join('');
-  /* F&G percentile and historical returns */
   var fgPct=fg!=null?(fg<=20?'dolny 5%':fg<=35?'dolny 20%':fg<=50?'50%':fg<=70?'górny 50%':'górny 10%'):'—';
   var r3=fg!=null?(fg<=25?'+18.4%':fg<=35?'+12.1%':fg<=50?'+6.2%':fg<=65?'+3.1%':'-2.4%'):'—';
   var r6=fg!=null?(fg<=25?'+28.7%':fg<=35?'+19.4%':fg<=50?'+9.8%':fg<=65?'+5.2%':'+1.1%'):'—';
@@ -973,6 +939,9 @@ function renderLiquidity(){
   var f=D.f||{};
   var m2=f.m2,fedb=f.fed_bs,sofr=f.sofr,rrp=f.rrp;
   var m2yoy=m2&&m2.yoy!=null?m2.yoy:null;
+  var fed=f.fedfunds&&f.fedfunds.current!=null?f.fedfunds.current:ST.fed;
+  var vix=D.q.vix&&D.q.vix.price||29.5;
+  var sahm=f.sahm&&f.sahm.current!=null?f.sahm.current:0.3;
   var m2yoyC=m2yoy!=null?(m2yoy>3?'var(--G)':m2yoy<0?'var(--R)':'var(--Y)'):'var(--t1)';
   var fedBln=fedb&&fedb.current?fedb.current/1e6:null;
   var sofrV=sofr&&sofr.current?sofr.current:null;
@@ -980,12 +949,26 @@ function renderLiquidity(){
   var sofrY=sofr&&sofr.yoy!=null?sofr.yoy:null;
   var rrpV=rrp&&rrp.current?rrp.current:null;
 
+  var p1='', p2='', p3='', p4='';
+  if (m2yoy != null && m2yoy < 0 || fed > 5) p3 = 'active';
+  else if (vix >= 30 || sahm >= 0.5) p4 = 'active';
+  else if (m2yoy != null && m2yoy > 4 && fed < 3) p1 = 'active';
+  else p2 = 'active';
+
   el.innerHTML='<div class="wrap">'
+  +'<div class="sec">Cykl płynności — 4 fazy</div>'
+  +'<div class="liqcyc">'
+  +'<div class="lyc '+p1+'" style="border-left:2px solid var(--G)"><div class="lyc-n" style="color:var(--G)">①</div><div class="lyc-t">Ekspansja</div><div class="lyc-d">Fed obniża / QE. M2 rośnie. Best moment akumulacji ETF. Scoring pozytywny.</div><div class="lyc-a" style="background:rgba(0,229,168,.1);color:var(--G);border:1px solid rgba(0,229,168,.2)">→ KUP akcje, krypto</div></div>'
+  +'<div class="lyc '+p2+'" style="border-left:2px solid var(--B)"><div class="lyc-n" style="color:var(--B)">②</div><div class="lyc-t">Szczyt/Zacieśnienie</div><div class="lyc-d">Fed podwyżki / QT. M2 spowalnia. Akcje osiągają szczyty z wyprzedzeniem ~6M.</div><div class="lyc-a" style="background:rgba(42,157,245,.1);color:var(--B);border:1px solid rgba(42,157,245,.2)">→ Redukuj ryzyko</div></div>'
+  +'<div class="lyc '+p3+'" style="border-left:2px solid var(--R)"><div class="lyc-n" style="color:var(--R)">③</div><div class="lyc-t">Kontrakcja</div><div class="lyc-d">M2 spada. 2022: Fed +4.25pp, M2 −4% = akcje −25%, BTC −75%.</div><div class="lyc-a" style="background:rgba(255,51,85,.1);color:var(--R);border:1px solid rgba(255,51,85,.2)">→ IB01, EDO, cash</div></div>'
+  +'<div class="lyc '+p4+'" style="border-left:2px solid var(--Y)"><div class="lyc-n" style="color:var(--Y)">④</div><div class="lyc-t">Dołek / Pivot</div><div class="lyc-d">VIX wysoki. F&amp;G ekstremalne. Statystycznie najlepszy moment DCA długoterminowego.</div><div class="lyc-a" style="background:rgba(245,192,64,.1);color:var(--Y);border:1px solid rgba(245,192,64,.2)">→ KUP agresywnie</div></div>'
+  +'</div>'
+
   +'<div class="sec">Warstwy podaży pieniądza M0/M1/M2</div>'
   +'<div class="llayers">'
   +'<div class="ll" style="border-left:2px solid var(--B)"><div><div class="ll-tag" style="color:var(--B)">M0</div><div class="ll-sub">BAZA MON.</div></div><div class="ll-def"><b>Fed kontroluje bezpośrednio.</b> Gotówka + rezerwy banków w Fed. QE tworzy M0 — ale rezerwy NIE wchodzą do gospodarki bez akcji kredytowej. Bilans Fed: <b style="color:var(--B)">'+(fedBln?fedBln.toFixed(2)+' T$':'ładowanie…')+'</b></div><div class="ll-sig" style="background:rgba(42,157,245,.08);color:var(--B);border:1px solid rgba(42,157,245,.2)">QE → bilans rośnie → M0 rośnie → wspiera wyceny. FRED: WALCL</div></div>'
   +'<div class="ll" style="border-left:2px solid var(--G)"><div><div class="ll-tag" style="color:var(--G)">M1</div><div class="ll-sub">PIENIĄDZ TRANS.</div></div><div class="ll-def">M0 + gotówka + RORy. Rośnie przez <b>akcję kredytową banków</b>. Udzielenie kredytu = nowy depozyt = wzrost M1. Fed nie steruje M1 bezpośrednio.</div><div class="ll-sig" style="background:rgba(0,229,168,.08);color:var(--G);border:1px solid rgba(0,229,168,.2)">Wzrost M1 = gospodarka pożycza = zyski firm rosną = akcje w górę.</div></div>'
-  +'<div class="ll" style="border-left:2px solid var(--Y)"><div><div class="ll-tag" style="color:var(--Y)">M2</div><div class="ll-sub">SZEROKA PODAŻ</div></div><div class="ll-def">M1 + lokaty + fundusze rynku pieniężnego. Głównie rynkowa. USA M2: <b style="color:var(--B)">'+(m2&&m2.current?'$'+(m2.current/1000).toFixed(1)+'T':'ładowanie…')+'</b> YoY: <b style="color:'+m2yoyC+'">'+(m2yoy!=null?pS(m2yoy):'…')+'</b><br><b>MIT:</b> "Fed drukuje M2" — nieprawda. Fed kontroluje M0.</div><div class="ll-sig" style="background:rgba(245,192,64,.08);color:var(--Y);border:1px solid rgba(245,192,64,.2)">M2 YoY &gt;4%=płynność rośnie=sprzyjające. M2 &lt;0%=2022 bessa. Pkt: '+(SC?((SC.dims[1].pts>=0?'+':'')+SC.dims[1].pts):'+0')+'</div></div>'
+  +'<div class="ll" style="border-left:2px solid var(--Y)"><div><div class="ll-tag" style="color:var(--Y)">M2</div><div class="ll-sub">SZEROKA PODAŻ</div></div><div class="ll-def">M1 + lokaty + fundusze rynku pieniężnego. Głównie rynkowa. USA M2: <b style="color:var(--B)">'+(m2&&m2.current?'$'+(m2.current/1000).toFixed(1)+'T':'ładowanie…')+'</b> YoY: <b style="color:'+m2yoyC+'">'+(m2yoy!=null?pS(m2yoy):'…')+'</b><br><b>MIT:</b> "Fed drukuje M2" — nieprawda. Fed kontroluje M0.</div><div class="ll-sig" style="background:rgba(245,192,64,.08);color:var(--Y);border:1px solid rgba(245,192,64,.2)">M2 YoY &gt;4%=płynność rośnie=sprzyjające. M2 &lt;0%=2022 bessa.</div></div>'
   +'</div>'
 
   +'<div class="g3">'
@@ -1006,14 +989,6 @@ function renderLiquidity(){
   +'<div style="font-size:10px;color:var(--t1);line-height:1.8">SOFR = Secured Overnight Financing Rate. Volume = wolumen transakcji repo overnight na rynku US. Wzrost płynności historycznie sprzyja wzrostom rynku akcji.<br><b style="color:var(--t0)">Scoring:</b> trend 3M&gt;5%=+3 | trend 6M&gt;5%=+2 | spadek=−3 do −5<br><a href="https://fred.stlouisfed.org/series/SOFRVOL" target="_blank" style="color:var(--B)">fred.stlouisfed.org/series/SOFRVOL →</a></div>'
   +'</div></div>'
   +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SOFR Volume</span><span class="ch-s">FRED SOFRVOL</span></div><div class="chbody"><div id="ch-sofr" style="height:180px"></div></div></div>'
-  +'</div>'
-
-  +'<div class="sec">Cykl płynności — 4 fazy</div>'
-  +'<div class="liqcyc">'
-  +'<div class="lyc" style="border-left:2px solid var(--G)"><div class="lyc-n" style="color:var(--G)">①</div><div class="lyc-t">Ekspansja</div><div class="lyc-d">Fed obniża / QE. M2 rośnie. Best moment akumulacji ETF. Scoring pozytywny.</div><div class="lyc-a" style="background:rgba(0,229,168,.1);color:var(--G);border:1px solid rgba(0,229,168,.2)">→ KUP akcje, krypto</div></div>'
-  +'<div class="lyc" style="border-left:2px solid var(--B)"><div class="lyc-n" style="color:var(--B)">②</div><div class="lyc-t">Szczyt/Zacieśnienie</div><div class="lyc-d">Fed podwyżki / QT. M2 spowalnia. Akcje osiągają szczyty z wyprzedzeniem ~6M.</div><div class="lyc-a" style="background:rgba(42,157,245,.1);color:var(--B);border:1px solid rgba(42,157,245,.2)">→ Redukuj ryzyko</div></div>'
-  +'<div class="lyc" style="border-left:2px solid var(--R)"><div class="lyc-n" style="color:var(--R)">③</div><div class="lyc-t">Kontrakcja</div><div class="lyc-d">M2 spada. 2022: Fed +4.25pp, M2 −4% = akcje −25%, BTC −75%.</div><div class="lyc-a" style="background:rgba(255,51,85,.1);color:var(--R);border:1px solid rgba(255,51,85,.2)">→ IB01, EDO, cash</div></div>'
-  +'<div class="lyc" style="border-left:2px solid var(--Y)"><div class="lyc-n" style="color:var(--Y)">④</div><div class="lyc-t">Dołek / Pivot</div><div class="lyc-d">VIX wysoki. F&amp;G ekstremalne. Statystycznie najlepszy moment DCA długoterminowego.</div><div class="lyc-a" style="background:rgba(245,192,64,.1);color:var(--Y);border:1px solid rgba(245,192,64,.2)">→ KUP agresywnie</div></div>'
   +'</div>'
 
   +'<div class="lgrid">'
@@ -1105,7 +1080,7 @@ function renderIndicators(){
   +'</div>'
   +'<div class="sec">Rynek pracy i cykl</div>'
   +'<div class="igrid">'
-  +ic('Sahm Rule','FRED SAHMREALTIME',fc('sahm',2),(sahm>=0.5?'var(--R)':sahm>=0.3?'var(--Y)':'var(--G)'),f.sahm?f.sahm.date:'—',sahm<0.3?'g':sahm>0.5?'r':'y','Wzrost bezrobocia >0.5pp nad 12M minimum = recesja. Teraz: '+sahm.toFixed(2)+' (próg 0.50).','<0.30 → brak recesji','>0.50 → RECESJA w toku')
+  +ic('Sahm Rule','FRED SAHMREALTIME',fc('sahm',2),(sahm>=0.5?'var(--R)':sahm>=0.3?'var(--Y)':'var(--G)'),f.sahm?f.sahm.date:'—',sahm<0.3?'g':sahm>=0.5?'r':'y','Wzrost bezrobocia ≥0.5pp nad 12M minimum = recesja. Teraz: '+sahm.toFixed(2)+' (próg 0.50).','<0.30 → brak recesji','≥0.50 → RECESJA w toku')
   +ic('Bezrobocie USA','FRED UNRATE',fc('unrate',1,'%'),(unrate!=null?(unrate>5?'var(--R)':unrate>4?'var(--Y)':'var(--G)'):'var(--t1)'),f.unrate?f.unrate.date:'—',(unrate!=null?(unrate<4?'g':unrate>5?'r':'y'):'y'),'Full employment: 4-4.5%. Gwałtowny wzrost = recesja.','<4.5% → pełne zatrudnienie','>5% i rośnie → alarm recesyjny')
   +ic('ISM PMI','TradingEconomics Lut 2026',ST.ism.toFixed(1),'var(--G)',ST.ismDate,'g','PMI '+ST.ism+' (>50=ekspansja). Lut 2026.','>55 → silna ekspansja','<45 → kontrakcja, ryzyko recesji')
   +'</div>'
