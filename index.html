@@ -314,11 +314,51 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
    which returns clean CSV not HTML.
 ================================================================ */
 
-var PROXY   = 'https://portfel.dzonyiks.workers.dev';
 var FREDKEY = '03062bdea07a8594cad80e9a0574721e';
 var FAPI    = 'https://api.stlouisfed.org/fred/series/observations?api_key='+FREDKEY+'&file_type=json&sort_order=asc&limit=80&series_id=';
 var FWRAP   = 'https://www.ivo-welch.info/cgi-bin/fredwrap?symbol=';
 var FCSV    = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=';
+
+/* proxy chain defined in detectWorkingProxy() */
+
+async function proxyFetch(url, ms) {
+  var errs = [];
+  /* Try direct first (some endpoints like ivo-welch support CORS) */
+  try {
+    var r = await tFetchDirect(url, Math.min(ms||9000, 7000));
+    var txt = await r.text();
+    if (isGoodResponse(txt)) return txt;
+    errs.push('direct: bad content ('+txt.trimStart().slice(0,30)+')');
+  } catch(e) { errs.push('direct: '+e.message); }
+
+  /* Try each proxy in order — detectWorkingProxy() reorders these at startup */
+  for (var i = 0; i < PROXIES_FULL.length; i++) {
+    try {
+      var purl = PROXIES_FULL[i] + encodeURIComponent(url);
+      var r2 = await tFetchDirect(purl, (ms||12000));
+      var txt2 = await r2.text();
+      /* allorigins sometimes wraps: {"contents":"RAW","status":{...}} */
+      if (txt2 && txt2.trimStart().startsWith('{"contents"')) {
+        try {
+          var obj = JSON.parse(txt2);
+          if (obj.contents && isGoodResponse(obj.contents)) {
+            setS('ld','proxy['+i+'] allorigins OK');
+            return obj.contents;
+          }
+        } catch(ex) {}
+      }
+      if (isGoodResponse(txt2)) return txt2;
+      errs.push('p'+i+'('+PROXIES_FULL[i].slice(8,22)+'): bad:'+txt2.trimStart().slice(0,20));
+    } catch(e2) { errs.push('p'+i+': '+e2.message.slice(0,40)); }
+  }
+  throw new Error('['+errs.join(' | ')+']');
+}
+function isGoodResponse(txt) {
+  if (!txt || txt.trim().length < 10) return false;
+  var t = txt.trimStart();
+  if (t.charAt(0) === '<') return false; /* HTML error page */
+  return true;
+}
 
 /* Build 3-source array for any FRED symbol */
 function fs(sym) {
@@ -372,15 +412,20 @@ var CFG = {
   nfci:     { label:'NFCI',               unit:'',    freq:'weekly',  group:'economy',
     sources: fs('NFCI') },
   /* —— MARKET —— */
-  vixf:     { label:'VIX (FRED)',          unit:'pts', freq:'daily',   group:'market',
-    sources: fs('VIXCLS') },
+  vixf:     { label:'VIX',                 unit:'pts', freq:'daily',   group:'market',
+    sources: [
+      { name:'stooq ^vix',  url:'https://stooq.com/q/d/l/?s=%5Evix&i=d',   type:'stooq_vix' },
+      ...fs('VIXCLS'),
+    ] },
   sp500f:   { label:'S&P500 (FRED)',       unit:'pts', freq:'daily',   group:'market',
     sources: fs('SP500') },
   /* —— SENTIMENT —— */
   fg_cnn: { label:'Fear & Greed CNN',    unit:'',   freq:'live', group:'sentiment',
     sources:[
-      { name:'CNN dataviz',   url:'https://production.dataviz.cnn.io/index/fearandgreed/graphdata', type:'json_proxy' },
-      { name:'finhacker.cz',  url:'https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/', type:'html_proxy' },
+      { name:'CNN dataviz',      url:'https://production.dataviz.cnn.io/index/fearandgreed/graphdata',                     type:'json_proxy' },
+      { name:'CNN markets API',  url:'https://markets.money.cnn.com/graphdata/fearandgreed?ts=0',                          type:'json_proxy' },
+      { name:'finhacker.cz',     url:'https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/',        type:'html_proxy' },
+      { name:'feargreedmeter',   url:'https://feargreedmeter.com/api/current',                                             type:'json_proxy' },
     ]},
   cfg:    { label:'Crypto F&G',          unit:'',   freq:'daily', group:'sentiment',
     sources:[
@@ -449,27 +494,44 @@ var gV=k=>D[k]&&D[k].current!=null?D[k].current:null;
 /* ===============================================
    FETCH ENGINE — auto-fallback through sources
 =============================================== */
-async function tFetch(url,ms,proxy){
-  var full=proxy?PROXY+'?url='+encodeURIComponent(url):url;
+/* Low-level fetch — no proxy, just a direct fetch with timeout */
+async function tFetchDirect(url,ms){
   var ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),ms||13000);
   try{
-    var r=await fetch(full,{signal:ctrl.signal,cache:'no-store'});
+    var r=await fetch(url,{signal:ctrl.signal,cache:'no-store',mode:'cors'});
     clearTimeout(timer);
     if(!r.ok)throw new Error('HTTP '+r.status);
     return r;
   }catch(e){clearTimeout(timer);throw e;}
 }
+/* Legacy alias for code that still uses tFetch(url,ms,useProxy) */
+async function tFetch(url,ms,proxy){
+  if(!proxy) return tFetchDirect(url,ms);
+  /* Use proxy chain */
+  for(var i=0;i<PROXIES.length;i++){
+    try{
+      var full=PROXIES[i]+encodeURIComponent(url);
+      return await tFetchDirect(full,ms||12000);
+    }catch(e){ /* try next */ }
+  }
+  throw new Error('all proxies failed');
+}
 
 function parseFredAPI(json){
+  if(!json||typeof json!=='object')throw new Error('not JSON object');
+  if(json.error_message)throw new Error('FRED API: '+json.error_message);
   var obs=(json.observations||[]).filter(o=>o.value!=='.'&&o.value!='');
-  if(!obs.length)throw new Error('empty observations');
+  if(!obs.length)throw new Error('empty observations (total='+(json.observations||[]).length+')');
   var rows=obs.map(o=>({date:o.date,val:parseFloat(o.value)})).filter(o=>isFinite(o.val));
   if(!rows.length)throw new Error('all values missing');
   return buildResult(rows); /* asc order from API */
 }
 function parseFredCSV(txt){
-  if(!txt||txt.length<20)throw new Error('empty');
-  if(txt.trimStart().charAt(0)==='<')throw new Error('got HTML — check URL format (use ?id=SYMBOL)');
+  if(!txt||txt.length<20)throw new Error('empty (len='+(txt?txt.length:0)+')');
+  var t=txt.trimStart();
+  var first=t.slice(0,60).replace(/[\r\n]+/g,' ');
+  if(t.charAt(0)==='<')throw new Error('HTML:'+first.slice(0,50));
+  if(t.charAt(0)==='{')throw new Error('JSON not CSV:'+first.slice(0,50));
   var lines=txt.trim().split('\n').filter(l=>l&&!/^date/i.test(l)&&!/^#/.test(l));
   var rows=lines.map(l=>{
     var p=l.split(','),dt=(p[0]||'').trim(),v=(p[1]||'').trim();
@@ -495,35 +557,45 @@ function buildResult(asc){
 async function trySrc(src){
   var r,txt,json;
   switch(src.type){
+    case 'stooq_vix': {
+      /* VIX from stooq — already parsed by sOne, but handle it inline here too */
+      var vixRaw = await proxyFetch(src.url, 10000);
+      if (!vixRaw || vixRaw.includes('No data')) throw new Error('no data');
+      var vlines = vixRaw.trim().split('\n').filter(l=>l&&l.indexOf('Date')===-1);
+      if (!vlines.length) throw new Error('empty');
+      var vlast = vlines[vlines.length-1].split(',');
+      var vprev = vlines.length>1 ? vlines[vlines.length-2].split(',') : vlast;
+      var vc = parseFloat(vlast[4]), vp = parseFloat(vprev[4]);
+      if (isNaN(vc)) throw new Error('NaN');
+      /* Return as a result object usable by gV() */
+      DQ.vix = {price:vc, prev:vp, change:vp?(vc-vp)/vp*100:0, date:vlast[0]};
+      return {current:vc, date:vlast[0], prev:vp, chg:vp?(vc-vp)/vp*100:0, series:[]};
+    }
     case 'fred_api':
-      r=await tFetch(src.url,14000,false);
-      json=await r.json();
-      if(json.error_message)throw new Error(json.error_message);
-      return parseFredAPI(json);
-    case 'fredwrap':
-      /* ivo-welch supports CORS — try direct first, then proxy */
-      try{r=await tFetch(src.url,11000,false);}
-      catch(e){r=await tFetch(src.url,11000,true);}
-      txt=await r.text();
+      /* FRED API: try direct (CORS blocked in browser), then proxy chain */
+      txt = await proxyFetch(src.url, 14000);
+      if(txt.trimStart().charAt(0)==='{'){
+        json=JSON.parse(txt);
+        if(json.error_message)throw new Error(json.error_message);
+        return parseFredAPI(json);
+      }
+      /* Some proxies might return CSV even for json request */
       return parseFredCSV(txt);
+    case 'fredwrap':
     case 'fred_csv':
-      /* fredgraph.csv?id=SYMBOL — must go through proxy */
-      r=await tFetch(src.url,12000,true);
-      txt=await r.text();
+      /* Both need proxy chain (CORS issues or direct HTML responses) */
+      txt = await proxyFetch(src.url, 13000);
       return parseFredCSV(txt);
     case 'json_proxy':
-      r=await tFetch(src.url,10000,true);
-      txt=await r.text();
+      txt = await proxyFetch(src.url, 10000);
       if(txt.trimStart().charAt(0)==='<')throw new Error('got HTML instead of JSON');
       return JSON.parse(txt);
     case 'html_proxy':
-      r=await tFetch(src.url,13000,true);
-      txt=await r.text();
+      txt = await proxyFetch(src.url, 13000);
       if(!txt||txt.length<100)throw new Error('empty response');
       return txt;
     default:
-      r=await tFetch(src.url,12000,true);
-      txt=await r.text();
+      txt = await proxyFetch(src.url, 12000);
       if(txt.trimStart().charAt(0)==='<')throw new Error('got HTML');
       return parseFredCSV(txt);
   }
@@ -612,42 +684,91 @@ async function fetchSP12M(){
   }catch(e){D._sp12m=null;D._sp12m_src='err';}
 }
 
-/* Fear & Greed — multi-source */
+/* Fear & Greed — multi-source with robust fallback chain */
 async function fetchFG(){
-  setS('ld','F&G…');D._fg=null;
-  /* Source 1: CNN dataviz JSON */
+  setS('ld','F&G...');D._fg=null;
+
+  /* Source 1: CNN production dataviz — primary */
   try{
-    var raw=await fetchKey('fg_cnn');
-    var fg=raw.fear_and_greed||raw;
-    var sc=Math.round(parseFloat(fg.score||fg.current_value||0));
-    if(sc>0&&sc<=100){
-      D._fg={score:sc,prev_close:Math.round(parseFloat(fg.previous_close||0))||null,
-             prev_week:Math.round(parseFloat(fg.previous_1_week||0))||null,
-             prev_month:Math.round(parseFloat(fg.previous_1_month||0))||null,source:'CNN live'};
-      setS('ok','F&G CNN: '+sc);return;
-    }
-  }catch(e){setS('er','CNN F&G: '+e.message);}
-  /* Source 2: finhacker.cz — scrape <p id="fng-current"> */
-  try{
-    var r2=await tFetch('https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/',13000,true);
-    var html=await r2.text();
-    var m=html.match(/id="fng-current"[^>]*>(\d+)</)
-       ||html.match(/fng-current">\s*(\d+)/)
-       ||html.match(/>\s*(\d{1,3})\s*<\/p>/g)&&html.match(/>(\d{1,3})<\/p>/);
-    if(m&&m[1]){
-      var sc2=parseInt(m[1]);
-      if(sc2>0&&sc2<=100){
-        D._fg={score:sc2,prev_close:null,prev_week:null,prev_month:null,source:'finhacker.cz'};
-        setS('ok','F&G finhacker: '+sc2);return;
+    var txt1=await proxyFetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata',10000);
+    if(txt1&&txt1.trimStart().charAt(0)==='{'){
+      var j=JSON.parse(txt1);
+      var fg=j.fear_and_greed||j;
+      var sc=Math.round(parseFloat(fg.score||fg.current_value||0));
+      if(sc>0&&sc<=100){
+        D._fg={score:sc,
+               prev_close:Math.round(parseFloat(fg.previous_close||0))||null,
+               prev_week:Math.round(parseFloat(fg.previous_1_week||0))||null,
+               prev_month:Math.round(parseFloat(fg.previous_1_month||0))||null,
+               source:'CNN dataviz'};
+        setS('ok','F&G CNN: '+sc);return;
       }
     }
-    throw new Error('parse failed — element not found');
-  }catch(e){setS('er','finhacker F&G: '+e.message);}
-  /* Source 3: synthetic estimate from VIX */
+    throw new Error('invalid response');
+  }catch(e){setS('er','F&G CNN: '+e.message);}
+
+  /* Source 2: finhacker.cz — <p id="fng-current"> */
+  try{
+    var html2=await proxyFetch('https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/',14000);
+    /* Multiple selectors to find the value */
+    var patterns=[
+      /id="fng-current"[^>]*>\s*(\d+)/,
+      /fng-current[^>]*>\s*(\d+)/,
+      /class="fng[^"]*"[^>]*>\s*(\d+)/,
+      /"fng_current":\s*(\d+)/,
+      /current[_-]value[^>]*>\s*(\d+)/,
+    ];
+    for(var pi=0;pi<patterns.length;pi++){
+      var m=html2.match(patterns[pi]);
+      if(m&&m[1]){
+        var sc2=parseInt(m[1]);
+        if(sc2>0&&sc2<=100){
+          D._fg={score:sc2,prev_close:null,prev_week:null,prev_month:null,source:'finhacker.cz'};
+          setS('ok','F&G finhacker: '+sc2);return;
+        }
+      }
+    }
+    /* Try to find any standalone number between 1-100 in context */
+    var nums=html2.match(/Fear.*?(\d{1,3}).*?Greed/s)||html2.match(/>\s*(\d{1,2})\s*<\/p>/);
+    if(nums&&nums[1]){var n=parseInt(nums[1]);if(n>0&&n<=100){
+      D._fg={score:n,source:'finhacker.cz(inferred)'}; setS('ok','F&G fin: '+n);return;
+    }}
+    throw new Error('element not found in page');
+  }catch(e){setS('er','F&G finhacker: '+e.message);}
+
+  /* Source 3: CNN markets alternative endpoint */
+  try{
+    var txt3a=await proxyFetch('https://markets.money.cnn.com/graphdata/fearandgreed?ts='+Date.now(),8000);
+    if(txt3a&&txt3a.trimStart().charAt(0)==='{'){
+      var j3a=JSON.parse(txt3a);
+      var fg3=j3a.fear_and_greed||j3a;
+      var v3a=Math.round(parseFloat(fg3.score||fg3.current_value||fg3.value||0));
+      if(v3a>0&&v3a<=100){
+        D._fg={score:v3a,prev_close:null,prev_week:null,prev_month:null,source:'CNN markets'};
+        setS('ok','F&G CNN-markets: '+v3a);return;
+      }
+    }
+  }catch(e){setS('er','F&G CNN-markets: '+e.message);}
+
+  /* Source 4: feargreedmeter.com */
+  try{
+    var txt3=await proxyFetch('https://feargreedmeter.com/api/current',8000);
+    if(txt3&&txt3.includes('value')){
+      try{
+        var j3=JSON.parse(txt3);
+        var v3=parseInt(j3.value||j3.score||j3.data||0);
+        if(v3>0&&v3<=100){
+          D._fg={score:v3,source:'feargreedmeter.com'};setS('ok','F&G meter: '+v3);return;
+        }
+      }catch(e2){}
+    }
+  }catch(e){}
+
+  /* Source 4: VIX-based synthetic (always works as last resort) */
   var vix=(DQ.vix&&DQ.vix.price)||(gV('vixf'))||29;
-  var est=vix>40?13:vix>32?23:vix>26?33:vix>20?43:vix<14?78:vix<17?66:52;
-  D._fg={score:Math.round(est),source:'ESTIMATE(VIX='+vix.toFixed(0)+')',prev_close:null,prev_week:null,prev_month:null};
-  setS('er','F&G synthetic: '+Math.round(est));
+  var est=Math.round(vix>40?12:vix>32?22:vix>26?33:vix>20?44:vix<14?80:vix<17?68:52);
+  D._fg={score:est,source:'ESTIMATE (VIX='+vix.toFixed(0)+')',prev_close:null,prev_week:null,prev_month:null};
+  setS('er','F&G synthetic (VIX-based): '+est);
 }
 async function fetchCFG(){
   try{
@@ -1284,7 +1405,9 @@ function renderSources(){
   +'<div class="ds"><div class="ds-l">Dane załadowane</div><div class="ds-n" style="color:var(--G)">'+Object.keys(D).filter(k=>k[0]!=='_').length+'</div><div class="ds-s">serii</div></div>'
   +'<div class="ds"><div class="ds-l">FRED API Key</div><div class="ds-n" style="color:var(--Y);font-size:12px">AKTYWNY</div><div class="ds-s">03062bdea…</div></div>'
   +'</div>'
-  +'<div class="ibox"><b>Modularny system źródeł:</b> Każdy wskaźnik posiada kolejkę źródeł. System próbuje je po kolei i zatrzymuje się przy pierwszym działającym. Kliknij wskaźnik -> rozwiń -> zmień URL -> Zapisz. Zmiany zapisywane do <code>localStorage</code> (klucz: mt30_cfg). Aby przywrócić domyślny URL — wyczyść pole i kliknij Reset. <br><b style="color:var(--Y)">Architektura fallback:</b> FRED API -> ivo-welch fredwrap -> fredgraph.csv (przez proxy)</div>';
+  +'<div class="ibox"><b>Proxy chain v30:</b> System testuje proxy przy starcie i uzywa pierwszego dzialajacego. Kolejnosc: allorigins.win → corsproxy.io → portfel (CF Worker) → thingproxy. Kliknij "Test proxy" aby sprawdzic co dziala. Jesli wszystkie proxy zawodza — dane nie beda ladowane (FRED nie obsluguje CORS).</div>'
+  +'<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="runProxyTest()">▶ Test proxy</button><button class="btn" onclick="runFREDTest()">▶ Test FRED API</button><button class="btn" onclick="runFGTest()">▶ Test F&amp;G</button></div>'
+  +'<div id="proxy-test-res" style="margin-bottom:10px;font-size:9px;color:var(--t1);line-height:1.9"></div>';
 
   /* Group by group */
   var groups={monetary:'Polityka monetarna',inflation:'Inflacja',rates:'Stopy i kredyt',economy:'Gospodarka i cykl',market:'Rynek',sentiment:'Sentyment',prices:'Ceny (stooq)'};
@@ -1395,10 +1518,59 @@ window.testAllSrc=async function(k){
 /* ===========================================
    MAIN INIT
 =========================================== */
+/* ── PROXY DETECTION ──────────────────────────────────────────────────────
+   Runs a quick test fetch against a known good FRED endpoint.
+   Reorders PROXIES_FULL to put the fastest working proxy first.
+   This runs once at startup and ensures we don't waste 4×14s on dead proxies.
+───────────────────────────────────────────────────────────────────────── */
+var PROXIES_FULL = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url=',
+  'https://portfel.dzonyiks.workers.dev?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+];
+
+async function detectWorkingProxy(){
+  /* Test URL: tiny FRED series — DGS1MO (1M T-bill, daily, small) */
+  var testUrl = FAPI + 'DGS1MO';
+  setS('ld','Szukam dzialajacego proxy...');
+  for(var i=0;i<PROXIES_FULL.length;i++){
+    try{
+      var full = PROXIES_FULL[i] + encodeURIComponent(testUrl);
+      var ctrl = new AbortController();
+      var timer = setTimeout(()=>ctrl.abort(), 9000);
+      var r = await fetch(full, {signal:ctrl.signal, cache:'no-store'});
+      clearTimeout(timer);
+      var txt = await r.text();
+      /* Check if we got a real FRED JSON response */
+      if(txt && txt.includes('"observations"')){
+        /* Move working proxy to front */
+        var working = PROXIES_FULL.splice(i, 1)[0];
+        PROXIES_FULL.unshift(working);
+        setS('ok','Proxy OK: ' + working.slice(8, 28));
+        return;
+      }
+      /* Check if it returned allorigins wrapper */
+      if(txt && txt.includes('"contents"') && txt.includes('observations')){
+        var working2 = PROXIES_FULL.splice(i, 1)[0];
+        PROXIES_FULL.unshift(working2);
+        setS('ok','Proxy (wrapped) OK: ' + working2.slice(8, 28));
+        return;
+      }
+    }catch(e){ /* try next */ }
+  }
+  /* No proxy worked for FRED API — fall back to ivo-welch direct */
+  setS('er','Uwaga: brak dzialajacego proxy dla FRED API. Probuje ivo-welch...');
+}
+
+
 async function init(){
-  setS('ld','Start…');
+  setS('ld','Start...');
   var lupd=document.getElementById('lupd');
   if(lupd)lupd.textContent='';
+
+  /* Self-test: find working proxy before main fetch */
+  await detectWorkingProxy();
 
   /* Parallel fetch: FRED + Stooq + F&G + crypto */
   await Promise.allSettled([
@@ -1425,6 +1597,51 @@ async function init(){
     D={};DQ={};SC=null;RENDERED={};
     init().then(()=>setTimeout(refresh,15*60*1000));
   },15*60*1000);
+}
+
+/* ── LIVE PROXY TEST FUNCTIONS ─────────────────────────────────────────── */
+async function runProxyTest(){
+  var el=document.getElementById('proxy-test-res');
+  if(el)el.innerHTML='Testowanie proxy...';
+  var results=[];
+  var testUrl=FAPI+'DGS1MO';
+  for(var i=0;i<PROXIES_FULL.length;i++){
+    var p=PROXIES_FULL[i];
+    try{
+      var t0=Date.now();
+      var full=p+encodeURIComponent(testUrl);
+      var ctrl=new AbortController();setTimeout(()=>ctrl.abort(),8000);
+      var r=await fetch(full,{signal:ctrl.signal,cache:'no-store'});
+      var txt=await r.text();
+      var ms=Date.now()-t0;
+      var ok=txt&&txt.includes('"observations"');
+      var wrapped=txt&&txt.includes('"contents"')&&txt.includes('observations');
+      results.push('<span style="color:'+(ok||wrapped?'var(--G)':'var(--R)')+'">['+(ok||wrapped?'OK':'FAIL')+'] '+p.slice(8,32)+'</span> '+(ok||wrapped?'('+ms+'ms':'FAIL: '+txt.slice(0,40)));
+    }catch(e){results.push('<span style="color:var(--R)">[ERR] '+p.slice(8,32)+'</span> '+e.message.slice(0,50));}
+  }
+  if(el)el.innerHTML=results.join('<br>');
+}
+async function runFREDTest(){
+  var el=document.getElementById('proxy-test-res');
+  if(el)el.innerHTML='Testowanie FRED M2SL...';
+  try{
+    var txt=await proxyFetch(FAPI+'M2SL',12000);
+    var preview=txt.slice(0,150).replace(/</g,'&lt;');
+    if(el)el.innerHTML='<span style="color:var(--G)">OK — pierwsze 150 znakow:</span><br><code>'+preview+'</code>';
+  }catch(e){
+    if(el)el.innerHTML='<span style="color:var(--R)">BLAD: '+e.message+'</span><br>Sprobuj recznie: <a href="https://api.allorigins.win/raw?url='+encodeURIComponent(FAPI+'M2SL')+'" target="_blank" style="color:var(--B)">Test allorigins</a>';
+  }
+}
+async function runFGTest(){
+  var el=document.getElementById('proxy-test-res');
+  if(el)el.innerHTML='Testowanie F&G CNN...';
+  try{
+    var txt=await proxyFetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata',10000);
+    var preview=txt.slice(0,200).replace(/</g,'&lt;');
+    if(el)el.innerHTML='<span style="color:var(--G)">F&G OK:</span><br><code>'+preview+'</code>';
+  }catch(e){
+    if(el)el.innerHTML='<span style="color:var(--R)">F&G BLAD: '+e.message+'</span>';
+  }
 }
 
 document.addEventListener('DOMContentLoaded',init);
