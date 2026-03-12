@@ -432,20 +432,22 @@ async function pGet(url, ms) {
       clearTimeout(timer);
       if(!r.ok)throw new Error('HTTP '+r.status);
       var body=await r.text();
-      /* allorigins sometimes wraps: {"contents":"...","status":{}} — unwrap */
+      /* allorigins wraps: {"contents":"RAW"} — unwrap */
       if(body&&body.trimStart().startsWith('{"contents"')){
         try{var w=JSON.parse(body);if(w.contents)body=w.contents;}catch(ex){}
       }
-      /* Reject if proxy returned its own HTML error page */
-      if(!body||body.trim().length<10)throw new Error('empty');
-      /* Return fake Response compatible with .text() and .json() */
+      /* Reject HTML error pages and empty responses */
+      var t=body?body.trimStart():'';
+      if(!t||t.length<15)throw new Error('empty response');
+      if(t.charAt(0)==='<')throw new Error('proxy returned HTML (blocked?)');
+      /* Good response — return fake Response */
       var _b=body;
       return {ok:true,status:200,
         text:function(){return Promise.resolve(_b);},
         json:function(){return Promise.resolve(JSON.parse(_b));}};
-    }catch(e){clearTimeout(timer);lastErr=e;setS('er','proxy['+pi+'] '+e.message.slice(0,40));}
+    }catch(e){clearTimeout(timer);lastErr=e;}
   }
-  throw lastErr||new Error('all proxies failed for '+url.slice(0,50));
+  throw new Error('all proxies failed: '+(lastErr?lastErr.message:'?')+' — url:'+url.slice(0,60));
 }
 
 /* stooq symbols */
