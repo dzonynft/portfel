@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v28</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">2026</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -352,7 +352,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════
-   MacroTerminal v28 — Professional Investment Decision System
+   MacroTerminal v28 — FIXED 2026 — Professional Investment Decision System
    
    DATA SOURCES:
    - stooq.com       → price CSV for all assets
@@ -417,9 +417,10 @@ function fgL(s){ if(s==null)return'—'; if(s<=24)return'EXTREME FEAR'; if(s<=44
 ═══════════════════════════════ */
 /* pGet: sequential proxy fallback — returns fake Response with .text()/.json() */
 var _P=[
-  'https://portfel.dzonyiks.workers.dev?url=',
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?url=',
+  'https://portfel.dzonyiks.workers.dev?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
 ];
 async function pGet(url, ms) {
   ms=ms||14000;
@@ -432,9 +433,13 @@ async function pGet(url, ms) {
       clearTimeout(timer);
       if(!r.ok)throw new Error('HTTP '+r.status);
       var body=await r.text();
-      /* allorigins wraps: {"contents":"RAW"} — unwrap */
+      /* allorigins wraps: {"contents":"RAW"} — unwrap; null contents = blocked */
       if(body&&body.trimStart().startsWith('{"contents"')){
-        try{var w=JSON.parse(body);if(w.contents)body=w.contents;}catch(ex){}
+        try{
+          var w=JSON.parse(body);
+          if(w.contents===null||w.contents===undefined) throw new Error('allorigins: null contents (blocked)');
+          if(w.contents) body=w.contents;
+        }catch(ex){if(ex.message.indexOf('null contents')>=0)throw ex;}
       }
       /* Reject HTML error pages and empty responses */
       var t=body?body.trimStart():'';
@@ -465,12 +470,12 @@ var _YF={
   'xauusd':'GC%3DF','xagusd':'SI%3DF','cl.f':'CL%3DF','ng.f':'NG%3DF','hg.f':'HG%3DF',
   'usdpln':'USDPLN%3DX','eurpln':'EURPLN%3DX','eurusd':'EURUSD%3DX',
   'dxy':'DX-Y.NYB','usdjpy':'JPY%3DX',
-  '10usy.b':'%5ETNX','2usy.b':'%5EIRX',
+  '10usy.b':'%5ETNX','2usy.b':'%5EFVX',
   'btcusd':'BTC-USD','ethusd':'ETH-USD','^vix':'%5EVIX',
-  'spy.us':'SPY','qqq.us':'QQQ','isac.uk':'ISAC.L','wig20':'^WIG20'
+  'spy.us':'SPY','qqq.us':'QQQ','isac.uk':'ISAC.L','wig20':'WIG20.WA'
 };
 async function sOneStooq(sym) {
-  var r=await pGet('https://stooq.com/q/d/l/?s='+encodeURIComponent(sym)+'&i=d',11000);
+  var r=await pGet('https://stooq.com/q/d/l/?s='+encodeURIComponent(sym)+'&i=d',8000);
   var txt=await r.text();
   if(!txt||txt.indexOf('No data')!==-1||txt.trim().length<20) throw new Error('no stooq data');
   var lines=txt.trim().split('\n').filter(function(l){return l&&l.indexOf('Date')===-1;});
@@ -483,19 +488,24 @@ async function sOneStooq(sym) {
 async function sOneYahoo(sym) {
   var ysym=_YF[sym.toLowerCase()];
   if(!ysym) throw new Error('no yahoo mapping for '+sym);
-  /* Yahoo Finance v8 chart API — works directly from browser (CORS allowed) */
-  var url='https://query1.finance.yahoo.com/v8/finance/chart/'+ysym+'?interval=1d&range=5d';
-  var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},8000);
-  var r=await fetch(url,{signal:ctrl.signal,cache:'no-store'});
-  clearTimeout(timer);
-  var j=await r.json();
+  /* Yahoo Finance v8 — must go via proxy (direct CORS blocked since 2024) */
+  /* Try query1 and query2 — Yahoo load balancers */
+  var ybase='https://query1.finance.yahoo.com/v8/finance/chart/'+ysym+'?interval=1d&range=5d&includePrePost=false';
+  var txt='';
+  try{ var rp1=await pGet(ybase,8000); txt=await rp1.text(); }catch(e1){
+    var ybase2='https://query2.finance.yahoo.com/v8/finance/chart/'+ysym+'?interval=1d&range=5d&includePrePost=false';
+    var rp2=await pGet(ybase2,8000); txt=await rp2.text();
+  }
+  var j=JSON.parse(txt);
   var res=j&&j.chart&&j.chart.result&&j.chart.result[0];
-  if(!res) throw new Error('no yahoo data');
-  var closes=res.indicators.quote[0].close.filter(function(v){return v!=null;});
-  var ts=res.timestamps||res.timestamp||[];
+  if(!res) throw new Error('no yahoo data for '+ysym);
+  var quotes=res.indicators&&res.indicators.quote&&res.indicators.quote[0];
+  if(!quotes) throw new Error('no quotes');
+  var closes=(quotes.close||[]).filter(function(v){return v!=null&&isFinite(v);});
+  var ts=res.timestamp||[];
+  if(!closes.length) throw new Error('empty closes');
   var last=closes[closes.length-1],prev=closes.length>1?closes[closes.length-2]:last;
   var lastDate=ts.length?new Date(ts[ts.length-1]*1000).toISOString().slice(0,10):'';
-  if(isNaN(last)) throw new Error('NaN yahoo');
   return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:lastDate};
 }
 async function sOne(sym) {
@@ -539,28 +549,17 @@ var FM = {
   ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',move:'MOVE'
 };
 async function fOne(id) {
-  /* FRED API JSON: designed for bots, api_key bypasses bot detection */
-  /* sort_order=desc&limit=100 gives newest 100 points; we reverse to asc */
+  /* FRED API JSON via proxy — fredgraph.csv is blocked, JSON API works via allorigins */
   var apiUrl='https://api.stlouisfed.org/fred/series/observations'
     +'?api_key=03062bdea07a8594cad80e9a0574721e&file_type=json&sort_order=desc&limit=100&series_id='+id;
-  /* FRED API supports CORS for api_key requests - try direct first */
-  var txt='';
-  try{
-    var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},10000);
-    var rd=await fetch(apiUrl,{signal:ctrl.signal,cache:'no-store'});
-    clearTimeout(t);
-    txt=await rd.text();
-    if(!txt||txt.trim().charAt(0)==='<') throw new Error('HTML');
-  }catch(ed){
-    var rp=await pGet(apiUrl,15000);
-    txt=await rp.text();
-  }
+  var rp=await pGet(apiUrl, 16000);
+  var txt=await rp.text();
   if(!txt||txt.trimStart().charAt(0)==='<') throw new Error('got HTML');
   var j=JSON.parse(txt);
   if(j.error_message) throw new Error(j.error_message);
   var obs=(j.observations||[]).filter(function(o){return o.value!=='.'&&o.value!=='';});
   if(!obs.length) throw new Error('empty');
-  /* reverse: API returns desc (newest first), we need asc (oldest first) */
+  /* API returns desc (newest first) → reverse to asc */
   obs.reverse();
   var rows=obs.map(function(o){return{date:o.date,val:parseFloat(o.value)};})
               .filter(function(x){return isFinite(x.val);});
@@ -580,16 +579,12 @@ async function fOne(id) {
 async function fetchFred() {
   setS('ld','FRED: dane makroekonomiczne…');
   D.f={}; var keys=Object.keys(FM); var ok=0,fail=0;
-  for (var i=0;i<keys.length;i+=3) {
-    var batch=keys.slice(i,i+3);
-    setS('ld','FRED '+(Math.floor(i/3)+1)+'/'+Math.ceil(keys.length/3)+': '+batch.join(', '));
-    var res=await Promise.allSettled(batch.map(function(k){ return fOne(FM[k]); }));
-    res.forEach(function(r,j){
-      if(r.status==='fulfilled'){D.f[batch[j]]=r.value;ok++;}
-      else{fail++;setS('er','FRED '+FM[batch[j]]+': '+(r.reason&&r.reason.message||'?'));}
-    });
-    if (i+3<keys.length) await new Promise(function(res){ setTimeout(res,145); });
-  }
+  /* Run all in parallel — pGet handles per-request timeouts */
+  var res=await Promise.allSettled(keys.map(function(k){ return fOne(FM[k]); }));
+  res.forEach(function(r,i){
+    if(r.status==='fulfilled'){D.f[keys[i]]=r.value;ok++;}
+    else{fail++;setS('er','FRED '+FM[keys[i]]+': '+(r.reason&&r.reason.message||'?'));}
+  });
   if (!D.q.vix&&D.f.vixfred) D.q.vix={price:D.f.vixfred.current,prev:D.f.vixfred.prev,change:0,date:D.f.vixfred.date};
   SRCS.fred.status=ok>12?'live':'partial';
   setS(ok>12?'ok':'er','FRED: '+ok+' OK, '+fail+' err');
@@ -601,6 +596,7 @@ async function fetchFG() {
   var cnnUrls=[
     'https://production.dataviz.cnn.io/index/fearandgreed/graphdata',
     'https://production.dataviz.cnn.io/index/fearandgreed/graphdata/30',
+    'https://api2.feargreedmeter.com/v1/fgi',
   ];
   for(var ci=0;ci<cnnUrls.length;ci++){
     try {
@@ -618,7 +614,7 @@ async function fetchFG() {
       }
       if(!txt||txt.trim().charAt(0)==='<') throw new Error('HTML response');
       var j=JSON.parse(txt), fg=j.fear_and_greed||j;
-      var score=Math.round(parseFloat(fg.score||fg.current_value||fg.value||0));
+      var score=Math.round(parseFloat(fg.score||fg.current_value||fg.value||fg.fgi||fg.fear_and_greed_value||0));
       if(score>0&&score<=100){
         D.fg={score:score,
           prev_close:Math.round(parseFloat(fg.previous_close||0))||null,
@@ -631,6 +627,17 @@ async function fetchFG() {
   }
   SRCS.cnn.status='fail';
   /* Fallback 2: Crypto F&G from alternative.me */
+  /* Fallback 2a: alternative.me direct (has CORS) */
+  try{
+    var ac=new AbortController(),at=setTimeout(function(){ac.abort();},7000);
+    var ra=await fetch('https://api.alternative.me/fng/?limit=1&format=json',{signal:ac.signal,cache:'no-store'});
+    clearTimeout(at);
+    var ta=await ra.text();
+    var ja=JSON.parse(ta);
+    var va=parseInt((ja.data&&ja.data[0]&&ja.data[0].value)||0);
+    if(va>0&&va<=100){D.fg={score:va,source:'Crypto F&G'};setS('er','F&G crypto: '+va);return;}
+  }catch(ea){}
+  /* Fallback 2b: alternative.me via proxy */
   try{
     var r2=await pGet('https://api.alternative.me/fng/?limit=1&format=json',8000);
     var t2=await r2.text();
@@ -654,7 +661,7 @@ async function fetchCryptoFG() {
     var txt='';
     try{
       var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},8000);
-      var rd=await fetch('https://api.alternative.me/fng/?limit=30&format=json',{signal:ctrl,cache:'no-store'});
+      var rd=await fetch('https://api.alternative.me/fng/?limit=30&format=json',{signal:ctrl.signal,cache:'no-store'});
       clearTimeout(t); txt=await rd.text();
     }catch(ed){
       var rp=await pGet('https://api.alternative.me/fng/?limit=30&format=json',9000);
