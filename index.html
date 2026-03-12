@@ -415,31 +415,37 @@ function fgL(s){ if(s==null)return'—'; if(s<=24)return'EXTREME FEAR'; if(s<=44
 /* ═══════════════════════════════
    FETCH LAYER
 ═══════════════════════════════ */
-/* pGet: race multiple CORS proxies — first valid response wins */
-var _PROXIES = [
-  'https://api.allorigins.win/raw?url=',
+/* pGet: sequential proxy fallback — returns fake Response with .text()/.json() */
+var _P=[
   'https://portfel.dzonyiks.workers.dev?url=',
+  'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?url=',
 ];
 async function pGet(url, ms) {
-  ms = ms||14000;
-  /* Race all proxies simultaneously */
-  var promises = _PROXIES.map(function(pfx) {
-    return new Promise(function(resolve, reject) {
-      var ctrl = new AbortController();
-      var timer = setTimeout(function(){ ctrl.abort(); }, ms);
-      fetch(pfx + encodeURIComponent(url), {signal: ctrl.signal, cache: 'no-store'})
-        .then(function(r) {
-          clearTimeout(timer);
-          if (!r.ok) { reject(new Error('HTTP '+r.status)); return; }
-          resolve(r);
-        })
-        .catch(function(e) { clearTimeout(timer); reject(e); });
-    });
-  });
-  return Promise.any(promises).catch(function(e) {
-    throw new Error('all proxies failed for '+url.slice(0,50));
-  });
+  ms=ms||14000;
+  var lastErr=null;
+  for(var pi=0;pi<_P.length;pi++){
+    var ctrl=new AbortController();
+    var timer=setTimeout(function(){ctrl.abort();},Math.min(ms,13000));
+    try{
+      var r=await fetch(_P[pi]+encodeURIComponent(url),{signal:ctrl.signal,cache:'no-store'});
+      clearTimeout(timer);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      var body=await r.text();
+      /* allorigins sometimes wraps: {"contents":"...","status":{}} — unwrap */
+      if(body&&body.trimStart().startsWith('{"contents"')){
+        try{var w=JSON.parse(body);if(w.contents)body=w.contents;}catch(ex){}
+      }
+      /* Reject if proxy returned its own HTML error page */
+      if(!body||body.trim().length<10)throw new Error('empty');
+      /* Return fake Response compatible with .text() and .json() */
+      var _b=body;
+      return {ok:true,status:200,
+        text:function(){return Promise.resolve(_b);},
+        json:function(){return Promise.resolve(JSON.parse(_b));}};
+    }catch(e){clearTimeout(timer);lastErr=e;setS('er','proxy['+pi+'] '+e.message.slice(0,40));}
+  }
+  throw lastErr||new Error('all proxies failed for '+url.slice(0,50));
 }
 
 /* stooq symbols */
@@ -496,34 +502,13 @@ var FM = {
   ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',move:'MOVE'
 };
 async function fOne(id) {
-  /* Try FRED API (JSON, more reliable) first, fall back to CSV */
-  var txt, usingAPI=false;
-  try {
-    var apiUrl='https://api.stlouisfed.org/fred/series/observations?api_key=03062bdea07a8594cad80e9a0574721e&file_type=json&sort_order=desc&limit=100&series_id='+id;
-    var ra=await pGet(apiUrl,15000);
-    var ta=await ra.text();
-    if(ta&&ta.includes('"observations"')){txt=ta;usingAPI=true;}
-    else throw new Error('not JSON');
-  } catch(eapi){
-    var r=await pGet('https://fred.stlouisfed.org/graph/fredgraph.csv?id='+id,18000);
-    txt=await r.text();
-    if (txt.trim().charAt(0)==='<') throw new Error('got HTML');
-  }
-  var rows;
-  if(usingAPI){
-    /* FRED JSON: observations array, already filtered, sort_order=desc -> reverse */
-    var obs=JSON.parse(txt).observations||[];
-    rows=obs.filter(function(o){return o.value!=='.'&&o.value!=='';})
-             .map(function(o){return{date:o.date,val:parseFloat(o.value)};})
-             .filter(function(x){return isFinite(x.val);});
-    rows.reverse(); /* desc -> asc */
-  } else {
-    rows=txt.trim().split('\n').slice(1).map(function(l){
-      var p=l.split(','),d=(p[0]||'').trim(),v=(p[1]||'').trim();
-      return{date:d,val:(v==='.'||v==='')?null:parseFloat(v)};
-    }).filter(function(x){ return x.date&&x.val!==null&&isFinite(x.val); });
-    rows=rows.slice(-100); /* CSV has full history — take recent 100 */
-  }
+  var r=await pGet('https://fred.stlouisfed.org/graph/fredgraph.csv?id='+id,18000);
+  var txt=await r.text();
+  if (txt.trim().charAt(0)==='<') throw new Error('got HTML');
+  var rows=txt.trim().split('\n').slice(1).map(function(l){
+    var p=l.split(','),d=(p[0]||'').trim(),v=(p[1]||'').trim();
+    return{date:d,val:(v==='.'||v==='')?null:parseFloat(v)};
+  }).filter(function(x){ return x.date&&x.val!==null&&isFinite(x.val); });
   if (!rows.length) throw new Error('empty');
   var last=rows[rows.length-1],p1=rows.length>1?rows[rows.length-2]:last;
   var p3=rows.length>3?rows[rows.length-4]:rows[0];
@@ -570,22 +555,22 @@ async function fetchFG() {
     }
     throw new Error('invalid score');
   } catch(e){ SRCS.cnn.status='fail'; setS('er','CNN F&G: '+e.message); }
-  /* Fallback 2: Crypto F&G from alternative.me (high corr to equity F&G) */
-  try {
+  /* Fallback 2: Crypto F&G from alternative.me */
+  try{
     var r2=await pGet('https://api.alternative.me/fng/?limit=1&format=json',8000);
     var t2=await r2.text();
     var j2=JSON.parse(t2);
     var v2=parseInt((j2.data&&j2.data[0]&&j2.data[0].value)||0);
     if(v2>0&&v2<=100){
-      D.fg={score:v2,prev_close:null,prev_week:null,prev_month:null,source:'Crypto F&G (proxy)'};
-      setS('er','F&G = crypto proxy: '+v2); return;
+      D.fg={score:v2,source:'Crypto F&G (proxy)'};
+      setS('er','F&G crypto proxy: '+v2);return;
     }
-  }catch(e2){}
-  /* Fallback 3: VIX-based synthetic */
+  }catch(e2){setS('er','F&G crypto: '+e2.message);}
+  /* Fallback 3: VIX synthetic */
   var vix=(D.q.vix&&D.q.vix.price)||(D.f.vixfred&&D.f.vixfred.current)||26;
   var est=50;
   if(vix>40)est=14;else if(vix>32)est=24;else if(vix>26)est=34;else if(vix>20)est=44;else if(vix<14)est=78;else if(vix<17)est=66;
-  D.fg={score:Math.round(est),prev_close:null,prev_week:null,prev_month:null,source:'SZACUNEK (VIX='+vix.toFixed(0)+')'};
+  D.fg={score:Math.round(est),source:'SZACUNEK (VIX='+vix.toFixed(0)+')'};
   setS('er','F&G syntetyczny: '+Math.round(est));
 }
 async function fetchCryptoFG() {
