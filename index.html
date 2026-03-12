@@ -315,478 +315,293 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 ================================================================ */
 
 var FREDKEY = '03062bdea07a8594cad80e9a0574721e';
-var FAPI    = 'https://api.stlouisfed.org/fred/series/observations?api_key='+FREDKEY+'&file_type=json&sort_order=asc&limit=80&series_id=';
+var FAPI    = 'https://api.stlouisfed.org/fred/series/observations?api_key='+FREDKEY+'&file_type=json&sort_order=desc&limit=200&series_id=';
 var FWRAP   = 'https://www.ivo-welch.info/cgi-bin/fredwrap?symbol=';
 var FCSV    = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=';
 
 /* proxy chain defined in detectWorkingProxy() */
 
-async function proxyFetch(url, ms) {
-  var errs = [];
-  /* Try direct first (some endpoints like ivo-welch support CORS) */
+/* ================================================================
+   FETCH ENGINE v30.1
+   
+   FRED data: WORKER_SERIES = portfel.dzonyiks.workers.dev?series=SYM
+              Worker calls FRED API server-side (not a proxy = not blocked).
+              MUST update Worker code! See cloudflare_worker_v30.js
+   
+   Other URLs (stooq, CNN): WORKER_PROXY = portfel.dzonyiks.workers.dev?url=URL
+              Stooq and CNN do NOT block CF Workers.
+   
+   Static fallback: STATIC_FRED used when Worker unreachable.
+   ================================================================ */
+
+/* ── Core fetch with timeout ─────────────────────────────────── */
+async function tFetchDirect(url, ms) {
+  var ctrl = new AbortController();
+  var timer = setTimeout(() => ctrl.abort(), ms || 12000);
   try {
-    var r = await tFetchDirect(url, Math.min(ms||9000, 7000));
-    var txt = await r.text();
-    if (isGoodResponse(txt)) return txt;
-    errs.push('direct: bad content ('+txt.trimStart().slice(0,30)+')');
-  } catch(e) { errs.push('direct: '+e.message); }
-
-  /* Try each proxy in order — detectWorkingProxy() reorders these at startup */
-  for (var i = 0; i < PROXIES_FULL.length; i++) {
-    try {
-      var purl = PROXIES_FULL[i] + encodeURIComponent(url);
-      var r2 = await tFetchDirect(purl, (ms||12000));
-      var txt2 = await r2.text();
-      /* allorigins sometimes wraps: {"contents":"RAW","status":{...}} */
-      if (txt2 && txt2.trimStart().startsWith('{"contents"')) {
-        try {
-          var obj = JSON.parse(txt2);
-          if (obj.contents && isGoodResponse(obj.contents)) {
-            setS('ld','proxy['+i+'] allorigins OK');
-            return obj.contents;
-          }
-        } catch(ex) {}
-      }
-      if (isGoodResponse(txt2)) return txt2;
-      errs.push('p'+i+'('+PROXIES_FULL[i].slice(8,22)+'): bad:'+txt2.trimStart().slice(0,20));
-    } catch(e2) { errs.push('p'+i+': '+e2.message.slice(0,40)); }
-  }
-  throw new Error('['+errs.join(' | ')+']');
-}
-function isGoodResponse(txt) {
-  if (!txt || txt.trim().length < 10) return false;
-  var t = txt.trimStart();
-  if (t.charAt(0) === '<') return false; /* HTML error page */
-  return true;
-}
-
-/* Build 3-source array for any FRED symbol */
-function fs(sym) {
-  return [
-    { name:'FRED API',   url:FAPI+sym,   type:'fred_api'  },
-    { name:'ivo-welch',  url:FWRAP+sym,  type:'fredwrap'  },
-    { name:'FRED CSV',   url:FCSV+sym,   type:'fred_csv'  },
-  ];
-}
-
-/* ===========================================================
-   CENTRAL INDICATOR CONFIG
-   Edit source URLs here OR in the UI (zakładka ŹRÓDŁA DANYCH)
-   Changes persisted to localStorage key mt30_cfg
-=========================================================== */
-var CFG = {
-  /* —— MONETARY —— */
-  fedfunds: { label:'Fed Funds Rate',      unit:'%',   freq:'monthly', group:'monetary',
-    sources: fs('FEDFUNDS') },
-  m2:       { label:'M2 Money Supply',     unit:'B$',  freq:'monthly', group:'monetary',
-    sources: fs('M2SL') },
-  fed_bs:   { label:'Fed Balance Sheet',   unit:'M$',  freq:'weekly',  group:'monetary',
-    sources: fs('WALCL') },
-  rrp:      { label:'Reverse Repo',        unit:'B$',  freq:'daily',   group:'monetary',
-    sources: fs('RRPONTSYD') },
-  sofr:     { label:'SOFR Volume',         unit:'B$',  freq:'daily',   group:'monetary',
-    sources: fs('SOFRVOL') },
-  ib01:     { label:'1M T-Bill Yield',     unit:'%',   freq:'daily',   group:'monetary',
-    sources: fs('DGS1MO') },
-  /* —— INFLATION —— */
-  cpi:      { label:'CPI (YoY)',           unit:'%',   freq:'monthly', group:'inflation',
-    sources: fs('CPIAUCSL') },
-  core_cpi: { label:'Core CPI',            unit:'%',   freq:'monthly', group:'inflation',
-    sources: fs('CPILFESL') },
-  tips:     { label:'TIPS 10Y Breakeven',  unit:'%',   freq:'daily',   group:'inflation',
-    sources: fs('T10YIE') },
-  /* —— RATES / CREDIT —— */
-  yc:       { label:'Yield Curve 10Y-2Y',  unit:'%',   freq:'daily',   group:'rates',
-    sources: fs('T10Y2Y') },
-  hy:       { label:'HY Credit Spread',    unit:'%',   freq:'daily',   group:'rates',
-    sources: fs('BAMLH0A0HYM2') },
-  move:     { label:'MOVE Index',          unit:'pts', freq:'daily',   group:'rates',
-    sources: fs('MOVE') },
-  /* —— ECONOMY —— */
-  sahm:     { label:'Sahm Rule',           unit:'',    freq:'monthly', group:'economy',
-    sources: fs('SAHMREALTIME') },
-  unrate:   { label:'Unemployment Rate',   unit:'%',   freq:'monthly', group:'economy',
-    sources: fs('UNRATE') },
-  indprod:  { label:'Industrial Prod.',    unit:'',    freq:'monthly', group:'economy',
-    sources: fs('INDPRO') },
-  nfci:     { label:'NFCI',               unit:'',    freq:'weekly',  group:'economy',
-    sources: fs('NFCI') },
-  /* —— MARKET —— */
-  vixf:     { label:'VIX',                 unit:'pts', freq:'daily',   group:'market',
-    sources: [
-      { name:'stooq ^vix',  url:'https://stooq.com/q/d/l/?s=%5Evix&i=d',   type:'stooq_vix' },
-      ...fs('VIXCLS'),
-    ] },
-  sp500f:   { label:'S&P500 (FRED)',       unit:'pts', freq:'daily',   group:'market',
-    sources: fs('SP500') },
-  /* —— SENTIMENT —— */
-  fg_cnn: { label:'Fear & Greed CNN',    unit:'',   freq:'live', group:'sentiment',
-    sources:[
-      { name:'CNN dataviz',      url:'https://production.dataviz.cnn.io/index/fearandgreed/graphdata',                     type:'json_proxy' },
-      { name:'CNN markets API',  url:'https://markets.money.cnn.com/graphdata/fearandgreed?ts=0',                          type:'json_proxy' },
-      { name:'finhacker.cz',     url:'https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/',        type:'html_proxy' },
-      { name:'feargreedmeter',   url:'https://feargreedmeter.com/api/current',                                             type:'json_proxy' },
-    ]},
-  cfg:    { label:'Crypto F&G',          unit:'',   freq:'daily', group:'sentiment',
-    sources:[
-      { name:'alternative.me', url:'https://api.alternative.me/fng/?limit=30&format=json', type:'json_proxy' },
-    ]},
-  /* —— STOOQ prices —— */
-  stooq:  { label:'Stooq Prices',        unit:'',   freq:'daily', group:'prices',
-    sources:[{ name:'stooq.com', url:'https://stooq.com/q/d/l/', type:'stooq' }]},
-};
-
-/* Persist URL overrides */
-var CFG_LS = 'mt30_cfg';
-function cfgLoad(){
-  try{
-    var s=JSON.parse(localStorage.getItem(CFG_LS)||'{}');
-    Object.keys(s).forEach(function(k){
-      if(!CFG[k])return;
-      (s[k].sources||[]).forEach(function(ss,i){
-        if(CFG[k].sources[i]) CFG[k].sources[i].url=ss.url;
-        else CFG[k].sources.push(ss);
-      });
-    });
-  }catch(e){}
-}
-function cfgSave(){
-  var out={};
-  Object.keys(CFG).forEach(function(k){
-    out[k]={sources:CFG[k].sources.map(function(s){return{name:s.name,url:s.url};})};
-  });
-  try{localStorage.setItem(CFG_LS,JSON.stringify(out));}catch(e){}
-}
-cfgLoad();
-
-/* ===============================
-   STATE
-=============================== */
-var D={};    /* key -> parsed result */
-var DQ={};   /* stooq price ticks   */
-var LOG=[], SC=null;
-var JRN_KEY='mt30_j';
-var SS={};   /* source status: key->{ok,src,err} */
-var ST={ism:50.3,ismDate:'Lut 2026',cape:36.2};
-
-/* ===============================
-   HELPERS
-=============================== */
-function setS(state,msg){
-  var d=document.getElementById('sd'),t=document.getElementById('smsg');
-  if(d)d.className='sdot '+(state==='ok'?'s-ok':state==='er'?'s-er':'s-ld');
-  if(t)t.textContent=(msg||'').slice(0,70);
-  LOG.unshift({ts:new Date().toLocaleTimeString('pl-PL'),state,msg:msg||''});
-  if(LOG.length>200)LOG.pop();
-}
-setInterval(function(){
-  var e=document.getElementById('clk');
-  if(e)e.textContent=new Date().toLocaleString('pl-PL',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-},1000);
-var fN=(v,d=2)=>v==null||isNaN(v)?'—':Number(v).toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d});
-var fP=p=>p==null?'—':(p>=0?'+':'')+Number(p).toFixed(2)+'%';
-var dC=p=>p>0?'up':p<0?'dn':'neu';
-var pS=v=>v==null?'—':(v>=0?'+':'')+Number(v).toFixed(1)+'%';
-var fgC=s=>s==null?'#5a82a8':s<=24?'#ff3355':s<=44?'#ff7c3e':s<=55?'#f5c040':'#00e5a8';
-var fgL=s=>s==null?'—':s<=24?'EXTREME FEAR':s<=44?'FEAR':s<=55?'NEUTRAL':s<=74?'GREED':'EXTREME GREED';
-var gV=k=>D[k]&&D[k].current!=null?D[k].current:null;
-
-/* ===============================================
-   FETCH ENGINE — auto-fallback through sources
-=============================================== */
-/* Low-level fetch — no proxy, just a direct fetch with timeout */
-async function tFetchDirect(url,ms){
-  var ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),ms||13000);
-  try{
-    var r=await fetch(url,{signal:ctrl.signal,cache:'no-store',mode:'cors'});
+    var r = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
     clearTimeout(timer);
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     return r;
-  }catch(e){clearTimeout(timer);throw e;}
-}
-/* Legacy alias for code that still uses tFetch(url,ms,useProxy) */
-async function tFetch(url,ms,proxy){
-  if(!proxy) return tFetchDirect(url,ms);
-  /* Use proxy chain */
-  for(var i=0;i<PROXIES.length;i++){
-    try{
-      var full=PROXIES[i]+encodeURIComponent(url);
-      return await tFetchDirect(full,ms||12000);
-    }catch(e){ /* try next */ }
-  }
-  throw new Error('all proxies failed');
+  } catch(e) { clearTimeout(timer); throw e; }
 }
 
-function parseFredAPI(json){
-  if(!json||typeof json!=='object')throw new Error('not JSON object');
-  if(json.error_message)throw new Error('FRED API: '+json.error_message);
-  var obs=(json.observations||[]).filter(o=>o.value!=='.'&&o.value!='');
-  if(!obs.length)throw new Error('empty observations (total='+(json.observations||[]).length+')');
-  var rows=obs.map(o=>({date:o.date,val:parseFloat(o.value)})).filter(o=>isFinite(o.val));
-  if(!rows.length)throw new Error('all values missing');
-  return buildResult(rows); /* asc order from API */
+/* ── FRED fetch via Worker dedicated endpoint ────────────────── */
+async function fetchFredSeries(sym) {
+  var url = WORKER_SERIES + encodeURIComponent(sym.toUpperCase());
+  var r = await tFetchDirect(url, 14000);
+  var txt = await r.text();
+  if (!txt || txt.length < 10) throw new Error('empty');
+  if (txt.trimStart().charAt(0) !== '{') throw new Error('not JSON: ' + txt.slice(0,40));
+  var json = JSON.parse(txt);
+  if (json.error) throw new Error('Worker: ' + json.error);
+  if (json.error_message) throw new Error('FRED: ' + json.error_message);
+  return parseFredAPI(json);
 }
-function parseFredCSV(txt){
-  if(!txt||txt.length<20)throw new Error('empty (len='+(txt?txt.length:0)+')');
-  var t=txt.trimStart();
-  var first=t.slice(0,60).replace(/[\r\n]+/g,' ');
-  if(t.charAt(0)==='<')throw new Error('HTML:'+first.slice(0,50));
-  if(t.charAt(0)==='{')throw new Error('JSON not CSV:'+first.slice(0,50));
-  var lines=txt.trim().split('\n').filter(l=>l&&!/^date/i.test(l)&&!/^#/.test(l));
-  var rows=lines.map(l=>{
-    var p=l.split(','),dt=(p[0]||'').trim(),v=(p[1]||'').trim();
-    return{date:dt,val:(v==='.'||v==='NA'||v==='')?NaN:parseFloat(v)};
-  }).filter(r=>r.date&&isFinite(r.val));
-  if(!rows.length)throw new Error('no valid rows after parse');
+
+/* ── Generic URL fetch via Worker proxy ──────────────────────── */
+async function proxyFetch(url, ms) {
+  var full = WORKER_PROXY + encodeURIComponent(url);
+  var r = await tFetchDirect(full, ms || 12000);
+  var txt = await r.text();
+  if (!txt || txt.trim().length < 10) throw new Error('empty response');
+  return txt;
+}
+
+/* ── Parsers ─────────────────────────────────────────────────── */
+function parseFredAPI(json) {
+  if (!json || typeof json !== 'object') throw new Error('not JSON object');
+  if (json.error_message) throw new Error('FRED API: ' + json.error_message);
+  var obs = (json.observations || []).filter(o => o.value !== '.' && o.value !== '');
+  if (!obs.length) throw new Error('empty observations (total=' + (json.observations || []).length + ')');
+  var rows = obs.map(o => ({ date: o.date, val: parseFloat(o.value) })).filter(o => isFinite(o.val));
+  if (!rows.length) throw new Error('all values missing');
+  /* API returns desc (newest first) -> reverse to asc for buildResult */
+  rows.reverse();
   return buildResult(rows);
 }
-function buildResult(asc){
-  var n=asc.length,last=asc[n-1],prev=n>1?asc[n-2]:last;
-  var p3=n>3?asc[n-4]:asc[0],p6=n>6?asc[n-7]:asc[0],p12=n>12?asc[n-13]:asc[0];
-  var pct=(a,b)=>a!=null&&b!=null&&b!==0?(a-b)/Math.abs(b)*100:null;
-  return{
-    current:last.val,date:last.date,prev:prev.val,
-    chg:pct(last.val,prev.val),
-    trend3m:pct(last.val,p3.val),
-    trend6m:pct(last.val,p6.val),
-    yoy:pct(last.val,p12.val),
-    series:asc.slice(-60)
+
+function parseFredCSV(txt) {
+  if (!txt || txt.length < 20) throw new Error('empty (len=' + (txt ? txt.length : 0) + ')');
+  var t = txt.trimStart();
+  var first = t.slice(0, 60).replace(/[\r\n]+/g, ' ');
+  if (t.charAt(0) === '<') throw new Error('HTML:' + first.slice(0, 50));
+  if (t.charAt(0) === '{') throw new Error('JSON not CSV:' + first.slice(0, 50));
+  var lines = txt.trim().split('\n').filter(l => l && !/^date/i.test(l) && !/^#/.test(l));
+  var rows = lines.map(l => {
+    var p = l.split(','), dt = (p[0] || '').trim(), v = (p[1] || '').trim();
+    return { date: dt, val: (v === '.' || v === 'NA' || v === '') ? NaN : parseFloat(v) };
+  }).filter(r => r.date && isFinite(r.val));
+  if (!rows.length) throw new Error('no valid rows after parse');
+  /* Slice to last 200 = most recent data (avoids showing 1960s history) */
+  return buildResult(rows.slice(-200));
+}
+
+function buildResult(asc) {
+  var n = asc.length, last = asc[n-1], prev = n > 1 ? asc[n-2] : last;
+  var p3 = n > 3 ? asc[n-4] : asc[0], p6 = n > 6 ? asc[n-7] : asc[0], p12 = n > 12 ? asc[n-13] : asc[0];
+  var pct = (a, b) => a != null && b != null && b !== 0 ? (a-b) / Math.abs(b) * 100 : null;
+  return {
+    current: last.val, date: last.date, prev: prev.val,
+    chg: pct(last.val, prev.val),
+    trend3m: pct(last.val, p3.val), trend6m: pct(last.val, p6.val),
+    yoy: pct(last.val, p12.val),
+    series: asc.slice(-80)  /* last 80 records = ~6-7 years monthly, ~4M daily */
   };
 }
 
-async function trySrc(src){
-  var r,txt,json;
-  switch(src.type){
-    case 'stooq_vix': {
-      /* VIX from stooq — already parsed by sOne, but handle it inline here too */
-      var vixRaw = await proxyFetch(src.url, 10000);
-      if (!vixRaw || vixRaw.includes('No data')) throw new Error('no data');
-      var vlines = vixRaw.trim().split('\n').filter(l=>l&&l.indexOf('Date')===-1);
-      if (!vlines.length) throw new Error('empty');
-      var vlast = vlines[vlines.length-1].split(',');
-      var vprev = vlines.length>1 ? vlines[vlines.length-2].split(',') : vlast;
-      var vc = parseFloat(vlast[4]), vp = parseFloat(vprev[4]);
-      if (isNaN(vc)) throw new Error('NaN');
-      /* Return as a result object usable by gV() */
-      DQ.vix = {price:vc, prev:vp, change:vp?(vc-vp)/vp*100:0, date:vlast[0]};
-      return {current:vc, date:vlast[0], prev:vp, chg:vp?(vc-vp)/vp*100:0, series:[]};
-    }
-    case 'fred_api':
-      /* FRED API: try direct (CORS blocked in browser), then proxy chain */
-      txt = await proxyFetch(src.url, 14000);
-      if(txt.trimStart().charAt(0)==='{'){
-        json=JSON.parse(txt);
-        if(json.error_message)throw new Error(json.error_message);
-        return parseFredAPI(json);
-      }
-      /* Some proxies might return CSV even for json request */
-      return parseFredCSV(txt);
-    case 'fredwrap':
-    case 'fred_csv':
-      /* Both need proxy chain (CORS issues or direct HTML responses) */
-      txt = await proxyFetch(src.url, 13000);
-      return parseFredCSV(txt);
-    case 'json_proxy':
-      txt = await proxyFetch(src.url, 10000);
-      if(txt.trimStart().charAt(0)==='<')throw new Error('got HTML instead of JSON');
-      return JSON.parse(txt);
-    case 'html_proxy':
-      txt = await proxyFetch(src.url, 13000);
-      if(!txt||txt.length<100)throw new Error('empty response');
-      return txt;
-    default:
-      txt = await proxyFetch(src.url, 12000);
-      if(txt.trimStart().charAt(0)==='<')throw new Error('got HTML');
-      return parseFredCSV(txt);
-  }
+/* ── Static fallback: use when Worker unreachable ────────────── */
+function useStaticFallback(key) {
+  var v = STATIC_FRED[key];
+  if (v == null) return null;
+  D[key] = { current: v, date: STATIC_FRED._date, prev: v, chg: 0,
+             trend3m: null, trend6m: null, yoy: null, series: [], _isStatic: true };
+  SS[key] = { ok: true, src: 'STATIC', idx: -1 };
+  return D[key];
 }
 
-/* Auto-fallback: try each source until one works */
-async function fetchKey(key){
-  var cfg=CFG[key]; if(!cfg)throw new Error('unknown key: '+key);
-  var lastErr=null;
-  for(var i=0;i<cfg.sources.length;i++){
-    var src=cfg.sources[i];
-    if(!src.url)continue;
-    try{
-      var result=await trySrc(src);
-      SS[key]={ok:true,src:src.name,idx:i};
-      cfg.sources[i]._lastOk=true;
-      return result;
-    }catch(e){
-      lastErr=e;
-      cfg.sources[i]._lastOk=false;
-      setS('er',key+' ['+src.name+']: '+(e.message||e));
-      SS[key]={ok:false,src:src.name,idx:i,err:e.message};
+/* ── Fetch one FRED key with fallback chain ──────────────────── */
+async function fetchKey(key) {
+  var cfg = CFG[key]; if (!cfg) throw new Error('unknown key: ' + key);
+  var sym = key; /* Default: use the key as symbol */
+
+  /* Determine FRED symbol from config source URL */
+  for (var s of cfg.sources) {
+    if (s.type === 'fred_api' || s.type === 'fredwrap' || s.type === 'fred_csv') {
+      var m = s.url.match(/series_id=([A-Z0-9]+)|symbol=([A-Z0-9]+)|id=([A-Z0-9]+)/i);
+      if (m) { sym = m[1] || m[2] || m[3]; break; }
     }
   }
-  throw new Error(key+' — all sources failed. Last: '+(lastErr&&lastErr.message));
+
+  /* Source 1: Worker ?series= endpoint (FRED server-side, not blocked) */
+  try {
+    var result = await fetchFredSeries(sym);
+    SS[key] = { ok: true, src: 'Worker?series=' + sym, idx: 0 };
+    return result;
+  } catch(e) {
+    setS('er', key + ' [Worker]: ' + e.message.slice(0, 60));
+    SS[key] = { ok: false, src: 'Worker', idx: 0, err: e.message };
+  }
+
+  /* Source 2: ivo-welch direct (may work if CORS enabled) */
+  try {
+    var txt2 = await proxyFetch('https://www.ivo-welch.info/cgi-bin/fredwrap?symbol=' + sym, 11000);
+    var result2 = parseFredCSV(txt2);
+    SS[key] = { ok: true, src: 'ivo-welch', idx: 1 };
+    return result2;
+  } catch(e2) {
+    setS('er', key + ' [ivo-welch]: ' + e2.message.slice(0, 60));
+  }
+
+  /* Source 3: Static fallback (always available, may be stale) */
+  var stat = useStaticFallback(key);
+  if (stat) {
+    setS('er', key + ': uzyto danych statycznych (' + STATIC_FRED._date + ')');
+    return stat;
+  }
+
+  throw new Error(key + ': no data available');
 }
 
-/* Fetch all FRED-based keys in batches of 4 */
-async function fetchFredAll(){
-  var keys=['fedfunds','m2','fed_bs','rrp','sofr','ib01','cpi','core_cpi','tips',
-            'yc','hy','move','sahm','unrate','indprod','nfci','vixf','sp500f'];
-  var ok=0,fail=0;
-  for(var i=0;i<keys.length;i+=4){
-    var batch=keys.slice(i,i+4);
-    setS('ld','FRED '+(Math.floor(i/4)+1)+'/'+Math.ceil(keys.length/4)+': '+batch.join(', '));
-    var res=await Promise.allSettled(batch.map(k=>fetchKey(k)));
-    res.forEach((r,j)=>{
-      if(r.status==='fulfilled'){D[batch[j]]=r.value;ok++;}
-      else{fail++;setS('er',batch[j]+': '+(r.reason&&r.reason.message||'?'));}
+/* ── Batch FRED fetch ────────────────────────────────────────── */
+async function fetchFredAll() {
+  var keys = ['fedfunds','m2','fed_bs','rrp','sofr','ib01','cpi','core_cpi','tips',
+              'yc','hy','move','sahm','unrate','indprod','nfci','vixf','sp500f'];
+  var ok = 0, fail = 0;
+  for (var i = 0; i < keys.length; i += 4) {
+    var batch = keys.slice(i, i+4);
+    setS('ld', 'FRED ' + (Math.floor(i/4)+1) + '/' + Math.ceil(keys.length/4) + ': ' + batch.join(', '));
+    var res = await Promise.allSettled(batch.map(k => fetchKey(k)));
+    res.forEach((r, j) => {
+      if (r.status === 'fulfilled') { D[batch[j]] = r.value; ok++; }
+      else { fail++; setS('er', batch[j] + ': ' + (r.reason && r.reason.message || '?').slice(0,60)); }
     });
-    if(i+4<keys.length)await new Promise(r=>setTimeout(r,75));
+    if (i + 4 < keys.length) await new Promise(r => setTimeout(r, 50));
   }
-  /* VIX: use stooq if FRED failed */
-  if(!DQ.vix&&D.vixf)DQ.vix={price:D.vixf.current,prev:D.vixf.prev,change:D.vixf.chg||0,date:D.vixf.date};
-  setS(ok>12?'ok':'er','FRED: '+ok+' OK, '+fail+' err — źródło: '+(ok>0?'FRED API':'fallback'));
+  /* VIX: prefer stooq if FRED failed */
+  if (!DQ.vix && D.vixf) DQ.vix = { price: D.vixf.current, prev: D.vixf.prev, change: D.vixf.chg || 0, date: D.vixf.date };
+  var src_label = ok > 0 ? (Object.values(SS).find(s=>s.src==='STATIC') ? 'Worker+static' : 'Worker OK') : 'STATIC ONLY';
+  setS(ok > 12 ? 'ok' : 'er', 'FRED: ' + ok + ' OK, ' + fail + ' err — ' + src_label);
 }
 
-/* Stooq bulk prices */
-var SQ={sp500:'^spx',nasdaq:'^ndx',dj:'^dji',gold:'xauusd',silver:'xagusd',oil:'cl.f',
-        natgas:'ng.f',copper:'hg.f',usdpln:'usdpln',eurpln:'eurpln',eurusd:'eurusd',
-        dxy:'dxy',usdjpy:'usdjpy',us10y:'10usy.b',us2y:'2usy.b',btcusd:'btcusd',
-        ethusd:'ethusd',wig20:'wig20',vix:'^vix',isac:'isac.uk',spy:'spy.us',qqq:'qqq.us'};
-async function sOne(sym){
-  var r=await tFetch('https://stooq.com/q/d/l/?s='+encodeURIComponent(sym)+'&i=d',10000,true);
-  var txt=await r.text();
-  if(!txt||txt.indexOf('No data')!==-1||txt.trim().length<20)throw new Error('no data');
-  var lines=txt.trim().split('\n').filter(l=>l&&l.indexOf('Date')===-1);
-  if(!lines.length)throw new Error('empty');
-  var pl=l=>{var a=l.split(',');return{close:parseFloat(a[4]),date:a[0]};};
-  var last=pl(lines[lines.length-1]),prev=lines.length>1?pl(lines[lines.length-2]):last;
-  if(isNaN(last.close))throw new Error('NaN');
-  return{price:last.close,prev:prev.close,change:prev.close?(last.close-prev.close)/prev.close*100:0,date:last.date};
-}
-async function fetchStooq(){
-  setS('ld','Stooq: ceny…');
-  var keys=Object.keys(SQ);
-  var res=await Promise.allSettled(keys.map(k=>sOne(SQ[k])));
-  DQ={};var ok=0,fail=0;
-  res.forEach((r,i)=>{if(r.status==='fulfilled'){DQ[keys[i]]=r.value;ok++;}else fail++;});
-  SS.stooq={ok:ok>12,src:'stooq.com',count:ok};
-  setS(ok>12?'ok':'er','Stooq: '+ok+'/'+keys.length);
-}
-async function fetchSP12M(){
-  try{
-    var now=new Date(),ya=new Date(now);ya.setFullYear(ya.getFullYear()-1);
-    var d8=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
-    var r=await tFetch('https://stooq.com/q/d/l/?s=%5Espx&d1='+d8(ya)+'&d2='+d8(now)+'&i=w',12000,true);
-    var txt=await r.text();
-    if(!txt||txt.indexOf('No data')!==-1)throw new Error('no data');
-    var lines=txt.trim().split('\n').filter(l=>l&&l.indexOf('Date')===-1);
-    if(lines.length<2)throw new Error('too few lines');
-    var pv=l=>parseFloat(l.split(',')[4]);
-    var first=pv(lines[0]),last=pv(lines[lines.length-1]);
-    if(!first||!last||isNaN(first)||isNaN(last))throw new Error('NaN');
-    D._sp12m=(last-first)/first*100;D._sp12m_src='stooq';
-  }catch(e){D._sp12m=null;D._sp12m_src='err';}
+/* ── Stooq prices ────────────────────────────────────────────── */
+var SQ = {sp500:'^spx',nasdaq:'^ndx',dj:'^dji',gold:'xauusd',silver:'xagusd',oil:'cl.f',
+          natgas:'ng.f',copper:'hg.f',usdpln:'usdpln',eurpln:'eurpln',eurusd:'eurusd',
+          dxy:'dxy',usdjpy:'usdjpy',us10y:'10usy.b',us2y:'2usy.b',btcusd:'btcusd',
+          ethusd:'ethusd',wig20:'wig20',vix:'^vix',isac:'isac.uk',spy:'spy.us',qqq:'qqq.us'};
+
+async function sOne(sym) {
+  /* Stooq via Worker proxy — stooq does NOT block CF Workers */
+  var url = 'https://stooq.com/q/d/l/?s=' + encodeURIComponent(sym) + '&i=d';
+  var txt = await proxyFetch(url, 10000);
+  if (!txt || txt.indexOf('No data') !== -1 || txt.trim().length < 20) throw new Error('no data');
+  var lines = txt.trim().split('\n').filter(l => l && l.indexOf('Date') === -1);
+  if (!lines.length) throw new Error('empty');
+  var pl = l => { var a = l.split(','); return { close: parseFloat(a[4]), date: a[0] }; };
+  var last = pl(lines[lines.length-1]), prev = lines.length > 1 ? pl(lines[lines.length-2]) : last;
+  if (isNaN(last.close)) throw new Error('NaN');
+  return { price: last.close, prev: prev.close, change: prev.close ? (last.close-prev.close)/prev.close*100 : 0, date: last.date };
 }
 
-/* Fear & Greed — multi-source with robust fallback chain */
+async function fetchStooq() {
+  setS('ld', 'Stooq: ceny...');
+  var keys = Object.keys(SQ);
+  var res = await Promise.allSettled(keys.map(k => sOne(SQ[k])));
+  DQ = {}; var ok = 0, fail = 0;
+  res.forEach((r, i) => { if (r.status === 'fulfilled') { DQ[keys[i]] = r.value; ok++; } else fail++; });
+  SS.stooq = { ok: ok > 12, src: 'stooq.com', count: ok };
+  setS(ok > 12 ? 'ok' : 'er', 'Stooq: ' + ok + '/' + keys.length);
+}
+
+async function fetchSP12M() {
+  try {
+    var now = new Date(), ya = new Date(now); ya.setFullYear(ya.getFullYear() - 1);
+    var d8 = d => d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+    var url = 'https://stooq.com/q/d/l/?s=%5Espx&d1=' + d8(ya) + '&d2=' + d8(now) + '&i=w';
+    var txt = await proxyFetch(url, 12000);
+    if (!txt || txt.indexOf('No data') !== -1) throw new Error('no data');
+    var lines = txt.trim().split('\n').filter(l => l && l.indexOf('Date') === -1);
+    if (lines.length < 2) throw new Error('too few lines');
+    var pv = l => parseFloat(l.split(',')[4]);
+    var first = pv(lines[0]), last = pv(lines[lines.length-1]);
+    if (!first || !last || isNaN(first) || isNaN(last)) throw new Error('NaN');
+    D._sp12m = (last - first) / first * 100; D._sp12m_src = 'stooq';
+  } catch(e) { D._sp12m = null; D._sp12m_src = 'err'; }
+}
+
+/* ── Fear & Greed ────────────────────────────────────────────── */
 async function fetchFG(){
   setS('ld','F&G...');D._fg=null;
 
-  /* Source 1: CNN production dataviz — primary */
-  try{
-    var txt1=await proxyFetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata',10000);
-    if(txt1&&txt1.trimStart().charAt(0)==='{'){
-      var j=JSON.parse(txt1);
-      var fg=j.fear_and_greed||j;
-      var sc=Math.round(parseFloat(fg.score||fg.current_value||0));
-      if(sc>0&&sc<=100){
-        D._fg={score:sc,
-               prev_close:Math.round(parseFloat(fg.previous_close||0))||null,
-               prev_week:Math.round(parseFloat(fg.previous_1_week||0))||null,
-               prev_month:Math.round(parseFloat(fg.previous_1_month||0))||null,
-               source:'CNN dataviz'};
-        setS('ok','F&G CNN: '+sc);return;
+  /* Source 1: CNN dataviz (multiple URLs tried) */
+  var cnnUrls=[
+    'https://production.dataviz.cnn.io/index/fearandgreed/graphdata',
+    'https://production.dataviz.cnn.io/index/fearandgreed/graphdata/30',
+  ];
+  for(var ci=0;ci<cnnUrls.length;ci++){
+    try{
+      var t1=await proxyFetch(cnnUrls[ci],10000);
+      if(t1&&t1.trimStart().charAt(0)==='{'){
+        var j1=JSON.parse(t1);
+        var fgo=j1.fear_and_greed||j1;
+        var sc1=Math.round(parseFloat(fgo.score||fgo.current_value||fgo.value||0));
+        if(sc1>0&&sc1<=100){
+          D._fg={score:sc1,
+                 prev_close:Math.round(parseFloat(fgo.previous_close||0))||null,
+                 prev_week:Math.round(parseFloat(fgo.previous_1_week||0))||null,
+                 prev_month:Math.round(parseFloat(fgo.previous_1_month||0))||null,
+                 source:'CNN dataviz'};
+          setS('ok','F&G CNN: '+sc1);return;
+        }
       }
-    }
-    throw new Error('invalid response');
-  }catch(e){setS('er','F&G CNN: '+e.message);}
+    }catch(e1){setS('er','CNN F&G['+ci+']: '+e1.message.slice(0,50));}
+  }
 
-  /* Source 2: finhacker.cz — <p id="fng-current"> */
+  /* Source 2: finhacker.cz — scrape <p id="fng-current"> */
   try{
     var html2=await proxyFetch('https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/',14000);
-    /* Multiple selectors to find the value */
-    var patterns=[
-      /id="fng-current"[^>]*>\s*(\d+)/,
-      /fng-current[^>]*>\s*(\d+)/,
-      /class="fng[^"]*"[^>]*>\s*(\d+)/,
-      /"fng_current":\s*(\d+)/,
-      /current[_-]value[^>]*>\s*(\d+)/,
-    ];
-    for(var pi=0;pi<patterns.length;pi++){
-      var m=html2.match(patterns[pi]);
-      if(m&&m[1]){
-        var sc2=parseInt(m[1]);
-        if(sc2>0&&sc2<=100){
-          D._fg={score:sc2,prev_close:null,prev_week:null,prev_month:null,source:'finhacker.cz'};
-          setS('ok','F&G finhacker: '+sc2);return;
-        }
-      }
+    var pats=[/id="fng-current"[^>]*>\s*(\d+)/,/fng-current[^>]*>\s*(\d+)/,/"fng_current":\s*(\d+)/];
+    for(var pi=0;pi<pats.length;pi++){
+      var m=html2.match(pats[pi]);
+      if(m&&m[1]){var sc2=parseInt(m[1]);if(sc2>0&&sc2<=100){
+        D._fg={score:sc2,source:'finhacker.cz'};setS('ok','F&G fin: '+sc2);return;
+      }}
     }
-    /* Try to find any standalone number between 1-100 in context */
-    var nums=html2.match(/Fear.*?(\d{1,3}).*?Greed/s)||html2.match(/>\s*(\d{1,2})\s*<\/p>/);
-    if(nums&&nums[1]){var n=parseInt(nums[1]);if(n>0&&n<=100){
-      D._fg={score:n,source:'finhacker.cz(inferred)'}; setS('ok','F&G fin: '+n);return;
-    }}
-    throw new Error('element not found in page');
-  }catch(e){setS('er','F&G finhacker: '+e.message);}
+    throw new Error('element not found');
+  }catch(e){setS('er','F&G finhacker: '+e.message.slice(0,60));}
 
-  /* Source 3: CNN markets alternative endpoint */
-  try{
-    var txt3a=await proxyFetch('https://markets.money.cnn.com/graphdata/fearandgreed?ts='+Date.now(),8000);
-    if(txt3a&&txt3a.trimStart().charAt(0)==='{'){
-      var j3a=JSON.parse(txt3a);
-      var fg3=j3a.fear_and_greed||j3a;
-      var v3a=Math.round(parseFloat(fg3.score||fg3.current_value||fg3.value||0));
-      if(v3a>0&&v3a<=100){
-        D._fg={score:v3a,prev_close:null,prev_week:null,prev_month:null,source:'CNN markets'};
-        setS('ok','F&G CNN-markets: '+v3a);return;
-      }
-    }
-  }catch(e){setS('er','F&G CNN-markets: '+e.message);}
+  /* Source 3: Use Crypto F&G as proxy (high correlation to equity F&G ~0.7) */
+  if(D._cfg&&D._cfg.score>0){
+    D._fg={score:D._cfg.score,source:'Crypto F&G (proxy for CNN)',prev_close:null,prev_week:null,prev_month:null};
+    setS('er','F&G = crypto proxy: '+D._cfg.score);return;
+  }
 
-  /* Source 4: feargreedmeter.com */
-  try{
-    var txt3=await proxyFetch('https://feargreedmeter.com/api/current',8000);
-    if(txt3&&txt3.includes('value')){
-      try{
-        var j3=JSON.parse(txt3);
-        var v3=parseInt(j3.value||j3.score||j3.data||0);
-        if(v3>0&&v3<=100){
-          D._fg={score:v3,source:'feargreedmeter.com'};setS('ok','F&G meter: '+v3);return;
-        }
-      }catch(e2){}
-    }
-  }catch(e){}
-
-  /* Source 4: VIX-based synthetic (always works as last resort) */
-  var vix=(DQ.vix&&DQ.vix.price)||(gV('vixf'))||29;
-  var est=Math.round(vix>40?12:vix>32?22:vix>26?33:vix>20?44:vix<14?80:vix<17?68:52);
-  D._fg={score:est,source:'ESTIMATE (VIX='+vix.toFixed(0)+')',prev_close:null,prev_week:null,prev_month:null};
-  setS('er','F&G synthetic (VIX-based): '+est);
-}
-async function fetchCFG(){
-  try{
-    var raw=await fetchKey('cfg');
-    var entries=raw&&raw.data?raw.data:[];
-    if(!entries.length)throw new Error('empty');
-    D._cfg={score:parseInt(entries[0].value),history:entries.slice(0,14).map(e=>({
-      date:new Date(parseInt(e.timestamp)*1000).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),
-      score:parseInt(e.value)
-    }))};
-  }catch(e){D._cfg=null;}
+  /* Source 4: VIX-based synthetic (always works) */
+  var vixFG=(DQ.vix&&DQ.vix.price&&DQ.vix.price>0)?DQ.vix.price:26;
+  var est=Math.round(vixFG>40?12:vixFG>32?20:vixFG>26?32:vixFG>20?44:vixFG<14?80:vixFG<17?68:52);
+  D._fg={score:est,source:'SZACUNEK VIX='+vixFG.toFixed(0),prev_close:null,prev_week:null,prev_month:null};
+  setS('er','F&G syntetyczny: '+est);
 }
 
-/* ===============================================
-   SCORING ENGINE — 5 dimensions x (-10..+10)
-=============================================== */
+async function fetchCFG() {
+  try {
+    var txt = await proxyFetch('https://api.alternative.me/fng/?limit=30&format=json', 10000);
+    var raw = JSON.parse(txt);
+    var entries = raw && raw.data ? raw.data : [];
+    if (!entries.length) throw new Error('empty');
+    D._cfg = { score: parseInt(entries[0].value), history: entries.slice(0,14).map(e => ({
+      date: new Date(parseInt(e.timestamp)*1000).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit'}),
+      score: parseInt(e.value)
+    })) };
+  } catch(e) { D._cfg = null; }
+}
+
 function calcScore(){
-  var vix=(DQ.vix&&DQ.vix.price)||(gV('vixf'))||29;
+  /* VIX: stooq ^vix (DQ.vix) is primary — always refreshed by fetchStooq */
+  var vix=null;
+  if(DQ.vix&&DQ.vix.price&&DQ.vix.price>0)vix=DQ.vix.price;
+  else if(gV('vixf')!=null)vix=gV('vixf');
+  else vix=26; /* fallback only if no data at all */
   var fg=D._fg?D._fg.score:null;
   var sp12m=D._sp12m!=null?D._sp12m:(D.sp500f&&D.sp500f.yoy!=null?D.sp500f.yoy:18);
   var ib01v=gV('ib01')!=null?gV('ib01'):4.15;
@@ -1150,7 +965,11 @@ function renderLiquidity(){
 =========================================== */
 function renderIndicators(){
   var el=document.getElementById('p-indicators');if(!el)return;
-  var vix=(DQ.vix&&DQ.vix.price)||(gV('vixf'))||29;
+  /* VIX: stooq ^vix (DQ.vix) is primary — always refreshed by fetchStooq */
+  var vix=null;
+  if(DQ.vix&&DQ.vix.price&&DQ.vix.price>0)vix=DQ.vix.price;
+  else if(gV('vixf')!=null)vix=gV('vixf');
+  else vix=26; /* fallback only if no data at all */
   var fed=gV('fedfunds')!=null?gV('fedfunds'):4.33;
   var m2y=D.m2&&D.m2.yoy!=null?D.m2.yoy:null;
   var cpi=D.cpi&&D.cpi.yoy!=null?D.cpi.yoy:null;
@@ -1523,12 +1342,32 @@ window.testAllSrc=async function(k){
    Reorders PROXIES_FULL to put the fastest working proxy first.
    This runs once at startup and ensures we don't waste 4×14s on dead proxies.
 ───────────────────────────────────────────────────────────────────────── */
-var PROXIES_FULL = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?url=',
-  'https://portfel.dzonyiks.workers.dev?url=',
-  'https://thingproxy.freeboard.io/fetch/',
-];
+/* ================================================================
+   ARCHITEKTURA v30.1:
+   
+   FRED: portfel.dzonyiks.workers.dev?series=SYMBOL
+         Worker sam wywoluje FRED API server-side — nie jest blokowany.
+         WAZNE: Worker musi byc zaktualizowany do nowego kodu!
+         Plik worker: cloudflare_worker_v30.js (w ZIP)
+   
+   PROXY URL (stooq, CNN etc.): portfel.dzonyiks.workers.dev?url=URL
+         Stooq i CNN nie blokuja proxy — dziala.
+   
+   FALLBACK: STATIC_FRED — ostatnie znane wartosci gdy siec zawiedzie.
+   ================================================================ */
+
+var WORKER = 'https://portfel.dzonyiks.workers.dev';
+var WORKER_SERIES = WORKER + '?series=';  /* FRED dedicated endpoint */
+var WORKER_PROXY  = WORKER + '?url=';     /* Generic proxy for stooq/CNN */
+
+/* Static fallback data — updated periodically, used when all sources fail */
+var STATIC_FRED = {
+  fedfunds: 4.33, m2: 21439.3, fed_bs: 6745000, rrp: 78.2, sofr: 4310000,
+  ib01: 4.23, cpi: 2.82, core_cpi: 3.35, tips: 2.43, yc: 0.11,
+  hy: 2.84, move: 92.3, sahm: 0.23, unrate: 4.1, indprod: 103.2,
+  nfci: -0.44, vixf: 22.4, sp500f: 5667,
+  _date: '2025-11'
+};
 
 async function detectWorkingProxy(){
   /* Test URL: tiny FRED series — DGS1MO (1M T-bill, daily, small) */
@@ -1579,8 +1418,8 @@ async function init(){
     fetchSP12M(),
   ]);
   /* Sequential after prices are loaded */
+  await fetchCFG();  /* Crypto F&G first - used as F&G fallback */
   await fetchFG();
-  await fetchCryptoFG();
 
   renderTicker();
   calcScore();
