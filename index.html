@@ -328,28 +328,18 @@ var FCSV    = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=';
               Worker calls FRED API server-side (not a proxy = not blocked).
               MUST update Worker code! See cloudflare_worker_v30.js
    
-   Other URLs (stooq, CNN): WORKER_PROXY = portfel.dzonyiks.workers.dev?url=URL
+   Other URLs (stooq, CNN): PROXIES_FULL[2] = portfel.dzonyiks.workers.dev?url=URL
               Stooq and CNN do NOT block CF Workers.
    
    Static fallback: STATIC_FRED used when Worker unreachable.
    ================================================================ */
 
 /* ── Core fetch with timeout ─────────────────────────────────── */
-async function tFetchDirect(url, ms) {
-  var ctrl = new AbortController();
-  var timer = setTimeout(() => ctrl.abort(), ms || 12000);
-  try {
-    var r = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-    clearTimeout(timer);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r;
-  } catch(e) { clearTimeout(timer); throw e; }
-}
 
 /* ── FRED fetch via Worker dedicated endpoint ────────────────── */
 async function fetchFredSeries(sym) {
   var url = WORKER_SERIES + encodeURIComponent(sym.toUpperCase());
-  var r = await tFetchDirect(url, 14000);
+  var r = await proxyFetch(url, 14000);
   var txt = await r.text();
   if (!txt || txt.length < 10) throw new Error('empty');
   if (txt.trimStart().charAt(0) !== '{') throw new Error('not JSON: ' + txt.slice(0,40));
@@ -360,12 +350,35 @@ async function fetchFredSeries(sym) {
 }
 
 /* ── Generic URL fetch via Worker proxy ──────────────────────── */
+/* Race all proxies simultaneously — first valid response wins. No sequential waiting. */
+var PROXIES_FULL = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url=',
+  'https://portfel.dzonyiks.workers.dev?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+];
+function isGoodResponse(t){return t&&t.trim().length>20&&t.trimStart().charAt(0)!=='<';}
 async function proxyFetch(url, ms) {
-  var full = WORKER_PROXY + encodeURIComponent(url);
-  var r = await tFetchDirect(full, ms || 12000);
-  var txt = await r.text();
-  if (!txt || txt.trim().length < 10) throw new Error('empty response');
-  return txt;
+  ms = ms||12000;
+  try{
+    var c0=new AbortController(),t0=setTimeout(()=>c0.abort(),3000);
+    var r0=await fetch(url,{signal:c0.signal,cache:'no-store'});
+    clearTimeout(t0); var x0=await r0.text();
+    if(isGoodResponse(x0))return x0;
+  }catch(e){}
+  return Promise.any(PROXIES_FULL.map(function(pfx){
+    return new Promise(function(res,rej){
+      var c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+      fetch(pfx+encodeURIComponent(url),{signal:c.signal,cache:'no-store'})
+        .then(r=>r.text()).then(function(txt){
+          clearTimeout(t);
+          if(txt&&txt.trimStart().startsWith('{"contents"')){
+            try{var w=JSON.parse(txt);if(isGoodResponse(w.contents)){res(w.contents);return;}}catch(ex){}
+          }
+          isGoodResponse(txt)?res(txt):rej(new Error('bad'));
+        }).catch(e=>{clearTimeout(t);rej(e);});
+    });
+  })).catch(()=>{throw new Error('all proxies failed: '+url.slice(0,50));});
 }
 
 /* ── Parsers ─────────────────────────────────────────────────── */
@@ -378,6 +391,7 @@ function parseFredAPI(json) {
   if (!rows.length) throw new Error('all values missing');
   /* API returns desc (newest first) -> reverse to asc for buildResult */
   rows.reverse();
+  rows.reverse(); /* API returns desc order, reverse to asc */
   return buildResult(rows);
 }
 
@@ -1334,82 +1348,11 @@ window.testAllSrc=async function(k){
   RENDERED.sources=false;renderSources();
 };
 
-/* ===========================================
-   MAIN INIT
-=========================================== */
-/* ── PROXY DETECTION ──────────────────────────────────────────────────────
-   Runs a quick test fetch against a known good FRED endpoint.
-   Reorders PROXIES_FULL to put the fastest working proxy first.
-   This runs once at startup and ensures we don't waste 4×14s on dead proxies.
-───────────────────────────────────────────────────────────────────────── */
-/* ================================================================
-   ARCHITEKTURA v30.1:
-   
-   FRED: portfel.dzonyiks.workers.dev?series=SYMBOL
-         Worker sam wywoluje FRED API server-side — nie jest blokowany.
-         WAZNE: Worker musi byc zaktualizowany do nowego kodu!
-         Plik worker: cloudflare_worker_v30.js (w ZIP)
-   
-   PROXY URL (stooq, CNN etc.): portfel.dzonyiks.workers.dev?url=URL
-         Stooq i CNN nie blokuja proxy — dziala.
-   
-   FALLBACK: STATIC_FRED — ostatnie znane wartosci gdy siec zawiedzie.
-   ================================================================ */
-
-var WORKER = 'https://portfel.dzonyiks.workers.dev';
-var WORKER_SERIES = WORKER + '?series=';  /* FRED dedicated endpoint */
-var WORKER_PROXY  = WORKER + '?url=';     /* Generic proxy for stooq/CNN */
-
-/* Static fallback data — updated periodically, used when all sources fail */
-var STATIC_FRED = {
-  fedfunds: 4.33, m2: 21439.3, fed_bs: 6745000, rrp: 78.2, sofr: 4310000,
-  ib01: 4.23, cpi: 2.82, core_cpi: 3.35, tips: 2.43, yc: 0.11,
-  hy: 2.84, move: 92.3, sahm: 0.23, unrate: 4.1, indprod: 103.2,
-  nfci: -0.44, vixf: 22.4, sp500f: 5667,
-  _date: '2025-11'
-};
-
-async function detectWorkingProxy(){
-  /* Test URL: tiny FRED series — DGS1MO (1M T-bill, daily, small) */
-  var testUrl = FAPI + 'DGS1MO';
-  setS('ld','Szukam dzialajacego proxy...');
-  for(var i=0;i<PROXIES_FULL.length;i++){
-    try{
-      var full = PROXIES_FULL[i] + encodeURIComponent(testUrl);
-      var ctrl = new AbortController();
-      var timer = setTimeout(()=>ctrl.abort(), 9000);
-      var r = await fetch(full, {signal:ctrl.signal, cache:'no-store'});
-      clearTimeout(timer);
-      var txt = await r.text();
-      /* Check if we got a real FRED JSON response */
-      if(txt && txt.includes('"observations"')){
-        /* Move working proxy to front */
-        var working = PROXIES_FULL.splice(i, 1)[0];
-        PROXIES_FULL.unshift(working);
-        setS('ok','Proxy OK: ' + working.slice(8, 28));
-        return;
-      }
-      /* Check if it returned allorigins wrapper */
-      if(txt && txt.includes('"contents"') && txt.includes('observations')){
-        var working2 = PROXIES_FULL.splice(i, 1)[0];
-        PROXIES_FULL.unshift(working2);
-        setS('ok','Proxy (wrapped) OK: ' + working2.slice(8, 28));
-        return;
-      }
-    }catch(e){ /* try next */ }
-  }
-  /* No proxy worked for FRED API — fall back to ivo-welch direct */
-  setS('er','Uwaga: brak dzialajacego proxy dla FRED API. Probuje ivo-welch...');
-}
-
 
 async function init(){
   setS('ld','Start...');
   var lupd=document.getElementById('lupd');
   if(lupd)lupd.textContent='';
-
-  /* Self-test: find working proxy before main fetch */
-  await detectWorkingProxy();
 
   /* Parallel fetch: FRED + Stooq + F&G + crypto */
   await Promise.allSettled([
