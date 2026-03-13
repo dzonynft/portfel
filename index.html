@@ -508,10 +508,51 @@ async function sOneYahoo(sym) {
   var lastDate=ts.length?new Date(ts[ts.length-1]*1000).toISOString().slice(0,10):'';
   return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:lastDate};
 }
+async function sOneNBP(sym) {
+  /* NBP API — official Polish National Bank, CORS enabled, no proxy needed */
+  var tbl='',code='';
+  if(sym==='usdpln'){tbl='A';code='USD';}
+  else if(sym==='eurpln'){tbl='A';code='EUR';}
+  else if(sym==='gbpusd'||sym==='gbppln'){tbl='A';code='GBP';}
+  else throw new Error('no NBP mapping');
+  var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},6000);
+  var url='https://api.nbp.pl/api/exchangerates/rates/'+tbl+'/'+code+'/last/5/?format=json';
+  var r=await fetch(url,{signal:ctrl.signal,cache:'no-store'});
+  clearTimeout(t);
+  var j=await r.json();
+  var rates=j&&j.rates;
+  if(!rates||rates.length<2) throw new Error('no NBP rates');
+  var last=rates[rates.length-1].mid,prev=rates[rates.length-2].mid;
+  /* NBP gives mid rate vs PLN. For USDPLN/EURPLN direct. For EUR/USD = EUR/PLN ÷ USD/PLN */
+  return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:rates[rates.length-1].effectiveDate};
+}
+async function sOneECB(sym) {
+  /* ECB API — EUR/USD direct, CORS enabled */
+  if(sym!=='eurusd') throw new Error('ECB only eurusd');
+  var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},7000);
+  var r=await fetch('https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A?lastNObservations=5&format=jsondata',{signal:ctrl.signal,cache:'no-store'});
+  clearTimeout(t);
+  var j=await r.json();
+  var obs=j&&j.dataSets&&j.dataSets[0]&&j.dataSets[0].series&&j.dataSets[0].series['0:0:0:0:0'];
+  if(!obs) throw new Error('no ECB data');
+  var vals=Object.values(obs.observations).map(function(o){return parseFloat(o[0]);}).filter(isFinite);
+  if(vals.length<2) throw new Error('too few ECB vals');
+  var last=vals[vals.length-1],prev=vals[vals.length-2];
+  return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:''};
+}
 async function sOne(sym) {
+  /* Priority: stooq → Yahoo → NBP (for PLN) → ECB (for EUR/USD) */
   try{return await sOneStooq(sym);}catch(e1){
     try{return await sOneYahoo(sym);}catch(e2){
-      throw new Error(sym+': stooq('+e1.message+') yahoo('+e2.message+')');
+      /* PLN pairs: try NBP official API */
+      if(sym==='usdpln'||sym==='eurpln'){
+        try{return await sOneNBP(sym);}catch(e3){}
+      }
+      /* EUR/USD: try ECB official API */
+      if(sym==='eurusd'){
+        try{return await sOneECB(sym);}catch(e3){}
+      }
+      throw new Error(sym+' all failed');
     }
   }
 }
@@ -525,32 +566,38 @@ async function fetchStooq() {
   setS(ok>10?'ok':'er','Stooq: '+ok+' OK, '+fail+' err');
 }
 async function fetchSP12M() {
+  /* Yahoo Finance v8 — 1Y weekly, direct (CORS supported) */
+  try {
+    var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},9000);
+    var r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1wk&range=1y',{signal:ctrl.signal,cache:'no-store'});
+    clearTimeout(t);
+    var j=await r.json();
+    var res=j&&j.chart&&j.chart.result&&j.chart.result[0];
+    if(!res) throw new Error('no yahoo result');
+    var closes=(res.indicators.quote[0].close||[]).filter(function(v){return v!=null&&isFinite(v);});
+    if(closes.length<2) throw new Error('too few');
+    var first=closes[0],last=closes[closes.length-1];
+    var ret=(last-first)/first*100;
+    if(ret<-60||ret>200) throw new Error('implausible: '+ret.toFixed(1));
+    D.sp12m=ret; D.sp12m_src='Yahoo 1Y'; return;
+  } catch(ey){}
+  /* Stooq fallback */
   try {
     var now=new Date(),ya=new Date(now); ya.setFullYear(ya.getFullYear()-1);
-    function d8(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
-    var r=await pGet('https://stooq.com/q/d/l/?s=%5Espx&d1='+d8(ya)+'&d2='+d8(now)+'&i=w',12000);
-    var txt=await r.text();
-    if (!txt||txt.indexOf('No data')!==-1) throw new Error('no data');
-    var lines=txt.trim().split('\n').filter(function(l){ return l&&l.indexOf('Date')===-1; });
-    if (lines.length<2) throw new Error('too few');
-    function pv(l){ return parseFloat(l.split(',')[4]); }
-    /* Stooq returns ASC (oldest first → newest last) */
-    var first=pv(lines[0]),last=pv(lines[lines.length-1]);
-    if (!first||!last||isNaN(first)||isNaN(last)) throw new Error('NaN');
-    /* Sanity: if result negative while YTD clearly positive, try reversed */
-    var ret=(last-first)/first*100;
-    if(ret < -50 || ret > 200) throw new Error('implausible return: '+ret.toFixed(1));
-    D.sp12m=ret; D.sp12m_src='stooq weekly 1Y';
-  } catch(e){ 
-    /* Fallback: use SP500 from D.q if already loaded */
-    if(D.q&&D.q.sp500&&D.q.sp500.price&&D.f&&D.f.sp500fred){
-      var fv=D.f.sp500fred;
-      if(fv&&fv.yoy!=null){D.sp12m=fv.yoy;D.sp12m_src='FRED SP500 YoY';}
-      else D.sp12m_src='err:'+e.message;
-    } else { D.sp12m=null; D.sp12m_src='err:'+e.message; }
-  }
+    function d8(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+    var r2=await pGet('https://stooq.com/q/d/l/?s=%5Espx&d1='+d8(ya)+'&d2='+d8(now)+'&i=w',10000);
+    var txt=await r2.text();
+    if(!txt||txt.indexOf('No data')!==-1) throw new Error('no data');
+    var lns=txt.trim().split('\n').filter(function(l){return l&&l.indexOf('Date')===-1;});
+    if(lns.length<2) throw new Error('too few: '+lns.length);
+    function pv(l){return parseFloat(l.split(',')[4]);}
+    var f2=pv(lns[0]),l2=pv(lns[lns.length-1]);
+    if(!f2||!l2||isNaN(f2)||isNaN(l2)) throw new Error('NaN');
+    var ret2=(l2-f2)/f2*100;
+    if(ret2<-60||ret2>200) throw new Error('implausible: '+ret2.toFixed(1));
+    D.sp12m=ret2; D.sp12m_src='stooq 1Y';
+  } catch(es){ D.sp12m=null; D.sp12m_src='pending:'+es.message; }
 }
-
 /* FRED series map */
 var FM = {
   fedfunds:'FEDFUNDS',m2:'M2SL',yield_curve:'T10Y2Y',fed_bs:'WALCL',
@@ -1218,19 +1265,28 @@ function renderLiquidity(){
   +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Reverse Repo (RRP)</span><span class="ch-s">FRED RRPONTSYD (B$)</span></div><div class="chbody"><div id="ch-rrp" style="height:180px"></div></div></div>'
   +'</div>'
 
-  +'<div class="sec">SOFR Volume — dzienna płynność overnight</div>'
-  +'<div class="g2">'
-  +'<div class="card"><div class="cp">'
-  +'<div class="kl" style="margin-bottom:8px">SOFR Volume — FRED SOFRVOL</div>'
-  +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">'
-  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Poziom dzienny</div><div style="font-family:var(--sans);font-size:14px;font-weight:700;color:var(--B)">'+(sofrV?'$'+fN(sofrV/1e9,0)+'B':'ładowanie…')+'</div></div>'
-  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Trend 3M</div><div style="font-family:var(--sans);font-size:14px;font-weight:700;color:'+(sofrT3!=null?(sofrT3>0?'var(--G)':'var(--R)'):'var(--t1)+')+'">'+(sofrT3!=null?pS(sofrT3):'…')+'</div></div>'
-  +'<div class="gcc" style="text-align:left;padding:8px 10px"><div class="gcc-l">Trend 12M</div><div style="font-family:var(--sans);font-size:14px;font-weight:700;color:var(--t1)">'+(sofrY!=null?pS(sofrY):'…')+'</div></div>'
+  +'<div class="sec">SOFR Volume — dzienna płynność overnight (FRED SOFRVOL)</div>'
+  +'<div style="background:var(--bg2);border:1px solid var(--B);border-radius:var(--r);padding:14px 16px;margin-bottom:12px">'
+  +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'
+  +'<div style="background:var(--bg1);border-radius:4px;padding:10px 12px"><div style="font-size:9px;color:var(--t2);margin-bottom:4px">POZIOM DZIENNY</div><div style="font-size:16px;font-weight:700;color:var(--B)">'+(sofrV?'$'+fN(sofrV/1e9,0)+'B':'…')+'</div></div>'
+  +'<div style="background:var(--bg1);border-radius:4px;padding:10px 12px"><div style="font-size:9px;color:var(--t2);margin-bottom:4px">TREND 3M</div><div style="font-size:16px;font-weight:700;color:'+(sofrT3!=null?(sofrT3>0?'var(--G)':'var(--R)'):'var(--t1)')+'\">'+(sofrT3!=null?pS(sofrT3):'…')+'</div></div>'
+  +'<div style="background:var(--bg1);border-radius:4px;padding:10px 12px"><div style="font-size:9px;color:var(--t2);margin-bottom:4px">TREND 12M</div><div style="font-size:16px;font-weight:700;color:var(--t1)">'+(sofrY!=null?pS(sofrY):'…')+'</div></div>'
   +'</div>'
-  +'<div style="font-size:10px;color:var(--t1);line-height:1.8">SOFR = Secured Overnight Financing Rate. Volume = wolumen transakcji repo overnight na rynku US. Wzrost płynności historycznie sprzyja wzrostom rynku akcji.<br><b style="color:var(--t0)">Scoring:</b> trend 3M&gt;5%=+3 | trend 6M&gt;5%=+2 | spadek=−3 do −5<br><a href="https://fred.stlouisfed.org/series/SOFRVOL" target="_blank" style="color:var(--B)">fred.stlouisfed.org/series/SOFRVOL →</a></div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+  +'<div><div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:5px">Co to jest SOFR Volume?</div>'
+  +'<div style="font-size:10px;color:var(--t1);line-height:1.7"><b>SOFR</b> (Secured Overnight Financing Rate) = oprocentowanie pożyczek overnight między bankami, zabezpieczonych obligacjami US. Zastąpił LIBOR w 2023r.<br><br>'
+  +'<b>Volume SOFRVOL</b> = łączny wolumen tych transakcji repo każdego dnia. To jak &quot;tętno&quot; rynku pieniężnego — ile pieniądza krąży między instytucjami.<br><br>'
+  +'<b>Kryzys repo 2019:</b> SOFR skoczył z 2% do 10% przez noc gdy zabrakło płynności. Fed musiał interweniować. SOFRVOL ostrzegł wcześniej przez spadek wolumenu.</div></div>'
+  +'<div><div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:5px">SOFR → co to znaczy dla aktywów?</div>'
+  +'<div style="display:grid;gap:5px;font-size:9.5px">'
+  +'<div style="background:rgba(0,229,168,.08);border-left:2px solid var(--G);padding:5px 8px;color:var(--t1)"><b style="color:var(--G)">Volume rośnie (trend >5%)</b> — dużo płynności overnight = banki aktywne = akcja kredytowa = dobre dla akcji, krypto, złota. +3 pkt scoring.</div>'
+  +'<div style="background:rgba(255,51,85,.08);border-left:2px solid var(--R);padding:5px 8px;color:var(--t1)"><b style="color:var(--R)">Volume spada (<-5%)</b> — zacieśnienie. Może sygnalizować problemy bankowe lub QT. Złe dla akcji. -3 do -5 pkt.</div>'
+  +'<div style="background:rgba(245,192,64,.08);border-left:2px solid var(--Y);padding:5px 8px;color:var(--t1)"><b style="color:var(--Y)">RRP spada → SOFR Vol rośnie</b> — pieniądz wypływa z Fed do rynku. 2022-2024: RRP spadł o 2T$ → impulsy płynnościowe dla akcji.</div>'
   +'</div></div>'
-  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SOFR Volume</span><span class="ch-s">FRED SOFRVOL</span></div><div class="chbody"><div id="ch-sofr" style="height:180px"></div></div></div>'
   +'</div>'
+  +'<div style="font-size:9.5px;color:var(--t2)">Scoring: trend 3M>5%=+3 | trend 6M>5%=+2 | spadek&lt;-5%=-3 do -5 | <a href="https://fred.stlouisfed.org/series/SOFRVOL" target="_blank" style="color:var(--B)">FRED SOFRVOL →</a></div>'
+  +'</div>'
+  +'<div class="chartbox" style="margin-bottom:12px"><div class="chdr"><span class="ch-t">SOFR Volume dzienny</span><span class="ch-s">FRED SOFRVOL ($B)</span></div><div class="chbody"><div id="ch-sofr" style="height:175px"></div></div></div>'
 
   +'<div class="sec">Cykl płynności — 4 fazy</div>'
   +'<div class="liqcyc">'
@@ -1260,8 +1316,50 @@ function renderLiquidity(){
 ═══════════════════════════════ */
 function renderCOT(){
   var el=document.getElementById('p-cot');if(!el)return;
+  /* Yield curve data */
+  var yc4=(D.f&&D.f.yield_curve&&D.f.yield_curve.current!=null)?D.f.yield_curve.current:null;
+  var ycBlock='<div style="padding:10px;color:var(--t2);font-size:11px">Ładowanie danych krzywej…</div>';
+  if(yc4!=null){
+    var ycCol=yc4<0?'var(--R)':yc4<0.3?'var(--Y)':'var(--G)';
+    var ycLabel=yc4<-0.5?'GŁĘBOKA INWERSJA':yc4<0?'INWERSJA':yc4<0.5?'NORMALIZACJA':'NORMALNA';
+    var ycAkcjeT=yc4<0?'⚠ Ryzyko recesji':'✓ Korzystne';
+    var ycAkcjeC=yc4<0?'var(--Y)':'var(--G)';
+    var ycAkcjeD=yc4<0?'Krzywa inwersyjna poprzedza recesję o 12–18M. Akcje mogą dalej rosnąć przez ok. 6–12M od inwersji (faza końcowa hossy).':'Normalna krzywa = banki zarabiają na marży = akcja kredytowa = wzrost zysków firm.';
+    var ycObligT=yc4<0?'✓ Long obligacje':'⚠ Krótki koniec';
+    var ycObligC=yc4<0?'var(--G)':'var(--Y)';
+    var ycObligD=yc4<0?'Inwersja = rynek oczekuje obniżek = ceny 10Y rosną (yield spada). Trzymaj długie obligacje.':'Stroma krzywa = kupuj krótki koniec (2Y, IB01). Długie ryzykowne przy inflacji.';
+    var ycZlotoT=yc4<0?'✓ Korzystne':'⚠ Mieszane';
+    var ycZlotoC=yc4<0?'var(--G)':'var(--Y)';
+    var ycZlotoD=yc4<0?'Inwersja = strach = safe haven. Realne stopy (10Y-CPI) często ujemne = złoto rośnie.':'Normalna krzywa = ryzyko on = złoto ma konkurencję w obligacjach z realnym yield.';
+    var ycDolarD=yc4<0?'Risk-off = USD silny. EUR/PLN może rosnąć. Uważaj na PLN.':'Zależy od różnicy stóp Fed vs ECB. Sprawdź DXY trend.';
+    ycBlock='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 15px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+      +'<div style="font-size:24px;font-weight:700;color:'+ycCol+'">'+yc4.toFixed(2)+'%</div>'
+      +'<div><div style="font-size:11px;font-weight:700;color:'+ycCol+'">'+ycLabel+'</div>'
+      +'<div style="font-size:10px;color:var(--t2)">T10Y minus T2Y | FRED T10Y2Y</div></div>'
+      +'<div style="margin-left:auto;background:'+ycCol+';color:#000;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px">'+ycLabel+'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+      +'<div style="background:var(--bg1);border:1px solid var(--br);border-radius:4px;padding:8px 10px"><div style="font-size:9px;color:var(--t2);margin-bottom:3px">AKCJE</div><div style="font-size:10px;font-weight:700;color:'+ycAkcjeC+';margin-bottom:3px">'+ycAkcjeT+'</div><div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+ycAkcjeD+'</div></div>'
+      +'<div style="background:var(--bg1);border:1px solid var(--br);border-radius:4px;padding:8px 10px"><div style="font-size:9px;color:var(--t2);margin-bottom:3px">OBLIGACJE</div><div style="font-size:10px;font-weight:700;color:'+ycObligC+';margin-bottom:3px">'+ycObligT+'</div><div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+ycObligD+'</div></div>'
+      +'<div style="background:var(--bg1);border:1px solid var(--br);border-radius:4px;padding:8px 10px"><div style="font-size:9px;color:var(--t2);margin-bottom:3px">ZŁOTO</div><div style="font-size:10px;font-weight:700;color:'+ycZlotoC+';margin-bottom:3px">'+ycZlotoT+'</div><div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+ycZlotoD+'</div></div>'
+      +'<div style="background:var(--bg1);border:1px solid var(--br);border-radius:4px;padding:8px 10px"><div style="font-size:9px;color:var(--t2);margin-bottom:3px">DOLAR (DXY)</div><div style="font-size:10px;font-weight:700;color:var(--t1);margin-bottom:3px">→ Kontekst</div><div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+ycDolarD+'</div></div>'
+      +'</div></div>';
+  }
+  /* COT signal based on VIX */
+  var sc2=calcScore();
+  var vix2=sc2.vix||20;
+  var cotTitle=vix2>=28?'BULLISH SETUP (PANIKA)':vix2<18?'CZUJNOŚĆ (EUFORIA)':'NEUTRALNE';
+  var cotCol=vix2>=28?'var(--G)':vix2<18?'var(--Y)':'var(--B)';
+  var cotSignal=vix2>=28
+    ?'VIX '+vix2.toFixed(0)+' — PANIKA. Hedge fundy historycznie KUPUJĄ S&P przy VIX>28. Retail sprzedaje, smart money akumuluje. Dane CFTC potwierdzają: Non-Comm long rośnie przy skrajnym strachu. Sygnał: +7 pkt w scoring.'
+    :vix2<18
+    ?'VIX '+vix2.toFixed(0)+' — EUFORIA. Small speculators max bullish. Hedge fundy mogą redukować. Komercyjne budują hedges. Contrarian sygnał ostrożności.'
+    :'VIX '+vix2.toFixed(0)+' — strefa neutralna (18–28). Brak skrajności. COT bez wyraźnego sygnału. Podążaj za trendem.';
+
+  /* TIMING / opóźnienia */
   var mks=[
-    {name:'S&P 500 E-mini',code:'ES',comm:13,nc:72,sm:35,sc:'var(--G)',sig:'Fundusze LONG — zwiększają long przy VIX&gt;28 = byczo',note:'Non-comm long przy panice = +7 pkt scoring'},
+    {name:'S&P 500 E-mini',code:'ES',comm:13,nc:72,sm:35,sc:'var(--G)',sig:'Fundusze LONG — zwiększają long przy VIX>28 = byczo',note:'Non-comm long przy panice = +7 pkt scoring'},
     {name:'US 10Y Treasury',code:'TY',comm:62,nc:28,sm:45,sc:'var(--R)',sig:'Fundusze SHORT obligacje = zakład na wzrost rentowności',note:'Makro fundy shortują TY → dyskontują inflację'},
     {name:'Złoto (GC)',code:'GC',comm:15,nc:78,sm:68,sc:'var(--Y)',sig:'Fundusze LONG złoto (inflation hedge)',note:'Producenci zawsze short (hedge wydobycia)'},
     {name:'EUR/USD (6E)',code:'6E',comm:55,nc:38,sm:52,sc:'var(--R)',sig:'Fundusze SHORT EUR = zakład na siłę USD',note:'Short squeeze risk przy pivot Fed'},
@@ -1269,23 +1367,8 @@ function renderCOT(){
     {name:'Ropa WTI (CL)',code:'CL',comm:42,nc:55,sm:48,sc:'var(--Y)',sig:'Fundusze redukują long — brak conviction',note:'CTA mogą zejść short przy spadku cen'},
   ];
   function cm(m){
-    var sc=m.sc;
     function bar(lbl,pct,c){return'<div class="cm-bar-row"><div class="cm-bl">'+lbl+'</div><div class="cm-track"><div class="cm-f" style="width:'+pct+'%;background:'+c+'"></div></div><div class="cm-bv" style="color:'+c+'">'+pct+'%</div></div>';}
-    return'<div class="cm"><div class="cm-h"><div><div class="cm-n">'+m.name+'</div><div style="font-size:8.5px;color:var(--t2)">CFTC</div></div><div class="cm-c">'+m.code+'</div></div>'+bar('Komercyjne',m.comm,'#2a9df5')+bar('Non-Comm',m.nc,'#9b7ef8')+bar('Small Spec',m.sm,'#f5c040')+'<div class="cm-sig" style="background:rgba(255,255,255,.04);color:'+sc+';border:1px solid rgba(255,255,255,.08)">'+m.sig+'</div><div class="cm-note">'+m.note+'</div></div>';
-  }
-  /* Dynamic COT context based on current VIX and score */
-  var sc2=calcScore();
-  var vix2=sc2.vix||20;
-  var cotSignal='',cotCol='var(--t1)',cotTitle='';
-  if(vix2>=28){
-    cotSignal='⚡ VIX '+vix2.toFixed(0)+' — PANIKA. Hedge fundy historycznie zwiększają long S&P przy VIX&gt;28. To sygnał byczo (+7 pkt w scoring). Komercyjne (smart money) często kupują panikę.';
-    cotCol='var(--G)';cotTitle='BULLISH SETUP';
-  } else if(vix2<18){
-    cotSignal='VIX '+vix2.toFixed(0)+' — EUFORIA. Niskie VIX = małe specs są max bullish. Historycznie sygnał do ostrożności. Komercyjne często budują hedges.';
-    cotCol='var(--Y)';cotTitle='CZUJNOŚĆ';
-  } else {
-    cotSignal='VIX '+vix2.toFixed(0)+' — neutralna strefa (18–28). Positioning zgodny z trendem. Brak skrajności = brak wyraźnego contrarian sygnału.';
-    cotCol='var(--B)';cotTitle='NEUTRALNE';
+    return'<div class="cm"><div class="cm-h"><div><div class="cm-n">'+m.name+'</div><div style="font-size:8.5px;color:var(--t2)">CFTC</div></div><div class="cm-c">'+m.code+'</div></div>'+bar('Komercyjne',m.comm,'#2a9df5')+bar('Non-Comm',m.nc,'#9b7ef8')+bar('Small Spec',m.sm,'#f5c040')+'<div class="cm-sig" style="background:rgba(255,255,255,.04);color:'+m.sc+';border:1px solid rgba(255,255,255,.08)">'+m.sig+'</div><div class="cm-note">'+m.note+'</div></div>';
   }
 
   el.innerHTML='<div class="wrap">'
@@ -1295,43 +1378,60 @@ function renderCOT(){
   +'<div style="background:'+cotCol+';color:#000;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px">'+cotTitle+'</div>'
   +'</div>'
   +'<div style="font-size:10.5px;color:var(--t1);line-height:1.75">'+cotSignal+'</div>'
-  +'<div style="margin-top:8px;font-size:9.5px;color:var(--t2)">CFTC publikuje w piątek 15:30 ET, dane z poprzedniego wtorku. Zasada: podążaj za komercyjnymi (hedgerami). <b style="color:var(--t0)">Non-comm long przy panice = +7 pkt scoring.</b></div>'
+  +'<div style="margin-top:8px;font-size:9.5px;color:var(--t2)">CFTC publikuje w piątek 15:30 ET, dane z poprzedniego wtorku. Non-comm long przy panice = +7 pkt scoring.</div>'
   +'</div>'
-  +'<div class="sec">Trzy grupy graczy</div>'
-  +'<div class="cot-grid">'
-  +'<div class="ca" style="border-left:2px solid var(--B)"><div class="ca-n" style="color:var(--B)">Komercyjne (Hedgers)</div><div class="ca-sub">Producenci, banki, korporacje</div><div class="ca-d">Hedgują realne ryzyko biznesowe. Nie spekulują. Gdy masowo LONG (rzadkość) = mocny sygnał.</div><div class="ca-rule" style="background:rgba(42,157,245,.08);color:var(--B);border:1px solid rgba(42,157,245,.2)">Masowy long = okazja rynkowa (rzadkie)</div></div>'
-  +'<div class="ca" style="border-left:2px solid var(--V)"><div class="ca-n" style="color:var(--V)">Non-Commercial (Large Specs)</div><div class="ca-sub">Hedge fundy, CTA, asset managers</div><div class="ca-d">Trend followers. Ekstrema = contrarian. <b>Long przy panice (+7 pkt) — kluczowy sygnał byczo.</b></div><div class="ca-rule" style="background:rgba(155,126,248,.08);color:var(--V);border:1px solid rgba(155,126,248,.2)">Long przy VIX&gt;28 = +7 | short przy euforii = −7</div></div>'
-  +'<div class="ca" style="border-left:2px solid var(--Y)"><div class="ca-n" style="color:var(--Y)">Small Speculators</div><div class="ca-sub">Retail, małe fundy</div><div class="ca-d">Non-reportable. Historycznie najsłabszy smart money. Ekstremalny optimizm = sell signal (contrarian).</div><div class="ca-rule" style="background:rgba(245,192,64,.08);color:var(--Y);border:1px solid rgba(245,192,64,.2)">Rekord bullish = uwaga na szczyt</div></div>'
-  +'</div>'
-  +'<div class="sec">Co pozycjonowanie oznacza dla aktywów (przy obecnym VIX)?</div>'
-  +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">'
-  +'<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px">'
-  +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">S&P 500</div>'
-  +'<div style="font-size:10.5px;color:'+(vix2>=28?'var(--G)':vix2<18?'var(--Y)':'var(--t1)')+';font-weight:700;margin-bottom:4px">'+(vix2>=28?'✓ SYGNAŁ BYCZO':'⚠ NEUTRALNE / OSTROŻNOŚĆ')+'</div>'
-  +'<div style="font-size:10px;color:var(--t1);line-height:1.6">'+(vix2>=28?'Hedge fundy zwykle kupują S&P przy VIX&gt;28 (panika retail). Non-comm long przy skrajnym strachu = historyczny sygnał do kupna.':'Brak skrajnego strachu = brak premium na panic-buying. Trend following fundy w pozycji.')+'</div>'
-  +'</div>'
-  +'<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px">'
-  +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">ZŁOTO</div>'
-  +'<div style="font-size:10.5px;color:var(--Y);font-weight:700;margin-bottom:4px">↑ Fundusze LONG złoto</div>'
-  +'<div style="font-size:10px;color:var(--t1);line-height:1.6">Hedge fundy utrzymują long GC jako inflation hedge. Producenci (komercyjne) zawsze short — hedgują wydobycie. Gdy non-comm rekordowo long = szczyt może być blisko.</div>'
-  +'</div>'
-  +'<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px">'
-  +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">DOLAR (DXY)</div>'
-  +'<div style="font-size:10.5px;color:var(--R);font-weight:700;margin-bottom:4px">→ Fundusze SHORT EUR</div>'
-  +'<div style="font-size:10px;color:var(--t1);line-height:1.6">Duże specki są short EUR/USD = zakład na silny USD. To wspiera DXY, ale przy pivot Fed → short squeeze EUR możliwy. PLN koreluje z EUR.</div>'
-  +'</div>'
-  +'</div>'
-  +'<div class="sec">E-Mini S&amp;P500 — net positioning (orientacyjny)</div>'
-  +'<div class="chartbox"><div class="chdr"><span class="ch-t">Hedge Funds net long vs Dealers — E-mini SP500</span><span class="ch-s">tys. kontraktów · dane orientacyjne / CFTC quarterly</span></div><div class="chbody"><div id="ch-cot" style="height:200px"></div></div></div>'
-  +'<div style="background:rgba(245,192,64,.06);border:1px solid rgba(245,192,64,.15);border-radius:var(--r);padding:7px 11px;margin-bottom:10px;font-size:9.5px;color:var(--Y)">Dane orientacyjne. Aktualne: <a href="https://dankostecki.github.io/cot/" target="_blank" style="color:var(--B)">Panel COT Dana Kosteckiego →</a> | <a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" style="color:var(--B)">CFTC.gov →</a></div>'
-  +'<div class="sec">Krzywa Rentowności (T10Y–T2Y)</div>'
+
+  /* Krzywa rentowności */
+  +'<div class="sec">Krzywa Rentowności (T10Y–T2Y) — kluczowy wskaźnik przepływu kapitału</div>'
   +ycBlock
-  +'<div class="g2" style="margin-bottom:10px">'
-  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Krzywa Rentowności T10Y–T2Y</span><span class="ch-s">FRED T10Y2Y</span></div><div class="chbody"><div id="ch-yc" style="height:180px"></div></div></div>'
-  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Credit Spread</span><span class="ch-s">FRED BAMLH0A0HYM2 (%)</span></div><div class="chbody"><div id="ch-hy" style="height:180px"></div></div></div>'
+  +'<div class="g2" style="margin-bottom:12px">'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Krzywa T10Y–T2Y</span><span class="ch-s">FRED T10Y2Y — inwersja = poniżej 0</span></div><div class="chbody"><div id="ch-yc" style="height:175px"></div></div></div>'
+  +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Credit Spread</span><span class="ch-s">FRED BAMLH0A0HYM2 (%)</span></div><div class="chbody"><div id="ch-hy" style="height:175px"></div></div></div>'
   +'</div>'
-  +'<div class="sec">Pozycjonowanie na rynkach</div>'
+
+  /* Timing / opóźnienia */
+  +'<div class="sec">Przesunięcia czasowe — kiedy reagować?</div>'
+  +'<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:13px 16px;margin-bottom:12px">'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;color:var(--t1);line-height:1.7">'
+  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--R)">'
+  +'<div style="font-size:9px;color:var(--R);font-weight:700;margin-bottom:4px">⚠ SYGNAŁY WYPRZEDZAJĄCE (Lead 6–18M)</div>'
+  +'<b>Krzywa rentowności (T10Y–T2Y):</b> inwersja poprzedza recesję o śr. 12–18M. 2006: inwersja → 2008 kryzys.<br>'
+  +'<b>Sahm Rule ≥0.5:</b> gdy przekroczy — recesja już trwa (lag 1–2M). Natychmiastowa reakcja.<br>'
+  +'<b>M2 YoY spada do 0%:</b> akcje reagują z 6–12M opóźnienia.'
+  +'</div>'
+  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--Y)">'
+  +'<div style="font-size:9px;color:var(--Y);font-weight:700;margin-bottom:4px">→ SYGNAŁY RÓWNOCZESNE (1–4 tygodnie)</div>'
+  +'<b>HY Spread >5.5%:</b> kryzys kredytowy — redukuj akcje natychmiast.<br>'
+  +'<b>VIX >28:</b> panika — sygnał do DCA, nie sprzedawaj.<br>'
+  +'<b>COT Non-Comm long przy VIX>28:</b> smart money kupuje — dołek bliski.'
+  +'</div>'
+  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--G)">'
+  +'<div style="font-size:9px;color:var(--G);font-weight:700;margin-bottom:4px">✓ SYGNAŁY KUPNA (Lead 3–6M)</div>'
+  +'<b>M2 YoY wraca >2%:</b> najlepszy moment wejścia historycznie (2009, 2020).<br>'
+  +'<b>Fed pivot (pierwsza obniżka):</b> akcje +20% w kolejnych 12M (historycznie).<br>'
+  +'<b>Krzywa normalizuje się po inwersji:</b> ryzyko recesji opada lub recesja kończy się.'
+  +'</div>'
+  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--B)">'
+  +'<div style="font-size:9px;color:var(--B);font-weight:700;margin-bottom:4px">ℹ PRZEPŁYW KAPITAŁU (lag 2–8 tygodni)</div>'
+  +'<b>Akcje → Obligacje:</b> HY spread rośnie, VIX rośnie — 2–4 tyg. zanim fundusze zrotują.<br>'
+  +'<b>Obligacje → Złoto:</b> gdy real rates (10Y-CPI) schodzą poniżej 0% — 1–3M lag.<br>'
+  +'<b>USD osłabienie → Emerging Markets:</b> DXY spada → PLN, złoto, krypto rosną — lag 4–8 tyg.'
+  +'</div>'
+  +'</div></div>'
+
+  /* COT groups */
+  +'<div class="sec">Trzy grupy graczy — kto co robi?</div>'
+  +'<div class="cot-grid">'
+  +'<div class="ca" style="border-left:2px solid var(--B)"><div class="ca-n" style="color:var(--B)">Komercyjne (Hedgers)</div><div class="ca-sub">Producenci, banki, korporacje</div><div class="ca-d">Hedgują realne ryzyko biznesowe. Gdy masowo LONG (rzadkość) = mocny sygnał dna. Zawsze mają informację o realu — producent złota shortuje złoto bo sprzedaje wydobycie naprzód.</div><div class="ca-rule" style="background:rgba(42,157,245,.08);color:var(--B);border:1px solid rgba(42,157,245,.2)">Masowy long = okazja rynkowa (rzadkie, silny sygnał)</div></div>'
+  +'<div class="ca" style="border-left:2px solid var(--V)"><div class="ca-n" style="color:var(--V)">Non-Commercial (Large Specs)</div><div class="ca-sub">Hedge fundy, CTA, asset managers</div><div class="ca-d">Trend followers. Kluczowy sygnał: <b>Long przy panice (+7 pkt w scoring) — byczo kontrariański.</b> CTA (algo) amplifikują ruchy — short squeeze możliwy gdy wszyscy są short.</div><div class="ca-rule" style="background:rgba(155,126,248,.08);color:var(--V);border:1px solid rgba(155,126,248,.2)">Long przy VIX>28 = +7 | short przy euforii = −7</div></div>'
+  +'<div class="ca" style="border-left:2px solid var(--Y)"><div class="ca-n" style="color:var(--Y)">Small Speculators</div><div class="ca-sub">Retail, małe fundy — contrarian indicator</div><div class="ca-d">Historycznie najsłabszy smart money. Rekordowy optymizm retail = zazwyczaj szczyt. Rekordowy pesymizm = dołek. Patrz: 2021 meme stocks — max bullish retail → crash 2022.</div><div class="ca-rule" style="background:rgba(245,192,64,.08);color:var(--Y);border:1px solid rgba(245,192,64,.2)">Rekord bullish = uwaga na szczyt rynku</div></div>'
+  +'</div>'
+
+  +'<div class="sec">Pozycjonowanie na rynkach (dane orientacyjne CFTC)</div>'
+  +'<div class="chartbox"><div class="chdr"><span class="ch-t">Hedge Funds net long vs Dealers — E-mini SP500</span><span class="ch-s">tys. kontraktów · orientacyjne / CFTC quarterly</span></div><div class="chbody"><div id="ch-cot" style="height:200px"></div></div></div>'
+  +'<div style="background:rgba(245,192,64,.06);border:1px solid rgba(245,192,64,.15);border-radius:var(--r);padding:7px 11px;margin-bottom:10px;font-size:9.5px;color:var(--Y)">Dane orientacyjne. Aktualne: <a href="https://dankostecki.github.io/cot/" target="_blank" style="color:var(--B)">Panel COT Dana Kosteckiego →</a></div>'
   +'<div class="cotm">'+mks.map(cm).join('')+'</div>'
+
   +'<div class="lgrid">'
   +'<a class="lnk" href="https://dankostecki.github.io/cot/" target="_blank">Panel COT (Dan Kostecki)</a>'
   +'<a class="lnk" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank">CFTC.gov oficjalne</a>'
@@ -1344,7 +1444,6 @@ function renderCOT(){
     plotFred('ch-hy','hy_spread','#f5c040','HY Spread (%)');
   },50);
 }
-
 /* ═══════════════════════════════
    RENDER: INDICATORS
 ═══════════════════════════════ */
@@ -1419,6 +1518,30 @@ function renderIndicators(){
   +'<div style="min-width:120px;font-size:10px;font-weight:700;color:'+r.c+'">'+r.label+'</div>'
   +'<div style="font-size:10px;color:var(--t1);line-height:1.6">'+r.ctx+'</div>'
   +'</div>';}).join('')
+  +'</div>'
+  +'<div class="sec" style="margin-bottom:0">🚨 Które wskaźniki mogą wszystko szybko popsuc?</div>'
+  +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">'
+  +'<div style="background:rgba(255,51,85,.08);border:1px solid var(--R);border-radius:var(--r);padding:11px 13px">'
+  +'<div style="font-size:10px;font-weight:700;color:var(--R);margin-bottom:5px">🔴 KRYTYCZNE (reaguj natychmiast)</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>HY Spread >7%</b> — kryzys kredytowy. 2008: 20%. Akcje tracą 30-50% w kolejnych miesiącach. Czas reakcji: 0.<br>'
+  +'<b>Sahm Rule ≥0.5%</b> — recesja trwa. 100% trafność 1970-2024. Bezrobocie rośnie — firmy tną wydatki.<br>'
+  +'<b>VIX >40</b> — panika systemowa (COVID: 85, 2008: 80). Historycznie: KUPUJ jeśli zdrowe finanse.'
+  +'</div></div>'
+  +'<div style="background:rgba(245,192,64,.08);border:1px solid var(--Y);border-radius:var(--r);padding:11px 13px">'
+  +'<div style="font-size:10px;font-weight:700;color:var(--Y);margin-bottom:5px">🟡 OSTRZEŻENIA (6-18M wyprzedzenia)</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>Krzywa rentowności <0%</b> — inwersja. 2006: inwersja → 2008 kryzys (18M lag). Nie sprzedawaj od razu — rynek może rosnąć jeszcze 6-12M.<br>'
+  +'<b>M2 YoY <0%</b> — kontrakcja podaży pieniądza. 2022: -4% → akcje -25%. Lag: 6-9M.<br>'
+  +'<b>Core CPI >4%</b> — Fed musi podwyższać. Obligacje tracą, akcje value lepiej od growth.'
+  +'</div></div>'
+  +'<div style="background:rgba(0,229,168,.08);border:1px solid var(--G);border-radius:var(--r);padding:11px 13px">'
+  +'<div style="font-size:10px;font-weight:700;color:var(--G);margin-bottom:5px">🟢 SYGNAŁY KUPNA (6-12M wyprzedzenia)</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>M2 YoY wraca >3%</b> — najlepszy historyczny moment wejścia (2009, 2020, 2023). Akcje +30-80% w 12M.<br>'
+  +'<b>Fed pivot (1. obniżka)</b> — akcje +20% śr. w 12M po pivot (dane od 1971). DCA agresywnie.<br>'
+  +'<b>VIX >28 + Sahm <0.3</b> — panika bez recesji = idealne okno kupna (2010, 2011, 2015, 2018, 2020).'
+  +'</div></div>'
   +'</div>'
   +'<div class="sec">Fed i polityka monetarna</div>'
   +'<div class="igrid">'
@@ -1624,8 +1747,8 @@ async function fetchAll(){
     if(!D.q.vix&&D.f.vixfred) D.q.vix={price:D.f.vixfred.current,prev:D.f.vixfred.prev,change:D.f.vixfred.trend3m||0,date:D.f.vixfred.date};
     if(!D.q.sp500&&D.f.sp500fred) D.q.sp500={price:D.f.sp500fred.current,prev:D.f.sp500fred.prev,change:D.f.sp500fred.trend3m||0,date:D.f.sp500fred.date};
     if(!D.q.us10y&&D.f.yield_curve) D.q.us10y={price:D.f.yield_curve.current,prev:D.f.yield_curve.prev,change:D.f.yield_curve.trend3m||0,date:D.f.yield_curve.date};
-    /* SP12M from FRED sp500fred YoY if still null */
-    if((D.sp12m==null||isNaN(D.sp12m))&&D.f.sp500fred&&D.f.sp500fred.yoy!=null){
+    /* SP12M from FRED sp500fred YoY when stooq+yahoo failed */
+    if((D.sp12m==null||isNaN(D.sp12m)||(D.sp12m_src&&D.sp12m_src.indexOf('pending')===0))&&D.f.sp500fred&&D.f.sp500fred.yoy!=null){
       D.sp12m=D.f.sp500fred.yoy; D.sp12m_src='FRED SP500 YoY';
     }
   }
