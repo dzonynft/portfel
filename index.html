@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">2026</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v31</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -509,49 +509,53 @@ async function sOneYahoo(sym) {
   return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:lastDate};
 }
 async function sOneNBP(sym) {
-  /* NBP API — official Polish National Bank, CORS enabled, no proxy needed */
-  var tbl='',code='';
-  if(sym==='usdpln'){tbl='A';code='USD';}
-  else if(sym==='eurpln'){tbl='A';code='EUR';}
-  else if(sym==='gbpusd'||sym==='gbppln'){tbl='A';code='GBP';}
-  else throw new Error('no NBP mapping');
-  var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},6000);
-  var url='https://api.nbp.pl/api/exchangerates/rates/'+tbl+'/'+code+'/last/5/?format=json';
-  var r=await fetch(url,{signal:ctrl.signal,cache:'no-store'});
+  var code=sym==='usdpln'?'USD':sym==='eurpln'?'EUR':null;
+  if(!code) throw new Error('no NBP');
+  var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},7000);
+  var r=await fetch('https://api.nbp.pl/api/exchangerates/rates/A/'+code+'/last/5/?format=json',{signal:ctrl.signal,cache:'no-store'});
   clearTimeout(t);
   var j=await r.json();
-  var rates=j&&j.rates;
-  if(!rates||rates.length<2) throw new Error('no NBP rates');
+  var rates=j&&j.rates; if(!rates||rates.length<2) throw new Error('no rates');
   var last=rates[rates.length-1].mid,prev=rates[rates.length-2].mid;
-  /* NBP gives mid rate vs PLN. For USDPLN/EURPLN direct. For EUR/USD = EUR/PLN ÷ USD/PLN */
   return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:rates[rates.length-1].effectiveDate};
 }
 async function sOneECB(sym) {
-  /* ECB API — EUR/USD direct, CORS enabled */
   if(sym!=='eurusd') throw new Error('ECB only eurusd');
   var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},7000);
   var r=await fetch('https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A?lastNObservations=5&format=jsondata',{signal:ctrl.signal,cache:'no-store'});
   clearTimeout(t);
   var j=await r.json();
   var obs=j&&j.dataSets&&j.dataSets[0]&&j.dataSets[0].series&&j.dataSets[0].series['0:0:0:0:0'];
-  if(!obs) throw new Error('no ECB data');
+  if(!obs) throw new Error('no ECB');
   var vals=Object.values(obs.observations).map(function(o){return parseFloat(o[0]);}).filter(isFinite);
-  if(vals.length<2) throw new Error('too few ECB vals');
+  if(vals.length<2) throw new Error('too few');
   var last=vals[vals.length-1],prev=vals[vals.length-2];
   return{price:last,prev:prev,change:prev?(last-prev)/prev*100:0,date:''};
 }
+async function sOneFrankfurter(sym) {
+  var map={eurusd:{f:'EUR',t:'USD'},eurpln:{f:'EUR',t:'PLN'},usdpln:{f:'USD',t:'PLN'},usdjpy:{f:'USD',t:'JPY'}};
+  var p=map[sym]; if(!p) throw new Error('no frankf');
+  var ctrl=new AbortController(),tm=setTimeout(function(){ctrl.abort();},7000);
+  var r=await fetch('https://api.frankfurter.app/latest?from='+p.f+'&to='+p.t,{signal:ctrl.signal,cache:'no-store'});
+  clearTimeout(tm);
+  var j=await r.json();
+  var rate=j&&j.rates&&j.rates[p.t]; if(!rate) throw new Error('no rate');
+  return{price:rate,prev:rate,change:0,date:j.date||''};
+}
 async function sOne(sym) {
-  /* Priority: stooq → Yahoo → NBP (for PLN) → ECB (for EUR/USD) */
   try{return await sOneStooq(sym);}catch(e1){
     try{return await sOneYahoo(sym);}catch(e2){
-      /* PLN pairs: try NBP official API */
       if(sym==='usdpln'||sym==='eurpln'){
-        try{return await sOneNBP(sym);}catch(e3){}
+        try{return await sOneNBP(sym);}catch(ea){
+          try{return await sOneFrankfurter(sym);}catch(eb){}
+        }
       }
-      /* EUR/USD: try ECB official API */
       if(sym==='eurusd'){
-        try{return await sOneECB(sym);}catch(e3){}
+        try{return await sOneECB(sym);}catch(ea){
+          try{return await sOneFrankfurter(sym);}catch(eb){}
+        }
       }
+      if(sym==='usdjpy'){try{return await sOneFrankfurter(sym);}catch(ea){}}
       throw new Error(sym+' all failed');
     }
   }
@@ -566,37 +570,53 @@ async function fetchStooq() {
   setS(ok>10?'ok':'er','Stooq: '+ok+' OK, '+fail+' err');
 }
 async function fetchSP12M() {
-  /* Yahoo Finance v8 — 1Y weekly, direct (CORS supported) */
+  /* 1. FRED SP500 monthly — most reliable */
+  try {
+    var fu='https://api.stlouisfed.org/fred/series/observations?api_key=03062bdea07a8594cad80e9a0574721e&file_type=json&sort_order=desc&limit=15&series_id=SP500';
+    var rp=await pGet(fu,12000);
+    var raw=await rp.text();
+    if(!raw||raw.trim().charAt(0)==='<') throw new Error('html response');
+    var jf=JSON.parse(raw);
+    var obs=(jf.observations||[]).filter(function(o){return o.value&&o.value!=='.'&&isFinite(parseFloat(o.value));});
+    if(obs.length<13) throw new Error('too few obs: '+obs.length);
+    obs.reverse(); /* oldest first */
+    var first=parseFloat(obs[0].value),last=parseFloat(obs[obs.length-1].value);
+    if(!isFinite(first)||first<100) throw new Error('bad first: '+first);
+    var ret=(last-first)/first*100;
+    if(ret<-60||ret>300) throw new Error('implausible: '+ret.toFixed(1));
+    D.sp12m=ret; D.sp12m_src='FRED SP500'; return;
+  } catch(ef){ /* yahoo next */ }
+  /* 2. Yahoo Finance v8 */
   try {
     var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},9000);
-    var r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1wk&range=1y',{signal:ctrl.signal,cache:'no-store'});
+    var ry=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1mo&range=13mo',{signal:ctrl.signal,cache:'no-store'});
     clearTimeout(t);
-    var j=await r.json();
-    var res=j&&j.chart&&j.chart.result&&j.chart.result[0];
-    if(!res) throw new Error('no yahoo result');
-    var closes=(res.indicators.quote[0].close||[]).filter(function(v){return v!=null&&isFinite(v);});
-    if(closes.length<2) throw new Error('too few');
-    var first=closes[0],last=closes[closes.length-1];
-    var ret=(last-first)/first*100;
-    if(ret<-60||ret>200) throw new Error('implausible: '+ret.toFixed(1));
-    D.sp12m=ret; D.sp12m_src='Yahoo 1Y'; return;
-  } catch(ey){}
-  /* Stooq fallback */
+    var jy=await ry.json();
+    var res=jy&&jy.chart&&jy.chart.result&&jy.chart.result[0];
+    if(!res) throw new Error('no result');
+    var cl=(res.indicators.quote[0].close||[]).filter(function(v){return v!=null&&isFinite(v)&&v>100;});
+    if(cl.length<12) throw new Error('too few closes: '+cl.length);
+    var first2=cl[0],last2=cl[cl.length-1];
+    var ret2=(last2-first2)/first2*100;
+    if(ret2<-60||ret2>300) throw new Error('implausible: '+ret2.toFixed(1));
+    D.sp12m=ret2; D.sp12m_src='Yahoo 13M'; return;
+  } catch(ey){ /* stooq next */ }
+  /* 3. Stooq via proxy */
   try {
     var now=new Date(),ya=new Date(now); ya.setFullYear(ya.getFullYear()-1);
     function d8(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
-    var r2=await pGet('https://stooq.com/q/d/l/?s=%5Espx&d1='+d8(ya)+'&d2='+d8(now)+'&i=w',10000);
-    var txt=await r2.text();
-    if(!txt||txt.indexOf('No data')!==-1) throw new Error('no data');
-    var lns=txt.trim().split('\n').filter(function(l){return l&&l.indexOf('Date')===-1;});
-    if(lns.length<2) throw new Error('too few: '+lns.length);
+    var rs=await pGet('https://stooq.com/q/d/l/?s=%5Espx&d1='+d8(ya)+'&d2='+d8(now)+'&i=m',10000);
+    var tx=await rs.text();
+    if(!tx||tx.indexOf('No data')!==-1) throw new Error('no stooq data');
+    var lns=tx.trim().split('\n').filter(function(l){return l&&l.indexOf('Date')===-1;});
+    if(lns.length<2) throw new Error('too few rows: '+lns.length);
     function pv(l){return parseFloat(l.split(',')[4]);}
-    var f2=pv(lns[0]),l2=pv(lns[lns.length-1]);
-    if(!f2||!l2||isNaN(f2)||isNaN(l2)) throw new Error('NaN');
-    var ret2=(l2-f2)/f2*100;
-    if(ret2<-60||ret2>200) throw new Error('implausible: '+ret2.toFixed(1));
-    D.sp12m=ret2; D.sp12m_src='stooq 1Y';
-  } catch(es){ D.sp12m=null; D.sp12m_src='pending:'+es.message; }
+    var f3=pv(lns[0]),l3=pv(lns[lns.length-1]);
+    if(!isFinite(f3)||f3<100) throw new Error('NaN');
+    var ret3=(l3-f3)/f3*100;
+    if(ret3<-60||ret3>300) throw new Error('implausible: '+ret3.toFixed(1));
+    D.sp12m=ret3; D.sp12m_src='Stooq 1Y';
+  } catch(es){ D.sp12m=null; D.sp12m_src='pending'; }
 }
 /* FRED series map */
 var FM = {
@@ -1358,17 +1378,69 @@ function renderCOT(){
     :'VIX '+vix2.toFixed(0)+' — strefa neutralna (18–28). Brak skrajności. COT bez wyraźnego sygnału. Podążaj za trendem.';
 
   /* TIMING / opóźnienia */
+  var _sc2=calcScore(),_vx=_sc2.vix||20,_hy2=_sc2.hy||4;
+  var _yc3=(D.f&&D.f.yield_curve&&D.f.yield_curve.current!=null)?D.f.yield_curve.current:null;
+  var _m2c=(D.f&&D.f.m2&&D.f.m2.yoy!=null)?D.f.m2.yoy:null;
+  var _dxy=(D.q&&D.q.dxy&&D.q.dxy.price)?D.q.dxy.price:null;
+  var esNow=_vx>=28
+    ?'VIX '+_vx.toFixed(0)+' >=28 = PANIKA. Hedge fundy historycznie LONG przy panice (Non-Comm). Sygnal: akumuluj ISAC/VWCE. +7 pkt scoring.'
+    :_vx<18
+    ?'VIX '+_vx.toFixed(0)+' <18 = EUFORIA. Retail max bullish = contrarian ostrzezenie. Nie nadkupuj.'
+    :'VIX '+_vx.toFixed(0)+' = NEUTRAL (18-28). Kontynuuj DCA zgodnie z planem tygodniowym.';
+  var esCol=_vx>=28?'var(--G)':_vx<18?'var(--Y)':'var(--B)';
+  var tyNow=_yc3!=null
+    ?(_yc3<0
+      ?'Krzywa '+_yc3.toFixed(2)+'% INWERSJA. Short TY = zly trade przy inwersji bo rynek oczekuje obnizek Fed = ceny 10Y wzrosna. Trzymaj IB01, nie shortuj obligacji dlugoterminowych.'
+      :'Krzywa '+_yc3.toFixed(2)+'% normalna. Short TY = slusznie dyskontuje inflacje. Uwazaj na dlugie obligacje przy rosnacym yield.')
+    :'Short TY = zaklad na wzrost rentownosci / inflacje.';
+  var gcNow='LONG zloto = hedge fundy kupuja. M2 YoY: '+(_m2c!=null?_m2c.toFixed(1)+'%':'-')+'. '+
+    (_m2c!=null?(_m2c>2?'Ekspansja monetarna = pro-zloto.':'Neutralne dla zlota. ')+' ':'  ')+
+    'Komercyjne ZAWSZE short (hedguja wydobycie) = NIE czytaj jako sygnal bearish zlota.';
+  var sixeNow='SHORT EUR/USD = zaklad na silny USD. DXY: '+(_dxy?_dxy.toFixed(1)+' pkt':'brak')+
+    '. Przy pivot Fed: short squeeze EUR mozliwy (EUR rosnie) = PLN zyska vs USD. Twoje EUR-portfele (P4/P5) zyskuja na slabszym USD.';
+  var vxNow=_vx>=28
+    ?'VIX '+_vx.toFixed(0)+' >=28 = SQUEEZE RYZYKO. Short VIX moze implodowac jesli VIX rosnie dalej powyzej 35. Nie shortuj vol przy panice.'
+    :'VIX '+_vx.toFixed(0)+'. Vol sellers short VIX = zaklad na spokojny rynek. Strategia popularna i zyskowna przy niskim VIX.';
+  var vxCol=_vx>=28?'var(--R)':'var(--V)';
+  var clNow='HY spread: '+_hy2.toFixed(2)+'%. '+
+    (_hy2>5?'ALARM: kryzys kredytowy. Ropa spada gdy gospodarka hamuje. Redukuj ekspozycje towarowa.':
+     _hy2>4?'Uwaga: spread rosnie. Obserwuj trend ropy i kredytu.':'HY OK. Brak alarmu makro dla ropy. Fundusze redukuja bo brak katalizatora wzrostu.');
   var mks=[
-    {name:'S&P 500 E-mini',code:'ES',comm:13,nc:72,sm:35,sc:'var(--G)',sig:'Fundusze LONG — zwiększają long przy VIX>28 = byczo',note:'Non-comm long przy panice = +7 pkt scoring'},
-    {name:'US 10Y Treasury',code:'TY',comm:62,nc:28,sm:45,sc:'var(--R)',sig:'Fundusze SHORT obligacje = zakład na wzrost rentowności',note:'Makro fundy shortują TY → dyskontują inflację'},
-    {name:'Złoto (GC)',code:'GC',comm:15,nc:78,sm:68,sc:'var(--Y)',sig:'Fundusze LONG złoto (inflation hedge)',note:'Producenci zawsze short (hedge wydobycia)'},
-    {name:'EUR/USD (6E)',code:'6E',comm:55,nc:38,sm:52,sc:'var(--R)',sig:'Fundusze SHORT EUR = zakład na siłę USD',note:'Short squeeze risk przy pivot Fed'},
-    {name:'VIX Futures',code:'VX',comm:72,nc:25,sm:38,sc:'var(--V)',sig:'Vol sellers SHORT VIX = zakład na spokój',note:'Short squeeze risk w czasie spike VIX'},
-    {name:'Ropa WTI (CL)',code:'CL',comm:42,nc:55,sm:48,sc:'var(--Y)',sig:'Fundusze redukują long — brak conviction',note:'CTA mogą zejść short przy spadku cen'},
+    {name:'S&P 500 E-mini',code:'ES',comm:13,nc:72,sm:35,sc:esCol,
+     sig:'Non-Commercial (hedge fundy) zwiekszaja LONG przy panice',note:esNow},
+    {name:'US 10Y Treasury',code:'TY',comm:62,nc:28,sm:45,sc:'var(--R)',
+     sig:'Fundusze SHORT obligacje = zaklad na wzrost rentownosci',note:tyNow},
+    {name:'Zloto (GC)',code:'GC',comm:15,nc:78,sm:68,sc:'var(--Y)',
+     sig:'Non-Comm LONG zloto = inflation hedge i safe haven',note:gcNow},
+    {name:'EUR/USD (6E)',code:'6E',comm:55,nc:38,sm:52,sc:'var(--R)',
+     sig:'Fundusze SHORT EUR = zaklad na sile USD / DXY',note:sixeNow},
+    {name:'VIX Futures',code:'VX',comm:72,nc:25,sm:38,sc:vxCol,
+     sig:'Vol sellers SHORT VIX = zaklad na niska zmiennosc',note:vxNow},
+    {name:'Ropa WTI (CL)',code:'CL',comm:42,nc:55,sm:48,sc:'var(--Y)',
+     sig:'Fundusze redukuja long ropy = brak conviction',note:clNow},
   ];
   function cm(m){
-    function bar(lbl,pct,c){return'<div class="cm-bar-row"><div class="cm-bl">'+lbl+'</div><div class="cm-track"><div class="cm-f" style="width:'+pct+'%;background:'+c+'"></div></div><div class="cm-bv" style="color:'+c+'">'+pct+'%</div></div>';}
-    return'<div class="cm"><div class="cm-h"><div><div class="cm-n">'+m.name+'</div><div style="font-size:8.5px;color:var(--t2)">CFTC</div></div><div class="cm-c">'+m.code+'</div></div>'+bar('Komercyjne',m.comm,'#2a9df5')+bar('Non-Comm',m.nc,'#9b7ef8')+bar('Small Spec',m.sm,'#f5c040')+'<div class="cm-sig" style="background:rgba(255,255,255,.04);color:'+m.sc+';border:1px solid rgba(255,255,255,.08)">'+m.sig+'</div><div class="cm-note">'+m.note+'</div></div>';
+    function bar(lbl,pct,c){
+      return '<div class="cm-bar-row"><div class="cm-bl">'+lbl+'</div>'
+        +'<div class="cm-track"><div class="cm-f" style="width:'+pct+'%;background:'+c+'"></div></div>'
+        +'<div class="cm-bv" style="color:'+c+'">'+pct+'%</div></div>';
+    }
+    return '<div class="cm">'
+      +'<div class="cm-h"><div>'
+        +'<div class="cm-n">'+m.name+'</div>'
+        +'<div style="font-size:8.5px;color:var(--t2)">CFTC dane orient.</div>'
+      +'</div><div class="cm-c">'+m.code+'</div></div>'
+      +bar('Komercyjne (Hedgers)',m.comm,'#2a9df5')
+      +bar('Non-Commercial (Fundusze)',m.nc,'#9b7ef8')
+      +bar('Small Spec (Retail)',m.sm,'#f5c040')
+      +'<div style="background:rgba(255,255,255,.04);color:'+m.sc
+        +';border:1px solid rgba(255,255,255,.1);margin-top:6px;padding:5px 8px;border-radius:3px;font-size:9px">'
+        +m.sig+'</div>'
+      +'<div style="border-left:2px solid '+m.sc
+        +';background:rgba(255,255,255,.05);padding:7px 10px;margin-top:5px;font-size:9.5px;color:var(--t1);line-height:1.65">'
+        +'<span style="font-size:8.5px;color:'+m.sc+';font-weight:700;display:block;margin-bottom:3px">AKTUALNIE:</span>'
+        +m.note+'</div>'
+      +'</div>';
   }
 
   el.innerHTML='<div class="wrap">'
@@ -1389,34 +1461,71 @@ function renderCOT(){
   +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Credit Spread</span><span class="ch-s">FRED BAMLH0A0HYM2 (%)</span></div><div class="chbody"><div id="ch-hy" style="height:175px"></div></div></div>'
   +'</div>'
 
-  /* Timing / opóźnienia */
-  +'<div class="sec">Przesunięcia czasowe — kiedy reagować?</div>'
+  /* Timing + WHERE ARE WE NOW - dynamic */
+  +(function(){
+    var _s=calcScore(),_v=_s.vix||20,_h=_s.hy||4,_sa=_s.sahm||0;
+    var _yc2=(D.f&&D.f.yield_curve&&D.f.yield_curve.current!=null)?D.f.yield_curve.current:null;
+    var _m2=(D.f&&D.f.m2&&D.f.m2.yoy!=null)?D.f.m2.yoy:null;
+    var pts=[];
+    if(_v>=28) pts.push({c:'var(--G)',t:'VIX '+_v.toFixed(0)+' &ge;28 &rarr; PANIKA RYNKOWA. Fundusze kupują, retail sprzedaje. Nie sprzedawaj &mdash; DCA/akumuluj. +7 pkt scoring.'});
+    else if(_v<18) pts.push({c:'var(--Y)',t:'VIX '+_v.toFixed(0)+' &lt;18 &rarr; EUFORIA. Retail max bullish = contrarian ostrzeżenie. Trzymaj plan.'});
+    else pts.push({c:'var(--B)',t:'VIX '+_v.toFixed(0)+' (18&ndash;28) &rarr; NEUTRALNY. Kontynuuj DCA zgodnie z planem.'});
+    if(_h>5.5) pts.push({c:'var(--R)',t:'HY Spread '+_h.toFixed(2)+'% &gt;5.5% &rarr; KRYZYS KREDYTOWY. Redukuj akcje natychmiast, rotuj do IB01/EDO/gotówki.'});
+    else if(_h>4) pts.push({c:'var(--Y)',t:'HY Spread '+_h.toFixed(2)+'% (4&ndash;5.5%) &rarr; UWAGA: rośnie. Monitoruj trend.'});
+    else pts.push({c:'var(--G)',t:'HY Spread '+_h.toFixed(2)+'% &lt;4% &rarr; NORMALNY. Bez alarmu kredytowego.'});
+    if(_sa>=0.5) pts.push({c:'var(--R)',t:'Sahm '+_sa.toFixed(2)+'% &ge;0.5% &rarr; RECESJA TRWA (100% dokładność 1970&ndash;2024). Redukuj ryzyko, zwiększ IB01/EDO.'});
+    else if(_sa>=0.3) pts.push({c:'var(--Y)',t:'Sahm '+_sa.toFixed(2)+'% (0.3&ndash;0.5%) &rarr; OSTRZEŻENIE. Bezrobocie przyspiesza. Monitoruj.'});
+    else pts.push({c:'var(--G)',t:'Sahm '+_sa.toFixed(2)+'% &lt;0.3% &rarr; RYNEK PRACY SILNY. Brak sygnału recesji.'});
+    if(_yc2!=null){
+      if(_yc2<0) pts.push({c:'var(--Y)',t:'Krzywa '+_yc2.toFixed(2)+'% &rarr; INWERSJA. Recesja możliwa za 12&ndash;18M. Akcje mogą rosnąć jeszcze 6&ndash;12M &mdash; nie panikuj.'});
+      else pts.push({c:'var(--G)',t:'Krzywa '+_yc2.toFixed(2)+'% &rarr; NORMALNA. Brak sygnału recesji od krzywej rentowności.'});
+    }
+    if(_m2!=null){
+      if(_m2<0) pts.push({c:'var(--R)',t:'M2 YoY '+_m2.toFixed(1)+'% &lt;0% &rarr; KONTRAKCJA. Akcje pod presją za 6&ndash;9M. 2022: M2 &minus;4% &rarr; SP500 &minus;25%.'});
+      else if(_m2>3) pts.push({c:'var(--G)',t:'M2 YoY '+_m2.toFixed(1)+'% &gt;3% &rarr; EKSPANSJA. Najlepsze środowisko dla akcji i złota historycznie.'});
+      else pts.push({c:'var(--Y)',t:'M2 YoY '+_m2.toFixed(1)+'% (0&ndash;3%) &rarr; Umiarkowane. Neutral dla akcji.'});
+    }
+    var rows=pts.map(function(p){
+      return '<div style="display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+        +'<div style="width:9px;height:9px;border-radius:50%;background:'+p.c+';flex-shrink:0;margin-top:3px"></div>'
+        +'<div style="font-size:10px;color:var(--t1);line-height:1.65">'+p.t+'</div></div>';
+    }).join('');
+    return '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:13px 16px;margin-bottom:12px">'
+      +'<div style="font-size:10.5px;font-weight:700;color:var(--t0);margin-bottom:9px">'
+      +'&#x1F4CD; GDZIE JESTEŚMY TERAZ &mdash; Score: '+_s.norm+'/100 &rarr; '+_s.verdict+'</div>'
+      +rows+'</div>';
+  })()
+  +'<div class="sec">Przesunięcia czasowe &mdash; kiedy reagować?</div>'
   +'<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:13px 16px;margin-bottom:12px">'
-  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;color:var(--t1);line-height:1.7">'
-  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--R)">'
-  +'<div style="font-size:9px;color:var(--R);font-weight:700;margin-bottom:4px">⚠ SYGNAŁY WYPRZEDZAJĄCE (Lead 6–18M)</div>'
-  +'<b>Krzywa rentowności (T10Y–T2Y):</b> inwersja poprzedza recesję o śr. 12–18M. 2006: inwersja → 2008 kryzys.<br>'
-  +'<b>Sahm Rule ≥0.5:</b> gdy przekroczy — recesja już trwa (lag 1–2M). Natychmiastowa reakcja.<br>'
-  +'<b>M2 YoY spada do 0%:</b> akcje reagują z 6–12M opóźnienia.'
-  +'</div>'
-  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--Y)">'
-  +'<div style="font-size:9px;color:var(--Y);font-weight:700;margin-bottom:4px">→ SYGNAŁY RÓWNOCZESNE (1–4 tygodnie)</div>'
-  +'<b>HY Spread >5.5%:</b> kryzys kredytowy — redukuj akcje natychmiast.<br>'
-  +'<b>VIX >28:</b> panika — sygnał do DCA, nie sprzedawaj.<br>'
-  +'<b>COT Non-Comm long przy VIX>28:</b> smart money kupuje — dołek bliski.'
-  +'</div>'
-  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--G)">'
-  +'<div style="font-size:9px;color:var(--G);font-weight:700;margin-bottom:4px">✓ SYGNAŁY KUPNA (Lead 3–6M)</div>'
-  +'<b>M2 YoY wraca >2%:</b> najlepszy moment wejścia historycznie (2009, 2020).<br>'
-  +'<b>Fed pivot (pierwsza obniżka):</b> akcje +20% w kolejnych 12M (historycznie).<br>'
-  +'<b>Krzywa normalizuje się po inwersji:</b> ryzyko recesji opada lub recesja kończy się.'
-  +'</div>'
-  +'<div style="padding:8px 10px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--B)">'
-  +'<div style="font-size:9px;color:var(--B);font-weight:700;margin-bottom:4px">ℹ PRZEPŁYW KAPITAŁU (lag 2–8 tygodni)</div>'
-  +'<b>Akcje → Obligacje:</b> HY spread rośnie, VIX rośnie — 2–4 tyg. zanim fundusze zrotują.<br>'
-  +'<b>Obligacje → Złoto:</b> gdy real rates (10Y-CPI) schodzą poniżej 0% — 1–3M lag.<br>'
-  +'<b>USD osłabienie → Emerging Markets:</b> DXY spada → PLN, złoto, krypto rosną — lag 4–8 tyg.'
-  +'</div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+  +'<div style="padding:9px 11px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--R)">'
+  +'<div style="font-size:9px;color:var(--R);font-weight:700;margin-bottom:5px">SYGNALY WYPRZEDZAJACE (6&ndash;18M)</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>Krzywa &lt;0%:</b> inwersja &rarr; recesja za 12&ndash;18M. Nie sprzedawaj od razu &mdash; akcje mogą rosnąć jeszcze 6&ndash;12M.<br>'
+  +'<b>M2 YoY &lt;0%:</b> podaż pieniądza maleje &rarr; akcje pod presją za 6&ndash;9M.<br>'
+  +'<b>JOLTS spada:</b> firmy nie rekrutują &rarr; bezrobocie za 3&ndash;6M.'
+  +'</div></div>'
+  +'<div style="padding:9px 11px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--Y)">'
+  +'<div style="font-size:9px;color:var(--Y);font-weight:700;margin-bottom:5px">SYGNALY RÓWNOCZESNE (1&ndash;4 tygodnie)</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>HY Spread &gt;5.5%:</b> kryzys kredytowy &rarr; redukuj natychmiast, rotuj do IB01/EDO.<br>'
+  +'<b>VIX &gt;28:</b> panika &rarr; DCA, nie sprzedawaj. Smart money kupuje.<br>'
+  +'<b>Sahm &ge;0.5%:</b> recesja trwa &rarr; IB01/EDO zamiast akcji.'
+  +'</div></div>'
+  +'<div style="padding:9px 11px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--G)">'
+  +'<div style="font-size:9px;color:var(--G);font-weight:700;margin-bottom:5px">SYGNALY KUPNA (3&ndash;6M wyprzedzenia)</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>M2 wraca &gt;3%:</b> najlepszy moment wejścia (2009, 2020, 2023). Akcje +30&ndash;80% w 12M.<br>'
+  +'<b>Fed pivot (1. obniżka):</b> akcje +20% śr. w 12M (dane od 1971).<br>'
+  +'<b>VIX &gt;28 + Sahm &lt;0.3:</b> panika bez recesji = idealne okno (2010, 2018, 2020).'
+  +'</div></div>'
+  +'<div style="padding:9px 11px;background:var(--bg1);border-radius:4px;border-left:2px solid var(--B)">'
+  +'<div style="font-size:9px;color:var(--B);font-weight:700;margin-bottom:5px">PRZEPLYW KAPITALU &mdash; lag czasowy</div>'
+  +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+  +'<b>Akcje &rarr; Obligacje:</b> lag 2&ndash;4 tyg. HY rośnie, VIX rośnie &rarr; fundusze rotują.<br>'
+  +'<b>Obligacje &rarr; Złoto:</b> lag 1&ndash;3M. Real rates (10Y&minus;CPI) &lt;0% &rarr; złoto rośnie.<br>'
+  +'<b>USD słabnie &rarr; PLN+EM:</b> lag 4&ndash;8 tyg. DXY spada &rarr; PLN, krypto, EM rosną.'
+  +'</div></div>'
   +'</div></div>'
 
   /* COT groups */
