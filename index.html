@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v34</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v35</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -461,7 +461,7 @@ var SQ = {
   gold:'xauusd',silver:'xagusd',oil:'cl.f',natgas:'ng.f',copper:'hg.f',
   usdpln:'usdpln',eurpln:'eurpln',eurusd:'eurusd',gbpusd:'gbpusd',usdjpy:'usdjpy',dxy:'dxy',
   us10y:'10usy.b',us2y:'2usy.b',
-  btcusd:'btcusd',ethusd:'ethusd',wig20:'wig20',vix:'^vix',
+  btcusd:'btcusd',ethusd:'ethusd',wig20:'wig20',vix:'^vix',move:'move.us',
   isac:'isac.uk',spy:'spy.us',qqq:'qqq.us'
 };
 /* Yahoo Finance symbol map (fallback when stooq proxies fail) */
@@ -623,13 +623,9 @@ var FM = {
   fedfunds:'FEDFUNDS',m2:'M2SL',yield_curve:'T10Y2Y',fed_bs:'WALCL',
   cpi:'CPIAUCSL',core_cpi:'CPILFESL',tips10y:'T10YIE',unrate:'UNRATE',
   sahm:'SAHMREALTIME',jolts:'JTSJOL',hy_spread:'BAMLH0A0HYM2',
-  nfci:'NFCI',indprod:'INDPRO',vixfred:'VIXCLS' /* sp500fred removed */,
-  ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',move:'MOVE',
-  sp500pe:'CAPE',        /* Shiller CAPE PE ratio */
-  sp500eps:'SP500EPS',   /* S&P500 EPS 12M trailing */
-  realsales:'RSXFS',    /* Retail sales ex food service */
-  pce:'PCE',            /* Personal Consumption Expenditures */
-  umcsent:'UMCSENT'     /* Univ Michigan Consumer Sentiment */
+  nfci:'NFCI',indprod:'INDPRO',vixfred:'VIXCLS',
+  ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',
+  realsales:'RSXFS',pce:'PCE',umcsent:'UMCSENT'
 };
 async function fOne(id) {
   /* FRED API JSON via proxy — fredgraph.csv is blocked, JSON API works via allorigins */
@@ -1664,7 +1660,7 @@ function renderIndicators(){
     var eps=D.eps||null;
     var sp=(D.q&&D.q.sp500)?D.q.sp500.price:(D.f&&D.f.sp500fred?D.f.sp500fred.current:null);
     var vix=(D.q&&D.q.vix)?D.q.vix.price:(D.f&&D.f.vixfred?D.f.vixfred.current:null);
-    var move=(D.f&&D.f.move)?D.f.move.current:null;
+    var move=(D.q&&D.q.move)?D.q.move.price:(D.f&&D.f.move)?D.f.move.current:null;
     var umcs=D.umcsent||null;
     var retail=D.retail_yoy||null;
     var sp12m=D.sp12m;
@@ -2070,7 +2066,7 @@ async function fetchAll(){
   /* Fallback: populate D.q from FRED data for ticker when stooq/yahoo failed */
   if(D.f){
     if(!D.q.vix&&D.f.vixfred) D.q.vix={price:D.f.vixfred.current,prev:D.f.vixfred.prev,change:D.f.vixfred.trend3m||0,date:D.f.vixfred.date};
-    if(!D.q.sp500&&D.f.sp500fred) D.q.sp500={price:D.f.sp500fred.current,prev:D.f.sp500fred.prev,change:D.f.sp500fred.trend3m||0,date:D.f.sp500fred.date};
+    /* sp500fred removed from FM — sp500 price from stooq/yahoo only */
     if(!D.q.us10y&&D.f.yield_curve) D.q.us10y={price:D.f.yield_curve.current,prev:D.f.yield_curve.prev,change:D.f.yield_curve.trend3m||0,date:D.f.yield_curve.date};
     /* SP12M: guard — if still null after all fetches, use hardcoded known value
        rather than letting sp500fred.yoy (lagged monthly = -3%) pollute calcScore */
@@ -2113,85 +2109,135 @@ document.addEventListener('DOMContentLoaded',function(){
   fetchAll();
 });
 async function fetchMacroData() {
-  /* Helper: fetch HTML via proxy and parse */
-  async function fetchHTML(url,timeout){
-    var rp=await pGet(url,timeout||12000);
+  /* Helper: fetch HTML via proxy */
+  async function fHTML(url,t){
+    var rp=await pGet(url,t||14000);
     var h=await rp.text();
-    if(!h||h.trim().charAt(0)!=='<') throw new Error('not html');
+    if(!h||h.length<200) throw new Error('empty');
     return h;
   }
-  /* Helper: extract JSON from script tag matching pattern */
-  function extractJSON(html,pattern){
-    var idx=html.indexOf(pattern);
-    if(idx<0) return null;
-    var s=html.indexOf('[',idx), e=html.lastIndexOf(']',html.indexOf(';',s)+1)+1;
-    if(s<0||e<=s) return null;
-    try{return JSON.parse(html.slice(s,e));}catch(e2){return null;}
+  /* MacroTrends embeds data as JS vars. Two common patterns:
+     1) rawData = [[date,val],...]
+     2) var rawData = {"props":{"pageProps":{"data":[...]}}}  (Next.js)
+     3) var data = [{"date":"...","value":...},...]
+     We try multiple extraction strategies */
+  function extractMT(html) {
+    // Strategy 1: rawData array literal
+    var m=html.match(/rawData\s*=\s*(\[[\s\S]{10,200000}?\])\s*;/);
+    if(m){try{return JSON.parse(m[1]);}catch(e){}}
+    // Strategy 2: var chartData
+    m=html.match(/chartData\s*=\s*(\[[\s\S]{10,200000}?\])\s*[;,]/);
+    if(m){try{return JSON.parse(m[1]);}catch(e){}}
+    // Strategy 3: Next.js __NEXT_DATA__
+    m=html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]+?)<\/script>/);
+    if(m){try{
+      var nd=JSON.parse(m[1]);
+      var d=nd&&nd.props&&nd.props.pageProps&&nd.props.pageProps.data;
+      if(Array.isArray(d)) return d;
+    }catch(e){}}
+    // Strategy 4: JSON array anywhere with date-like keys
+    m=html.match(/\[{"date":"[\d\-]+","value":"?[\d\.]+/);
+    if(m){
+      var s=html.indexOf(m[0]);
+      var e=html.indexOf('];',s)+2;
+      if(e>s){try{return JSON.parse(html.slice(s,e));}catch(e2){}}
+    }
+    return null;
+  }
+  /* Parse rows from MacroTrends array (handles both [[d,v]] and [{date,value}] formats) */
+  function parseMT(arr,tail) {
+    if(!arr||!arr.length) return null;
+    var result=[];
+    var slice=tail?arr.slice(-tail):arr;
+    for(var i=0;i<slice.length;i++){
+      var row=slice[i];
+      var d,v;
+      if(Array.isArray(row)){d=row[0];v=parseFloat(row[1]);}
+      else{d=row.date||row.d;v=parseFloat(row.value||row.val||row.v||row[Object.keys(row)[1]]);}
+      if(d&&isFinite(v)) result.push({date:String(d).slice(0,10),val:v});
+    }
+    return result.length?result:null;
   }
 
-  /* 1. MacroTrends CAPE / Shiller PE */
+  /* 1. CAPE / Shiller PE — multpl.com (reliable, CORS-friendly via proxy) */
   try {
-    var h=await fetchHTML('https://www.macrotrends.net/2577/sp-500-pe-ratio-price-to-earnings-chart');
-    /* MacroTrends embeds data as: var chartData = [[date,val],...] */
-    var arr=extractJSON(h,'var rawData');
-    if(!arr) arr=extractJSON(h,'chartData');
-    if(arr&&arr.length>0){
-      /* Data is [[date_str, pe_val],...] sorted oldest first */
-      var last=arr[arr.length-1];
-      var capeVal=parseFloat(Array.isArray(last)?last[1]:last.v||last[1]||last.val||last[Object.keys(last)[1]]);
-      if(isFinite(capeVal)&&capeVal>5&&capeVal<200){
-        D.cape=capeVal;
-        /* Build 24-point history */
-        D.cape_series=arr.slice(-24).map(function(row){
-          return{date:Array.isArray(row)?row[0]:row.d,val:parseFloat(Array.isArray(row)?row[1]:row[1]||row.v)};
-        }).filter(function(x){return isFinite(x.val);});
+    var h=await fHTML('https://www.multpl.com/shiller-pe/table/by-month');
+    /* multpl table: <tr><td>Mar 2026</td><td>33.45</td></tr> */
+    var rows=h.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)||[];
+    var pts=[];
+    for(var i=0;i<rows.length&&pts.length<36;i++){
+      var cells=rows[i].match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[];
+      if(cells.length>=2){
+        var dStr=cells[0].replace(/<[^>]*>/g,'').trim();
+        var vStr=parseFloat(cells[1].replace(/<[^>]*>/g,'').trim());
+        if(dStr.length>3&&isFinite(vStr)&&vStr>5&&vStr<200) pts.push({date:dStr,val:vStr});
       }
     }
-  } catch(e1){}
+    if(pts.length>0){D.cape=pts[0].val;D.cape_series=pts.reverse();}
+    console.log('CAPE from multpl:',D.cape);
+  } catch(e){console.warn('CAPE multpl fail:',e.message);}
 
-  /* 2. MacroTrends SP500 Annual Returns */
+  /* 2. S&P500 EPS trailing — multpl.com/sp500-earnings-per-share-profit */
   try {
-    var h2=await fetchHTML('https://www.macrotrends.net/2526/sp-500-historical-annual-returns');
-    var arr2=extractJSON(h2,'rawData')||extractJSON(h2,'chartData');
-    if(arr2&&arr2.length>0){
-      /* [[year, annual_return_pct],...] */
-      D.sp500_annual=arr2.slice(-10).map(function(row){
-        return{year:Array.isArray(row)?row[0]:row.d,ret:parseFloat(Array.isArray(row)?row[1]:row[1]||row.v)};
-      }).filter(function(x){return isFinite(x.ret);});
+    var h2=await fHTML('https://www.multpl.com/sp500-earnings/table/by-quarter');
+    var rows2=h2.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)||[];
+    var eps_pts=[];
+    for(var i=0;i<rows2.length&&eps_pts.length<8;i++){
+      var cells2=rows2[i].match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[];
+      if(cells2.length>=2){
+        var dStr2=cells2[0].replace(/<[^>]*>/g,'').trim();
+        var vStr2=parseFloat(cells2[1].replace(/<[^>]*>/g,'').replace(/[^0-9.\-]/g,''));
+        if(dStr2.length>3&&isFinite(vStr2)&&vStr2>0&&vStr2<1000) eps_pts.push({date:dStr2,val:vStr2});
+      }
     }
-  } catch(e2){}
+    if(eps_pts.length>0){
+      D.eps={current:eps_pts[0].val,prev:eps_pts[1]?eps_pts[1].val:null,
+             yoy:eps_pts[4]?((eps_pts[0].val-eps_pts[4].val)/eps_pts[4].val*100):null,
+             series:eps_pts};
+      console.log('EPS from multpl:',D.eps.current);
+    }
+  } catch(e){console.warn('EPS multpl fail:',e.message);}
 
-  /* 3. MacroTrends DOW/GDP Ratio */
+  /* 3. SP500 Annual Returns — MacroTrends */
   try {
-    var h3=await fetchHTML('https://www.macrotrends.net/2574/dow-to-gdp-ratio-chart');
-    var arr3=extractJSON(h3,'rawData')||extractJSON(h3,'chartData');
-    if(arr3&&arr3.length>0){
-      var last3=arr3[arr3.length-1];
-      D.dow_gdp=parseFloat(Array.isArray(last3)?last3[1]:last3[1]||last3.v);
+    var h3=await fHTML('https://www.macrotrends.net/2526/sp-500-historical-annual-returns');
+    var arr3=extractMT(h3);
+    var pts3=parseMT(arr3,15);
+    if(pts3&&pts3.length>2){
+      D.sp500_annual=pts3.map(function(r){return{year:r.date.slice(0,4),ret:r.val};});
+      console.log('SP500 annual returns:',D.sp500_annual.slice(-3));
     }
-  } catch(e3){}
+  } catch(e){console.warn('SP500 annual fail:',e.message);}
 
-  /* 4. MacroTrends Stock Market Cycles */
+  /* 4. DOW/GDP Buffett Indicator — MacroTrends */
   try {
-    var h4=await fetchHTML('https://www.macrotrends.net/1296/stock-market-cycles-historical-chart');
-    var arr4=extractJSON(h4,'rawData')||extractJSON(h4,'chartData');
-    if(arr4&&arr4.length>=2){
-      /* Get last few data points for cycle context */
-      D.mkt_cycle=arr4.slice(-6).map(function(row){
-        return{date:Array.isArray(row)?row[0]:row.d,val:parseFloat(Array.isArray(row)?row[1]:row[1]||row.v)};
-      }).filter(function(x){return isFinite(x.val);});
+    var h4=await fHTML('https://www.macrotrends.net/2574/dow-to-gdp-ratio-chart');
+    var arr4=extractMT(h4);
+    var pts4=parseMT(arr4,5);
+    if(pts4&&pts4.length>0){
+      D.dow_gdp=pts4[pts4.length-1].val;
+      /* Normalize: if value >10 it's percentage not ratio */
+      if(D.dow_gdp>10) D.dow_gdp=D.dow_gdp/100;
+      console.log('DOW/GDP:',D.dow_gdp);
     }
-  } catch(e4){}
+  } catch(e){console.warn('DOW/GDP fail:',e.message);}
 
-  /* 5. FRED fallback for CAPE (series CAPE) */
-  if(!D.cape&&D.f&&D.f.sp500pe&&D.f.sp500pe.current){
-    D.cape=D.f.sp500pe.current;
-  }
-  /* 6. EPS, sentiment, retail from FRED */
+  /* 5. Market Cycles chart — MacroTrends */
+  try {
+    var h5=await fHTML('https://www.macrotrends.net/1296/stock-market-cycles-historical-chart');
+    var arr5=extractMT(h5);
+    var pts5=parseMT(arr5,24);
+    if(pts5&&pts5.length>2) D.mkt_cycle=pts5;
+  } catch(e){console.warn('Market cycles fail:',e.message);}
+
+  /* 6. MOVE from stooq (loaded with other stooq data already — just read D.q.move) */
+  /* D.q.move is populated by fetchStooq -> sOne('move','move.us') */
+
+  /* 7. FRED fallback enrichment (realsales, umcsent, pce) */
   if(D.f){
-    if(D.f.sp500eps) D.eps=D.f.sp500eps;
     if(D.f.umcsent)  D.umcsent=D.f.umcsent.current;
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
+    if(D.f.pce)       D.pce_yoy=D.f.pce.yoy;
   }
 }
 
