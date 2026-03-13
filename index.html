@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v32</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v33</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -570,30 +570,34 @@ async function fetchStooq() {
   setS(ok>10?'ok':'er','Stooq: '+ok+' OK, '+fail+' err');
 }
 async function fetchSP12M() {
-  /* Uses Yahoo Finance v8 monthly with 2y range — gets clean 13-month window */
-  /* Primary: Yahoo Finance direct (often works) */
+  /* Yahoo Finance v8 — monthly 2y range, find close from ~12M ago */
   try {
     var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},9000);
-    var r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1mo&range=2y',{signal:ctrl.signal,cache:'no-store'});
+    var ry=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1mo&range=2y',{signal:ctrl.signal,cache:'no-store'});
     clearTimeout(t);
-    var j=await r.json();
+    var j=await ry.json();
     var res=j&&j.chart&&j.chart.result&&j.chart.result[0];
-    if(!res) throw new Error('no yahoo result');
+    if(!res) throw new Error('no result');
     var ts=res.timestamp||[];
-    var cl=(res.indicators.quote[0].close||[]);
-    /* Find close from ~12-13 months ago and latest close */
-    var now12=Date.now()/1000 - 365*24*3600;
-    var idx12=-1;
-    for(var i=0;i<ts.length;i++){if(ts[i]<now12)idx12=i;}
-    idx12=idx12+1; /* first bar AFTER 12m ago */
-    if(idx12<0||idx12>=cl.length-1) throw new Error('no bar at 12m');
-    var first=cl[idx12],last=cl[cl.length-1];
-    if(!isFinite(first)||!isFinite(last)||first<100||last<100) throw new Error('bad values');
+    var cl=res.indicators.quote[0].close||[];
+    /* Find the close from closest to 12 months ago */
+    var target12=Date.now()/1000 - 365.25*24*3600;
+    var bestIdx=-1, bestDiff=Infinity;
+    for(var i=0;i<ts.length;i++){
+      var diff=Math.abs(ts[i]-target12);
+      if(diff<bestDiff&&cl[i]!=null&&isFinite(cl[i])&&cl[i]>100){bestDiff=diff;bestIdx=i;}
+    }
+    /* Last close */
+    var lastIdx=cl.length-1;
+    while(lastIdx>0&&(cl[lastIdx]==null||!isFinite(cl[lastIdx])))lastIdx--;
+    if(bestIdx<0||bestIdx>=lastIdx) throw new Error('no 12m bar');
+    var first=cl[bestIdx],last=cl[lastIdx];
+    if(!isFinite(first)||!isFinite(last)||first<100) throw new Error('bad values');
     var ret=(last-first)/first*100;
-    if(ret<-60||ret>300) throw new Error('implausible: '+ret.toFixed(1));
-    D.sp12m=ret; D.sp12m_src='Yahoo 1Y'; return;
+    if(ret<-70||ret>300) throw new Error('implausible: '+ret.toFixed(1));
+    D.sp12m=ret; D.sp12m_src='Yahoo 12M'; return;
   } catch(ey){}
-  /* Fallback: Stooq monthly via proxy */
+  /* Stooq monthly via proxy */
   try {
     var now=new Date(),ya=new Date(now); ya.setFullYear(ya.getFullYear()-1);
     function d8(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
@@ -601,13 +605,13 @@ async function fetchSP12M() {
     var tx=await rs.text();
     if(!tx||tx.indexOf('No data')!==-1) throw new Error('no stooq');
     var lns=tx.trim().split('\n').filter(function(l){return l&&l.indexOf('Date')===-1;});
-    if(lns.length<2) throw new Error('too few');
+    if(lns.length<2) throw new Error('too few rows');
     function pv(l){return parseFloat(l.split(',')[4]);}
     var f=pv(lns[0]),l=pv(lns[lns.length-1]);
     if(!isFinite(f)||f<100||!isFinite(l)) throw new Error('NaN');
     var ret=(l-f)/f*100;
-    if(ret<-60||ret>300) throw new Error('implausible: '+ret.toFixed(1));
-    D.sp12m=ret; D.sp12m_src='Stooq 1Y';
+    if(ret<-70||ret>300) throw new Error('implausible: '+ret.toFixed(1));
+    D.sp12m=ret; D.sp12m_src='Stooq 12M';
   } catch(es){ D.sp12m=null; D.sp12m_src='pending'; }
 }
 /* FRED series map */
@@ -1650,100 +1654,177 @@ function renderIndicators(){
   +'</div></div>'
   +'</div>'
 
-  /* === WYCENA S&P 500 + CAPE + PE === */
+  /* === WYCENA S&P 500 + CAPE + PE + NASTROJE === */
   +(function(){
     var cape=D.cape||null;
-    var eps=(D.f&&D.f.sp500eps)?D.f.sp500eps:null;
+    var eps=D.eps||null;
     var sp=(D.q&&D.q.sp500)?D.q.sp500.price:(D.f&&D.f.sp500fred?D.f.sp500fred.current:null);
     var vix=(D.q&&D.q.vix)?D.q.vix.price:(D.f&&D.f.vixfred?D.f.vixfred.current:null);
     var move=(D.f&&D.f.move)?D.f.move.current:null;
-    var umcs=(D.f&&D.f.umcsent)?D.f.umcsent.current:null;
-    var retail=(D.f&&D.f.realsales)?D.f.realsales.yoy:null;
-    /* CAPE interpretation */
-    var capeColor=cape==null?'var(--t2)':cape>35?'var(--R)':cape>25?'var(--Y)':'var(--G)';
-    var capeLabel=cape==null?'brak danych':cape>40?'SKRAJNA DROŻYZNA':cape>35?'DROGA':cape>25?'PODNIESIONA':cape>15?'NORMALNA':'TANIA';
-    var capeNote=cape==null?'':cape>35
-      ?'CAPE powyżej 35 = historycznie wśród 5% najdroższych odczytów. Średnia 1880-2024: ~17. Wysoka wycena nie = natychmiastowy crash, ale ogranicza zwroty 10Y. Porównanie: 2000 szczyt CAPE=44.'
-      :cape>25?'CAPE powyżej 25 = drogi rynek. Ale hossa może trwać latami przy niskich stopach i silnym wzroście EPS. Kluczowe: czy Fed obniża? Czy EPS rośnie?'
-      :'CAPE w normalnym zakresie = wycena nie alarmuje.';
-    /* Implied PE TTM from price/EPS */
-    var peTTM=null,peFwd=null;
-    if(sp&&eps&&eps.current&&eps.current>0) peTTM=sp/eps.current;
-    /* VIX vs MOVE context */
-    var vixMoveNote='';
-    if(vix!=null&&move!=null){
-      var ratio=move/vix;
-      vixMoveNote=ratio>7?'MOVE/VIX='+ratio.toFixed(1)+' (>7) — obligacje bardziej niestabilne niż akcje. Risk parity fundusze mogą redukować OBA. Potencjalny stres systemowy.'
-        :ratio<4?'MOVE/VIX='+ratio.toFixed(1)+' (<4) — akcje relatywnie bardziej zmienne. Standardowa korelacja.'
-        :'MOVE/VIX='+ratio.toFixed(1)+' — normalne. Akcje i obligacje zmienność zbliżona.';
-    }
-    var s='<div class="sec">Wycena S&P 500 — CAPE, PE, EPS, nastroje</div>';
-    /* 4-column metrics row */
-    s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">';
-    /* CAPE */
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">CAPE / Shiller PE</div>';
-    s+='<div style="font-size:22px;font-weight:700;color:'+capeColor+'">'+(cape?cape.toFixed(1):'—')+'</div>';
-    s+='<div style="font-size:9px;color:'+capeColor+';font-weight:700;margin-bottom:4px">'+capeLabel+'</div>';
-    s+='<div style="font-size:9px;color:var(--t2)">Śr. hist. ~17 | 2000: 44 | 2009: 13</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:5px">'+capeNote+'</div></div>';
+    var umcs=D.umcsent||null;
+    var retail=D.retail_yoy||null;
+    var sp12m=D.sp12m;
+    var dowGdp=D.dow_gdp||null;
+    /* CAPE interp */
+    var capeC=cape==null?'var(--t2)':cape>38?'var(--R)':cape>28?'var(--Y)':'var(--G)';
+    var capeL=cape==null?'—':cape>40?'SKRAJNA DROŻYZNA':cape>35?'DROGO':cape>28?'PODWYŻSZONA':cape>15?'NORMALNA':'TANIA';
+    var capeN=cape==null?'Ładowanie z MacroTrends…':cape>35
+      ?'CAPE powyżej 35 = wśród 5% najdroższych odczytów w historii (1880-2026). Śr. historyczna ~17. Szczyt 2000: CAPE=44. Wysoka wycena ≠ natychmiastowy crash, ale zwroty 10Y będą niższe. Uzasadnione przy niskich stopach i silnym EPS.'
+      :cape>28?'Drogi rynek — powyżej normy. Hossa może trwać gdy EPS rośnie i Fed obniża. Ryzyko: korekta 20-30% możliwa.'
+      :'Normalna-niska wycena — historycznie dobre środowisko dla akcji.';
     /* PE TTM */
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">PE TTM (cena/EPS)</div>';
-    s+='<div style="font-size:22px;font-weight:700;color:'+(peTTM!=null?(peTTM>25?'var(--Y)':'var(--G)'):'var(--t2)')+'">'+(peTTM?peTTM.toFixed(1):'—')+'</div>';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:4px">EPS TTM: '+(eps&&eps.current?'$'+eps.current.toFixed(1):'ładowanie')+'</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:5px">PE TTM ~22 = historyczna norma przy niskich stopach. >25 = drogo. EPS YoY: '+(eps&&eps.yoy!=null?eps.yoy.toFixed(1)+'%':'brak')+'</div></div>';
-    /* EPS growth */
+    var peTTM=null;
+    if(sp&&eps&&eps.current&&eps.current>0) peTTM=sp/eps.current;
+    var peTTMC=peTTM==null?'var(--t2)':peTTM>26?'var(--Y)':peTTM>35?'var(--R)':'var(--G)';
     var epsYoy=eps&&eps.yoy!=null?eps.yoy:null;
     var epsC=epsYoy==null?'var(--t2)':epsYoy>10?'var(--G)':epsYoy>0?'var(--Y)':'var(--R)';
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">EPS S&P500 YoY</div>';
-    s+='<div style="font-size:22px;font-weight:700;color:'+epsC+'">'+(epsYoy!=null?fP(epsYoy):'—')+'</div>';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Wzrost zysków spółek</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:5px">'+(epsYoy!=null?(epsYoy>10?'Silny wzrost EPS — wspiera wysokie PE. Dobry dla akcji.':epsYoy>0?'Umiarkowany wzrost. Rynek wycenia kontynuację.':'Spadek EPS — presja na wyceny. Recesja zysków?'):'EPS ładowanie…')+'</div></div>';
-    /* Consumer sentiment */
-    var umcsC=umcs==null?'var(--t2)':umcs>80?'var(--G)':umcs>60?'var(--Y)':'var(--R)';
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Nastroje konsumentów (UMich)</div>';
-    s+='<div style="font-size:22px;font-weight:700;color:'+umcsC+'">'+(umcs?umcs.toFixed(0):'—')+'</div>';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Zakres: 50-100 normalny</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:5px">'+(umcs!=null?(umcs<60?'NISKIE nastroje — konsumenci ostrożni. Wydatki mogą spaść. Negatywne dla retailu/usług.':umcs>80?'WYSOKIE — konsumenci pewni. Pro-wydatkowe. Wsparcie dla wzrostu PKB.':'Umiarkowane nastroje konsumentów.'):'Ładowanie…')+'</div></div>';
-    s+='</div>';
-    /* VIX vs MOVE row */
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 15px;margin-bottom:12px">';
-    s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
-    /* VIX block */
+    /* DOW/GDP */
+    var dgC=dowGdp==null?'var(--t2)':dowGdp>2?'var(--R)':dowGdp>1.5?'var(--Y)':'var(--G)';
+    var dgN=dowGdp==null?'Ładowanie…':dowGdp>2?'DOW/GDP powyżej 2 = rynek akcji 2x większy niż gospodarka. Wycena historycznie wysoka (Buffett Indicator). Ostrzeżenie.':
+             dowGdp>1.5?'DOW/GDP 1.5-2 = podwyższona wycena. Normalny zakres przy niskich stopach.':'Normalna wycena vs PKB.';
+    /* VIX/MOVE */
     var vixC=vix==null?'var(--t2)':vix>=28?'var(--R)':vix>=20?'var(--Y)':'var(--G)';
-    var vixNote2=vix==null?'':vix>=40?'KRYZYS SYSTEMOWY. Historyczne maksima: COVID-19 = 85 (2020), GFC = 80 (2008). Przy VIX>40: smart money KUPUJE, nie sprzedaje.':vix>=28?'PODWYŻSZONY. Strach dominuje. Zgodnie ze scoring: +7 pkt (kup signal). Szansa okna DCA.':vix>=20?'UWAGA. Zmienność rośnie. Obserwuj HY spread.':'NISKI. Rynek spokojny. Euforia? Sprawdź retail positioning.';
-    s+='<div><div style="font-size:9px;color:var(--t2);margin-bottom:2px">VIX (CBOE)</div>';
-    s+='<div style="font-size:20px;font-weight:700;color:'+vixC+'">'+(vix?vix.toFixed(1):'—')+'</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:4px">'+vixNote2+'</div></div>';
-    /* MOVE block */
     var moveC=move==null?'var(--t2)':move>=130?'var(--R)':move>=100?'var(--Y)':'var(--G)';
-    var moveNote=move==null?'':move>=130?'MOVE >130 = obligacje skarbowe bardzo niestabilne. Rynek dyskontuje duże zmiany stóp. Uwaga na ryzyko systemowe (jak SVB 2023, MOVE=200).':move>=100?'MOVE 100-130 = podwyższona zmienność obligacji. Rynek niepewny co do Fed. Obstrożność.':'MOVE <100 = normalna zmienność obligacji. Fed policy przewidywalna.';
-    s+='<div><div style="font-size:9px;color:var(--t2);margin-bottom:2px">MOVE (obligacje)</div>';
-    s+='<div style="font-size:20px;font-weight:700;color:'+moveC+'">'+(move?move.toFixed(0):'—')+'</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:4px">'+moveNote+'</div></div>';
-    /* VIX/MOVE ratio block */
-    s+='<div><div style="font-size:9px;color:var(--t2);margin-bottom:2px">Relacja VIX / MOVE</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.6;margin-top:4px">'+(vixMoveNote||'Ładowanie danych VIX i MOVE…')+'</div>';
-    s+='<div style="font-size:9px;color:var(--t2);margin-top:5px">MOVE/VIX &gt;7 = stres syst. | &lt;4 = akcje zmienniejsze</div></div>';
-    s+='</div></div>';
-    /* Retail sales */
-    var retC=retail==null?'var(--t2)':retail>3?'var(--G)':retail>0?'var(--Y)':'var(--R)';
-    s+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">';
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Sprzedaż detaliczna YoY (RSXFS)</div>';
-    s+='<div style="font-size:20px;font-weight:700;color:'+retC+'">'+(retail!=null?fP(retail):'—')+'</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:5px">'+(retail!=null?(retail>3?'Silna sprzedaż detaliczna — konsumenci wydają. PKB wspierane.':retail>0?'Umiarkowana. Brak alarmu.':'SPADEK sprzedaży — rynek może dyskontować recesję konsumencką.'):'Ładowanie…')+'</div></div>';
-    /* SP500 12M */
-    var sp12m_v=D.sp12m; var sp12m_c=sp12m_v==null?'var(--t2)':sp12m_v>15?'var(--G)':sp12m_v>0?'var(--Y)':'var(--R)';
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
-    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">S&P 500 stopa zwrotu 12M</div>';
-    s+='<div style="font-size:20px;font-weight:700;color:'+sp12m_c+'">'+(sp12m_v!=null?fP(sp12m_v):'—')+'</div>';
-    s+='<div style="font-size:9px;color:var(--t2)">'+(D.sp12m_src||'')+'</div>';
-    s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:5px">'+(sp12m_v!=null?(sp12m_v>15?'Silna hossa. Momentum sprzyja kontynuacji DCA.':sp12m_v>0?'Umiarkowany wzrost. Rynek pozytywny.':'Rok na minusie. Sprawdź CAPE i HY spread — czy to okazja czy ostrzeżenie?'):'Ładowanie…')+'</div></div>';
+    var vixN=vix==null?'Ładowanie…':vix>=40?'KRYZYS. COVID=85, GFC=80. Smart money KUPUJE przy VIX>40 — nie sprzedawaj.':
+              vix>=28?'PODWYŻSZONY (>28). Panika = +7 pkt scoring. Okno DCA.':
+              vix<18?'NISKI (<18). Euforia? Contrarian ostrożność.':'Normalny poziom (18-28).';
+    var moveN=move==null?'Ładowanie…':move>=150?'SKRAJNIE WYSOKI (>150). Rynek obligacji dyskontuje ogromne zmiany stóp. SVB 2023: MOVE=200.':
+               move>=100?'PODWYŻSZONY (100-150). Niepewność co do Fed. Ostrożność.':'NORMALNY (<100). Fed policy przewidywalna.';
+    var moveRatio=vix&&move?move/vix:null;
+    var mrN=moveRatio==null?'':moveRatio>7?'MOVE/VIX='+moveRatio.toFixed(1)+' >7: obligacje bardziej zmienne niż akcje. Risk-parity fundusze redukują OBA. Stres systemowy.':
+             moveRatio<4?'MOVE/VIX='+moveRatio.toFixed(1)+' <4: normalna korelacja.':
+             'MOVE/VIX='+moveRatio.toFixed(1)+' — normalny zakres.';
+    /* UMich sentiment */
+    var umcsC=umcs==null?'var(--t2)':umcs>80?'var(--G)':umcs>60?'var(--Y)':'var(--R)';
+    var umcsN=umcs==null?'Ładowanie FRED UMCSENT…':umcs<60?'NISKIE (<60). Konsumenci ostrożni. Wydatki mogą spaść. Negatywne dla retailu/usług.':
+               umcs>80?'WYSOKIE (>80). Konsumenci pewni. Pro-wydatkowe. Wsparcie PKB.':'Umiarkowane. Normalny zakres.';
+    /* SP12M */
+    var sp12C=sp12m==null?'var(--t2)':sp12m>15?'var(--G)':sp12m>0?'var(--Y)':'var(--R)';
+    var sp12N=sp12m==null?'Ładowanie…':sp12m>20?'Silna hossa +'+sp12m.toFixed(1)+'%. Momentum sprzyja kontynuacji.':
+               sp12m>0?'Wzrost 12M: +'+sp12m.toFixed(1)+'%. Pozytywny trend.':
+               'Rok na minusie: '+sp12m.toFixed(1)+'%. Sprawdź CAPE i HY — czy okazja czy ostrzeżenie.';
+    var s='';
+    /* ── ROW 1: 4 metrics ── */
+    s+='<div class="sec">Wycena S&P 500 — CAPE / Shiller PE, EPS, DOW/GDP (Buffett Indicator)</div>';
+    s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">';
+    /* CAPE */
+    s+='<div style="background:var(--bg2);border:1px solid '+capeC+';border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">CAPE / Shiller PE</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+capeC+'">'+(cape?cape.toFixed(1):'—')+'</div>'
+      +'<div style="font-size:9px;color:'+capeC+';font-weight:700;margin-bottom:5px">'+capeL+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Śr. hist. ~17 | 2000: 44 | 2009: 13</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+capeN+'</div>'
+      +'<div style="margin-top:5px;font-size:8.5px;color:var(--t2)">Źródło: MacroTrends</div>'
+    +'</div>';
+    /* PE TTM + EPS */
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">PE TTM / EPS wzrost</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+peTTMC+'">'+(peTTM?peTTM.toFixed(1):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2)">EPS TTM: '+(eps&&eps.current?'$'+eps.current.toFixed(1):'ład.')+'</div>'
+      +'<div style="font-size:14px;font-weight:700;color:'+epsC+';margin:4px 0">'+(epsYoy!=null?'EPS YoY: '+fP(epsYoy):'EPS YoY: —')+'</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+(epsYoy!=null?(epsYoy>10?'Silny wzrost EPS — wspiera PE. Dobry dla akcji.':epsYoy>0?'Umiarkowany wzrost EPS. Kontynuacja hossy.':'Spadek EPS — recesja zysków. Presja na wyceny.'):'Ładowanie FRED SP500EPS…')+'</div>'
+    +'</div>';
+    /* DOW/GDP Buffett Indicator */
+    s+='<div style="background:var(--bg2);border:1px solid '+dgC+';border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">DOW/GDP (Buffett Indicator)</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+dgC+'">'+(dowGdp?dowGdp.toFixed(2)+'x':'—')+'</div>'
+      +'<div style="font-size:9px;color:'+dgC+';font-weight:700;margin-bottom:4px">'+(dowGdp?(dowGdp>2?'DROGI >2x':dowGdp>1.5?'PODWYŻSZONY':'NORMALNY'):'—')+'</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+dgN+'</div>'
+      +'<div style="margin-top:5px;font-size:8.5px;color:var(--t2)">Źródło: MacroTrends</div>'
+    +'</div>';
+    /* SP12M */
+    s+='<div style="background:var(--bg2);border:1px solid '+sp12C+';border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">S&P 500 — stopa zwrotu 12M</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+sp12C+'">'+(sp12m!=null?fP(sp12m):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">'+(D.sp12m_src||'')+'</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+sp12N+'</div>'
+    +'</div>';
     s+='</div>';
+
+    /* ── ROW 2: CAPE chart + Annual returns ── */
+    s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+    s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">CAPE / Shiller PE — 24M historia</span><span class="ch-s">MacroTrends (Śr. hist. ~17)</span></div><div class="chbody"><div id="ch-cape" style="height:170px"></div></div></div>';
+    s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">S&P 500 roczne stopy zwrotu</span><span class="ch-s">MacroTrends — ostatnie 10 lat</span></div><div class="chbody"><div id="ch-sp-annual" style="height:170px"></div></div></div>';
+    s+='</div>';
+
+    /* ── ROW 3: VIX + MOVE + ratio ── */
+    s+='<div class="sec">Zmienność — VIX (akcje) i MOVE (obligacje) — StreetStats</div>';
+    s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+    s+='<div style="background:var(--bg2);border:1px solid '+vixC+';border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">VIX — CBOE Volatility Index</div>'
+      +'<div style="font-size:26px;font-weight:700;color:'+vixC+'">'+(vix?vix.toFixed(1):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Norma: 15-20 | Panika: >28 | Kryzys: >40</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+vixN+'</div>'
+    +'</div>';
+    s+='<div style="background:var(--bg2);border:1px solid '+moveC+';border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">MOVE — Treasury Bond Volatility</div>'
+      +'<div style="font-size:26px;font-weight:700;color:'+moveC+'">'+(move?move.toFixed(0):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Norma: 60-100 | Alarm: >130 | SVB23: 200</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+moveN+'</div>'
+    +'</div>';
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">MOVE / VIX relacja</div>'
+      +'<div style="font-size:26px;font-weight:700;color:var(--t1)">'+(moveRatio?moveRatio.toFixed(1):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Stres syst.: >7 | Normalne: 4-7 | Akcje zmienn.: <4</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+mrN+'</div>'
+    +'</div>';
+    s+='</div>';
+
+    /* ── ROW 4: Nastroje: UMich + sprzedaż + Barrons info ── */
+    s+='<div class="sec">Nastroje i konsumenci — UMich Sentiment, Retail Sales, Barrons</div>';
+    s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+    /* UMich */
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">UMich Consumer Sentiment (FRED)</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+umcsC+'">'+(umcs?umcs.toFixed(0):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Norma: 60-100 | Min (2022): 50</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+umcsN+'</div>'
+    +'</div>';
+    /* Retail */
+    var retC2=retail==null?'var(--t2)':retail>3?'var(--G)':retail>0?'var(--Y)':'var(--R)';
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Sprzedaż detaliczna YoY (FRED RSXFS)</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+retC2+'">'+(retail!=null?fP(retail):'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Konsument = 70% PKB USA</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55">'+(retail!=null?(retail>3?'Silna sprzedaż. Konsumenci wydają. PKB wspierane.':retail>0?'Umiarkowana. Brak alarmu.':'SPADEK — ryzyko recesji konsumenckiej.'):'Ładowanie…')+'</div>'
+    +'</div>';
+    /* Barrons info box */
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+      +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Barrons Market Lab — Nastroje</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:8px">Bullish Consensus / Gold Mining</div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.65">'
+      +'Barrons wymaga logowania — dane niedostępne automatycznie.<br><br>'
+      +'<b>Jak czytać Bullish Consensus:</b><br>'
+      +'&gt;70% bullish = EUFORIA (contrarian: sprzedaj/redukuj)<br>'
+      +'&lt;30% bullish = PANIKA (contrarian: kup/akumuluj)<br>'
+      +'50-70% = neutralne/umiarkowanie byczo<br><br>'
+      +'<b>Gold Mining Sentiment:</b><br>'
+      +'Wzrost Gold Mining bulls przy spadku VIX = rotacja do defensywnych.</div>'
+      +'<a href="https://www.barrons.com/market-data/market-lab" target="_blank" style="display:block;margin-top:8px;font-size:9px;color:var(--B)">Barrons Market Lab (wymaga subskrypcji) →</a>'
+    +'</div>';
+    s+='</div>';
+
+    /* ── ROW 5: Annual returns chart + cycle chart ── */
+    s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+    s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Cykl rynkowy SP500</span><span class="ch-s">MacroTrends — SP500 historical cycles</span></div><div class="chbody"><div id="ch-cycle" style="height:160px"></div></div></div>';
+    /* Presidential performance */
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+      +'<div class="chdr" style="margin-bottom:6px"><span class="ch-t">S&P 500 wg kadencji prezydentów</span></div>'
+      +'<div style="font-size:9.5px;color:var(--t1);line-height:1.7">'
+      +'<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 10px;font-size:9px">'
+      +'<b style="color:var(--t2)">Prezydent</b><b style="color:var(--t2)">od wyborów</b><b style="color:var(--t2)">za kadencji</b>'
+      +'<span>Obama I</span><span style="color:var(--G)">+127%</span><span style="color:var(--G)">+73%</span>'
+      +'<span>Obama II</span><span style="color:var(--G)">+47%</span><span style="color:var(--G)">+57%</span>'
+      +'<span>Trump I</span><span style="color:var(--G)">+26%</span><span style="color:var(--G)">+52%</span>'
+      +'<span>Biden</span><span style="color:var(--G)">+11%</span><span style="color:var(--Y)">+35%</span>'
+      +'<span style="font-weight:700">Trump II</span><span style="color:var(--Y)">TBD</span><span style="color:var(--t2)">rok 1</span>'
+      +'</div>'
+      +'<div style="margin-top:7px;font-size:9px;color:var(--t2)">Dane historyczne: MacroTrends. Rok 1 kadencji Trump II zaczął się Jan 2025.</div>'
+      +'</div>'
+      +'<a href="https://www.macrotrends.net/2613/stock-market-performance-by-president-from-election-date" target="_blank" style="display:block;margin-top:5px;font-size:8.5px;color:var(--B)">MacroTrends — pełne dane →</a>'
+    +'</div>';
+    s+='</div>';
+
     return s;
   })()
     +'<div class="sec">Fed i polityka monetarna</div>'
@@ -1786,6 +1867,41 @@ function renderIndicators(){
   +'<a class="lnk" href="https://stooq.pl/t/?i=544" target="_blank">Surowce stooq</a>'
   +'<a class="lnk" href="https://stooq.pl/t/?i=539" target="_blank">Krypto stooq</a>'
   +'</div></div>';
+  /* Plot CAPE, annual returns, cycle after DOM renders */
+  setTimeout(function(){
+    /* CAPE 24M chart */
+    if(D.cape_series&&D.cape_series.length>0){
+      var cSeries=D.cape_series;
+      var avgLine=Array(cSeries.length).fill(17);
+      Plotly.newPlot('ch-cape',[
+        {x:cSeries.map(function(r){return r.date;}),y:cSeries.map(function(r){return r.val;}),
+         mode:'lines',name:'CAPE',line:{color:'#f5c040',width:2},fill:'tozeroy',fillcolor:'rgba(245,192,64,.08)'},
+        {x:cSeries.map(function(r){return r.date;}),y:avgLine,
+         mode:'lines',name:'Śr. hist. 17',line:{color:'#666',width:1,dash:'dot'}}
+      ],pLy({height:170,showlegend:false,margin:{l:45,r:8,t:8,b:30},
+        shapes:[{type:'line',x0:cSeries[0].date,x1:cSeries[cSeries.length-1].date,y0:17,y1:17,
+          line:{color:'rgba(102,102,102,.5)',width:1,dash:'dot'}}]}),PLY);
+    }
+    /* SP500 annual returns bar chart */
+    if(D.sp500_annual&&D.sp500_annual.length>0){
+      var ann=D.sp500_annual;
+      var cols=ann.map(function(r){return r.ret>=0?'#00e5a8':'#ff3355';});
+      Plotly.newPlot('ch-sp-annual',[
+        {x:ann.map(function(r){return String(r.year).slice(0,4);}),
+         y:ann.map(function(r){return r.ret;}),
+         type:'bar',marker:{color:cols},name:'Stopa zwrotu'}
+      ],pLy({height:170,showlegend:false,margin:{l:45,r:8,t:8,b:30},
+        yaxis:{ticksuffix:'%'}}),PLY);
+    }
+    /* Market cycle chart */
+    if(D.mkt_cycle&&D.mkt_cycle.length>0){
+      var cyc=D.mkt_cycle;
+      Plotly.newPlot('ch-cycle',[
+        {x:cyc.map(function(r){return r.date;}),y:cyc.map(function(r){return r.val;}),
+         mode:'lines',name:'SP500',line:{color:'#2a9df5',width:1.5},fill:'tozeroy',fillcolor:'rgba(42,157,245,.07)'}
+      ],pLy({height:160,showlegend:false,margin:{l:52,r:8,t:8,b:30}}),PLY);
+    }
+  },80);
 }
 
 /* ═══════════════════════════════
@@ -1946,15 +2062,14 @@ async function fetchAll(){
   calcScore(); renderDecision();
   await fetchFred();
   await fetchMacroData();
+  renderIndicators(); /* refresh with CAPE/EPS data */
   /* Fallback: populate D.q from FRED data for ticker when stooq/yahoo failed */
   if(D.f){
     if(!D.q.vix&&D.f.vixfred) D.q.vix={price:D.f.vixfred.current,prev:D.f.vixfred.prev,change:D.f.vixfred.trend3m||0,date:D.f.vixfred.date};
     if(!D.q.sp500&&D.f.sp500fred) D.q.sp500={price:D.f.sp500fred.current,prev:D.f.sp500fred.prev,change:D.f.sp500fred.trend3m||0,date:D.f.sp500fred.date};
     if(!D.q.us10y&&D.f.yield_curve) D.q.us10y={price:D.f.yield_curve.current,prev:D.f.yield_curve.prev,change:D.f.yield_curve.trend3m||0,date:D.f.yield_curve.date};
-    /* SP12M: FRED sp500fred.yoy is most accurate — ALWAYS override if available */
-    if(D.f.sp500fred&&D.f.sp500fred.yoy!=null&&isFinite(D.f.sp500fred.yoy)){
-      D.sp12m=D.f.sp500fred.yoy; D.sp12m_src='FRED SP500 YoY';
-    }
+    /* SP12M: do NOT override with FRED yoy — FRED SP500 is monthly/lagged,
+       e.g. Feb2026(5954) vs Feb2025(5955) = ~0% wrong. Keep Yahoo/Stooq result. */
   }
   renderTicker(); calcScore(); renderDecision(); renderIndicators(); renderPortfolio(); renderLiquidity();
   await fetchTreasury();
@@ -1991,46 +2106,85 @@ document.addEventListener('DOMContentLoaded',function(){
   fetchAll();
 });
 async function fetchMacroData() {
-  /* Fetch supplemental macro data: Shiller CAPE from multpl.com via proxy */
+  /* Helper: fetch HTML via proxy and parse */
+  async function fetchHTML(url,timeout){
+    var rp=await pGet(url,timeout||12000);
+    var h=await rp.text();
+    if(!h||h.trim().charAt(0)!=='<') throw new Error('not html');
+    return h;
+  }
+  /* Helper: extract JSON from script tag matching pattern */
+  function extractJSON(html,pattern){
+    var idx=html.indexOf(pattern);
+    if(idx<0) return null;
+    var s=html.indexOf('[',idx), e=html.lastIndexOf(']',html.indexOf(';',s)+1)+1;
+    if(s<0||e<=s) return null;
+    try{return JSON.parse(html.slice(s,e));}catch(e2){return null;}
+  }
+
+  /* 1. MacroTrends CAPE / Shiller PE */
   try {
-    var url='https://www.multpl.com/shiller-pe/table/by-month';
-    var rp=await pGet(url,10000);
-    var html=await rp.text();
-    if(!html||html.indexOf('<')<0) throw new Error('no html');
-    /* Parse table rows: <tr><td>Mar 2026</td><td>33.5</td> */
-    var rows=html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi)||[];
-    var vals=[];
-    for(var i=0;i<rows.length;i++){
-      var cells=rows[i].match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[];
-      if(cells.length>=2){
-        var dateStr=cells[0].replace(/<[^>]+>/g,'').trim();
-        var val=parseFloat(cells[1].replace(/<[^>]+>/g,'').trim());
-        if(isFinite(val)&&val>5&&val<200) vals.push({d:dateStr,v:val});
+    var h=await fetchHTML('https://www.macrotrends.net/2577/sp-500-pe-ratio-price-to-earnings-chart');
+    /* MacroTrends embeds data as: var chartData = [[date,val],...] */
+    var arr=extractJSON(h,'var rawData');
+    if(!arr) arr=extractJSON(h,'chartData');
+    if(arr&&arr.length>0){
+      /* Data is [[date_str, pe_val],...] sorted oldest first */
+      var last=arr[arr.length-1];
+      var capeVal=parseFloat(Array.isArray(last)?last[1]:last.v||last[1]||last.val||last[Object.keys(last)[1]]);
+      if(isFinite(capeVal)&&capeVal>5&&capeVal<200){
+        D.cape=capeVal;
+        /* Build 24-point history */
+        D.cape_series=arr.slice(-24).map(function(row){
+          return{date:Array.isArray(row)?row[0]:row.d,val:parseFloat(Array.isArray(row)?row[1]:row[1]||row.v)};
+        }).filter(function(x){return isFinite(x.val);});
       }
     }
-    if(vals.length>0){
-      D.cape=vals[0].v; D.cape_date=vals[0].d;
-      D.cape_hist=vals.slice(0,24).map(function(x){return x.v;}); /* 24M history */
-    }
-  } catch(e){ D.cape=null; }
+  } catch(e1){}
 
-  /* Fetch PE (forward/trailing) from FRED CAPE series if loaded */
-  if(D.f&&D.f.sp500pe&&D.f.sp500pe.current){
-    if(!D.cape) D.cape=D.f.sp500pe.current;
+  /* 2. MacroTrends SP500 Annual Returns */
+  try {
+    var h2=await fetchHTML('https://www.macrotrends.net/2526/sp-500-historical-annual-returns');
+    var arr2=extractJSON(h2,'rawData')||extractJSON(h2,'chartData');
+    if(arr2&&arr2.length>0){
+      /* [[year, annual_return_pct],...] */
+      D.sp500_annual=arr2.slice(-10).map(function(row){
+        return{year:Array.isArray(row)?row[0]:row.d,ret:parseFloat(Array.isArray(row)?row[1]:row[1]||row.v)};
+      }).filter(function(x){return isFinite(x.ret);});
+    }
+  } catch(e2){}
+
+  /* 3. MacroTrends DOW/GDP Ratio */
+  try {
+    var h3=await fetchHTML('https://www.macrotrends.net/2574/dow-to-gdp-ratio-chart');
+    var arr3=extractJSON(h3,'rawData')||extractJSON(h3,'chartData');
+    if(arr3&&arr3.length>0){
+      var last3=arr3[arr3.length-1];
+      D.dow_gdp=parseFloat(Array.isArray(last3)?last3[1]:last3[1]||last3.v);
+    }
+  } catch(e3){}
+
+  /* 4. MacroTrends Stock Market Cycles */
+  try {
+    var h4=await fetchHTML('https://www.macrotrends.net/1296/stock-market-cycles-historical-chart');
+    var arr4=extractJSON(h4,'rawData')||extractJSON(h4,'chartData');
+    if(arr4&&arr4.length>=2){
+      /* Get last few data points for cycle context */
+      D.mkt_cycle=arr4.slice(-6).map(function(row){
+        return{date:Array.isArray(row)?row[0]:row.d,val:parseFloat(Array.isArray(row)?row[1]:row[1]||row.v)};
+      }).filter(function(x){return isFinite(x.val);});
+    }
+  } catch(e4){}
+
+  /* 5. FRED fallback for CAPE (series CAPE) */
+  if(!D.cape&&D.f&&D.f.sp500pe&&D.f.sp500pe.current){
+    D.cape=D.f.sp500pe.current;
   }
-  /* EPS from FRED */
-  if(D.f&&D.f.sp500eps&&D.f.sp500eps.current){
-    D.eps=D.f.sp500eps.current;
-    D.eps_yoy=D.f.sp500eps.yoy;
-  }
-  /* Consumer sentiment */
-  if(D.f&&D.f.umcsent&&D.f.umcsent.current){
-    D.umcsent=D.f.umcsent.current;
-    D.umcsent_prev=D.f.umcsent.prev;
-  }
-  /* Retail sales */
-  if(D.f&&D.f.realsales&&D.f.realsales.yoy!=null){
-    D.retail_yoy=D.f.realsales.yoy;
+  /* 6. EPS, sentiment, retail from FRED */
+  if(D.f){
+    if(D.f.sp500eps) D.eps=D.f.sp500eps;
+    if(D.f.umcsent)  D.umcsent=D.f.umcsent.current;
+    if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
 
