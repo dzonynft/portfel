@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v46</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v47</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -1201,241 +1201,321 @@ function renderTechnical() {
 
 
 function renderPolska() {
-  var el=document.getElementById('p-polska');
-  if(!el) return;
+  var el = document.getElementById('p-polska');
+  if (!el) return;
 
-  /* Live data from D.q where available */
-  var usdpln=(D.q&&D.q.usdpln)?D.q.usdpln.price:null;
-  var eurpln=(D.q&&D.q.eurpln)?D.q.eurpln.price:null;
-  var wig20=(D.q&&D.q.wig20)?D.q.wig20.price:null;
-  var cpi=(D.f&&D.f.cpi)?D.f.cpi.yoy:null; /* US CPI yoy as proxy */
-  /* Polish CPI approx: ~4.5% (2025-2026 range) */
-  var plCPI=4.5;
-  var nbpRate=3.75; /* After 5 March 2026 cut from 4.00% */
-  var inflation=plCPI;
+  var usdpln = (D.q && D.q.usdpln) ? D.q.usdpln.price : null;
+  var eurpln = (D.q && D.q.eurpln) ? D.q.eurpln.price : null;
+  var wig20p = (D.q && D.q.wig20) ? D.q.wig20.price : null;
+  var rsi    = (D.ta && D.ta.rsi14) ? D.ta.rsi14 : 35.4;
 
-  function taxNet(gross){return gross*(1-0.19);} /* podatek Belki 19% */
-  function realRet(gross){return taxNet(gross)-inflation;}
+  /* ── CORRECT DATA (GUS lut 2026) ── */
+  var plCPI   = 2.1;   /* GUS 13.03.2026: luty 2026 = 2.1% r/r */
+  var nbpRate = 3.75;  /* po cięciu 5.03.2026 */
+  var inflation = plCPI;
 
-  /* --- OBLIGACJE AKTUALNIE (marzec 2026) --- */
-  var bonds=[
-    {sym:'OTS0626',name:'3-miesięczne (OTS)',pct:2.50,type:'stałe',term:'3M',info:'Stałe 2.50%. Wyłącznie na 3 miesiące. Wypłata w dniu wykupu.'},
-    {sym:'ROR0327',name:'1-roczne zmienne (ROR)',pct:4.25,type:'zmienna NBP',term:'1Y',info:'NBP 3.75% + 0.00% marży. Po obniżce z 5.03.2026 wyniesie ok. 3.75% w kolejnych okresach. Wypłata co miesiąc.'},
-    {sym:'DOR0328',name:'2-letnie zmienne (DOR)',pct:4.40,type:'zmienna NBP+0.15',term:'2Y',info:'NBP 3.75% + 0.15% marży. Oprocentowanie zmienne co miesiąc. Wypłata co miesiąc.'},
-    {sym:'TOS0329',name:'3-letnie stałe (TOS)',pct:4.65,type:'stałe 3 lata',term:'3Y',info:'Stałe 4.65% przez całe 3 lata. Odsetki kapitalizowane. Wypłata przy wykupie. Dobra blokada na cały cykl obniżek NBP.'},
-    {sym:'COI0330',name:'4-letnie COI (antyinflacyjne)',pct:5.00,type:'rok1 stałe + CPI+1.5%',term:'4Y',info:'Rok 1: 5.00%. Rok 2-4: inflacja CPI + 1.50%. Wypłata co rok. OCHRONA PRZED INFLACJĄ dla średniego terminu.'},
-    {sym:'EDO0336',name:'10-letnie EDO (antyinflacyjne)',pct:5.60,type:'rok1 stałe + CPI+2.0%',term:'10Y',info:'Rok 1: 5.60%. Rok 2-10: inflacja CPI + 2.00%. Odsetki kapitalizowane. NAJLEPSZA ochrona kapitału długoterminowego.'},
-    {sym:'ROS0332',name:'6-letnie rodzinne (ROS)',pct:5.20,type:'rok1 + CPI+2.0%',term:'6Y',info:'TYLKO dla beneficjentów 800+. Rok 1: 5.20%. Rok 2-6: CPI+2.00%. Kapitalizacja roczna.'},
-    {sym:'ROD0338',name:'12-letnie rodzinne (ROD)',pct:5.85,type:'rok1 + CPI+2.5%',term:'12Y',info:'TYLKO dla beneficjentów 800+. Rok 1: 5.85%. Rok 2-12: CPI+2.50%. Najlepsze obligacje na rynku PL jeśli przysługuje.'},
+  function taxNet(g) { return +(g * 0.81).toFixed(2); }  /* 19% Belka */
+  function realRet(g) { return +(taxNet(g) - inflation).toFixed(2); }
+  function fP(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+  function cC(v) { return v > 1.5 ? 'var(--G)' : v > 0 ? 'var(--Y)' : 'var(--R)'; }
+
+  /* ── KONTA OSZCZĘDNOŚCIOWE — dane z rankingów marzec 2026 ── */
+  /* Źródło: strefainwestorow.pl, bankobranie.pl, polakoszczedza.pl, moneteo.com */
+  var accounts = [
+    { bank:'BOŚ Bank',    name:'Cyfrowy Zysk',               pct:7.0,  limit:'do 15 tys. PLN',   term:'DO 19.03.2026',       cond:'Brak konta osobistego. Tylko nowi. UWAGA: zostały dni!', stars:3 },
+    { bank:'BNP Paribas', name:'Konto Pełne Marzeń',          pct:7.0,  limit:'do 100 tys. PLN',  term:'do 30.04.2026',       cond:'Nowi klienci. 4 transakcje/msc + wpływ 1000 PLN/msc.', stars:4 },
+    { bank:'VeloBank',    name:'Elastyczne KO (Ed.2/2026)',   pct:6.5,  limit:'do 50 tys. PLN',   term:'3 miesiące (92 dni)', cond:'Nowi klienci. Konto osobiste + zgody marketingowe + 5 transakcji.', stars:4 },
+    { bank:'Nest Bank',   name:'Nest KO',                     pct:6.5,  limit:'podaj w banku',    term:'3 miesiące',          cond:'Nowi klienci. Konto osobiste wymagane.', stars:3 },
+    { bank:'Credit Agricole', name:'Lokata powitalna',        pct:6.5,  limit:'do 100 tys. PLN',  term:'3×30 dni',            cond:'Nowi klienci. Konto osobiste + 5 płatności/msc + logowanie.', stars:4 },
+    { bank:'ING Bank Śląski', name:'OKO Bonus na start',      pct:5.5,  limit:'do 400 tys. PLN',  term:'3 miesiące',          cond:'Nowi klienci. Konto + 3× login + 15 transakcji. Do 8.04.2026.', stars:5 },
+    { bank:'Alior Bank',  name:'KO na Start',                 pct:5.2,  limit:'do 200 tys. PLN',  term:'4 miesiące',          cond:'Nowi klienci. Premia 1000 PLN za konto. 5 transakcji/msc.', stars:4 },
+    { bank:'mBank',       name:'Moje Cele',                   pct:5.1,  limit:'do 200 tys. PLN',  term:'90 dni',              cond:'Nowi klienci. Premia 780 PLN. Konto osobiste.', stars:4 },
+    { bank:'Pekao SA',    name:'KO Pekao',                    pct:5.0,  limit:'bez limitu',        term:'3 miesiące',          cond:'Nowi klienci. Premia 850 PLN. 5 transakcji/msc.', stars:5 },
+    { bank:'Bank Millennium', name:'KO Profit',               pct:5.0,  limit:'do 200 tys. PLN',  term:'91 dni',              cond:'Nowi klienci. 5 transakcji kartą/msc. Premia 900 PLN za konto.', stars:5 },
+    { bank:'UniCredit',   name:'KO standard',                 pct:4.5,  limit:'bez limitu',        term:'do 31.03.2026',       cond:'Bez warunków. Bez konta osobistego. Premia 200 PLN.', stars:5 },
+    { bank:'Santander',   name:'Multi Oszczędnościowe',       pct:4.0,  limit:'do 100 tys. PLN',  term:'do 15.04.2026',       cond:'Nowe środki. Nowi i obecni klienci. Premia 900 PLN.', stars:3 },
+    { bank:'PKO BP',      name:'KO Plus',                     pct:4.0,  limit:'do 250 tys. PLN',  term:'90 dni',              cond:'Premia 600 PLN za konto. Dla nowych środków.', stars:3 },
   ];
 
-  /* --- KONTA OSZCZĘDNOŚCIOWE marzec 2026 --- */
-  var accounts=[
-    {bank:'BOŚ Bank',name:'Cyfrowy Zysk',pct:7.0,limit:'do 15 tys. zł',term:'do 19.03.2026',cond:'Bez ROR. UWAGA: tylko do 19 marca!',stars:3},
-    {bank:'Credit Agricole',name:'Lokata Powitalna',pct:6.5,limit:'do 100 tys. zł',term:'3×30 dni',cond:'Nowi klienci + konto osobiste + 5 płatności/msc',stars:4},
-    {bank:'VeloBank',name:'Elastyczne KO',pct:6.5,limit:'do 50 tys. zł',term:'3 miesiące',cond:'Nowi klienci + konto osobiste + wpływ 2000 zł/msc',stars:4},
-    {bank:'ING Bank',name:'OKO Bonus',pct:5.5,limit:'do 400 tys. zł',term:'3 miesiące',cond:'Zakończona 02.03.2026. Sprawdź nową edycję.',stars:3},
-    {bank:'Bank Millennium',name:'KO 360°',pct:5.0,limit:'do 200 tys. zł',term:'100 dni',cond:'Nowi i obecni (nowe środki). Do 22.04.2026.',stars:5},
-    {bank:'Alior Bank',name:'KO na Start',pct:5.2,limit:'do 30 tys. zł',term:'4 miesiące',cond:'Nowi klienci. + premia do 1000 zł za konto.',stars:4},
-    {bank:'UniCredit',name:'KO standardowe',pct:4.5,limit:'bez limitu',term:'do 31.03.2026',cond:'Bez dodatkowych warunków. Bezterminowy.',stars:5},
-    {bank:'PKO BP',name:'KO Plus',pct:4.0,limit:'do 250 tys. zł',term:'bezterminowy',cond:'Brak limitów. Dla każdego klienta.',stars:3},
-    {bank:'Santander',name:'Multi Oszczędnościowe',pct:4.0,limit:'do 100 tys. zł',term:'do 15.04.2026',cond:'Nowe środki od 20.01.2026.',stars:3},
+  /* ── OBLIGACJE ── */
+  var bonds = [
+    { sym:'OTS0626', name:'3-miesięczne (OTS)', pct:2.50, type:'stałe', term:'3M',
+      info:'Najkrótsze. Minimalna ochrona kapitału. Słabsze od KO.' },
+    { sym:'ROR0327', name:'1-roczne (ROR)',      pct:4.25, type:'zmienna NBP+0%', term:'1Y',
+      info:'NBP 3.75% + marża 0%. Miesięczna wypłata odsetek. Spadnie gdy NBP tnie.' },
+    { sym:'DOR0328', name:'2-letnie (DOR)',       pct:4.40, type:'zmienna NBP+0.15%', term:'2Y',
+      info:'NBP 3.75% + 0.15%. Comiesięczna wypłata. Nieco lepsze od ROR.' },
+    { sym:'TOS0329', name:'3-letnie stałe (TOS)',pct:4.65, type:'stałe 3 lata', term:'3Y',
+      info:'Stałe 4.65% na 3 lata — blokuje stopę przed dalszymi cięciami NBP.' },
+    { sym:'COI0330', name:'4-letnie (COI)',       pct:5.00, type:'rok1 + CPI+1.5%', term:'4Y',
+      info:'Rok 1: 5.00%. Rok 2-4: inflacja+1.5%. Ochrona realna średnioterminowa.' },
+    { sym:'EDO0336', name:'10-letnie (EDO)',      pct:5.60, type:'rok1 + CPI+2.0%', term:'10Y',
+      info:'Rok 1: 5.60%. Rok 2-10: CPI+2.0%. Kapitalizacja roczna. NAJLEPSZA ochrona długoterminowa.' },
   ];
 
-  /* --- OBLICZENIA IB01 vs OBLIGACJE vs KONTO --- */
-  var ib01yield=(D.f&&D.f.ib01_yield)?D.f.ib01_yield.current:4.15; /* US 1M yield */
-  /* IB01 ETF (T-bill 0-3M USD): yield ~ fed funds rate ~4.33% but currency risk */
-  /* W PLN: IB01 yield - hedge cost (~1.5% dla PLN/USD) = ~2.5-2.8% net in PLN effective */
-  var ib01effectivePLN=ib01yield-1.5; /* rough currency hedge cost */
+  var s = '';
 
-  function fP(v){return v!=null?(v>=0?'+':'')+v.toFixed(2)+'%':'-';}
-  function cC(v){return v>2?'var(--G)':v>0?'var(--Y)':'var(--R)';}
+  /* ═══ HEADER — CORRECT DATA ════════════════════════════════════ */
+  s += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">';
+  s += '<div style="background:var(--bg2);border:1px solid var(--G);border-radius:var(--r);padding:11px 13px">'
+     + '<div style="font-size:9px;color:var(--t2);margin-bottom:2px">Inflacja PL — luty 2026 (GUS 13.03)</div>'
+     + '<div style="font-size:28px;font-weight:800;color:var(--G)">2,1%</div>'
+     + '<div style="font-size:9px;font-weight:700;color:var(--G)">PONIŻEJ celu NBP 2.5%</div>'
+     + '<div style="font-size:8.5px;color:var(--t2);margin-top:4px;line-height:1.6">Usługi: +4.8% r/r (strukturalne)<br>Towary: +1.0% r/r<br>Realna stopa EDO rok1 = 5.6−2.1 = <b style="color:var(--G)">+3.5%</b> netto na IKE</div></div>';
+  s += '<div style="background:var(--bg2);border:1px solid var(--Y);border-radius:var(--r);padding:11px 13px">'
+     + '<div style="font-size:9px;color:var(--t2);margin-bottom:2px">NBP stopa referencyjna</div>'
+     + '<div style="font-size:28px;font-weight:800;color:var(--Y)">3,75%</div>'
+     + '<div style="font-size:9px;font-weight:700;color:var(--Y)">Cięcie −25bp (5.03.2026)</div>'
+     + '<div style="font-size:8.5px;color:var(--t2);margin-top:4px;line-height:1.6">Konsensus koniec 2026: ~3.25%<br>Każde cięcie obniży KO i nowe ROR/DOR<br><b>EDO 5.6% = blokuj TERAZ</b> przed kolejnym cięciem</div></div>';
+  s += '<div style="background:var(--bg2);border:1px solid var(--B);border-radius:var(--r);padding:11px 13px">'
+     + '<div style="font-size:9px;color:var(--t2);margin-bottom:2px">Śr. KO na rynku (marzec 2026)</div>'
+     + '<div style="font-size:28px;font-weight:800;color:var(--B)">4,95%</div>'
+     + '<div style="font-size:9px;font-weight:700;color:var(--B)">Śr. promocyjna → spada</div>'
+     + '<div style="font-size:8.5px;color:var(--t2);margin-top:4px;line-height:1.6">Źródło: Bankowe ABC / Moneteo 03.2026<br>Śr. standardowa (bez promocji): 1.37%!<br>Topowe oferty: 6.5-7% ale tylko 3 msc</div></div>';
+  s += '</div>';
 
-  var s='';
-  /* ── HEADER ── */
-  s+='<div style="background:var(--bg2);border:1px solid var(--B);border-radius:var(--r);padding:14px 18px;margin-bottom:12px">';
-  s+='<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:6px">🇵🇱 POLSKIE INSTRUMENTY OSZCZĘDNOŚCIOWE — marzec 2026</div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:9.5px;color:var(--t1)">';
-  s+='<div><b style="color:var(--Y)">Stopa NBP: 3.75%</b><br>Obniżka z 4.00% → 3.75% dnia 5 marca 2026.<br>Rynek wycenia kolejne cięcia w 2026 roku.</div>';
-  s+='<div><b style="color:var(--Y)">Inflacja PL: ~4.5%</b><br>Obligacje antyinflacyjne (COI, EDO) chronią realną wartość.<br>Nominalne stopy często poniżej inflacji po Belce.</div>';
-  s+='<div><b style="color:var(--t2)">Podatek Belki: 19%</b><br>Od zysków kapitałowych. Obligacje skarbowe objęte Belką.<br>WYJĄTEK: IKE/IKZE-Obligacje = BRAK podatku Belki.</div>';
-  s+='</div></div>';
+  /* ═══ CO WYBRAĆ — DECYZJA (główny panel) ═══════════════════════ */
+  s += '<div style="background:rgba(0,229,168,.06);border:1px solid rgba(0,229,168,.3);border-radius:var(--r);padding:13px 16px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--G);margin-bottom:8px">🎯 CO WYBRAĆ — decyzja marzec 2026</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:9.5px">';
+  s += '<div style="background:rgba(0,229,168,.08);border-radius:5px;padding:9px 11px;border-left:3px solid var(--G)">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">1. OBLIGACJE (bez IKE)</div>'
+     + '<div style="line-height:1.7">EDO 5.60% > KO 6.5% netto?<br>'
+     + 'EDO brutto: 5.60%, netto Belka: <b>4.54%</b><br>'
+     + 'KO 6.5% netto Belka: <b>5.27%</b><br>'
+     + 'KO wygrywa — ALE tylko 3 miesiące!<br>'
+     + 'Po 3 msc KO→ ~4% → EDO 5.6% lepsze.<br>'
+     + '<b style="color:var(--G)">Wniosek: EDO wygrywa na 6M+</b></div></div>';
+  s += '<div style="background:rgba(0,229,168,.1);border-radius:5px;padding:9px 11px;border-left:3px solid #00e5a8">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">⭐ NAJLEPSZE: EDO (bez IKE)</div>'
+     + '<div style="line-height:1.7">5.60% stałe rok 1<br>'
+     + 'CPI+2% rok 2-10 (ochrona real.)<br>'
+     + 'Netto Belka: <b>4.54%</b> = lepsza od KO po 3M<br>'
+     + 'Realna stopa: <b>+2.44%</b> (4.54-2.1)<br>'
+     + 'Wcześniejszy wykup: −3 PLN/szt (~0.03%)<br>'
+     + '<b style="color:var(--G)">Gwarancja SP. Kup TERAZ przed cięciami.</b></div></div>';
+  s += '<div style="background:rgba(245,192,64,.06);border-radius:5px;padding:9px 11px;border-left:3px solid var(--Y)">'
+     + '<div style="font-weight:700;color:var(--Y);margin-bottom:4px">2. KO — kiedy wybrać?</div>'
+     + '<div style="line-height:1.7">Wybierz KO TYLKO gdy:<br>'
+     + '• Krótki horyzont &lt;3 msc<br>'
+     + '• Potrzebujesz płynności T+1<br>'
+     + '• Kwota &lt;50k PLN (promocja)<br>'
+     + '• Fundusz awaryjny<br>'
+     + 'Strategia: 3M KO (6.5%) → potem EDO.<br>'
+     + '<b>UniCredit 4.5% bez limitu = best bezterminowy.</b></div></div>';
+  s += '</div>';
+  s += '<div style="margin-top:8px;font-size:8.5px;color:var(--t2);line-height:1.6">';
+  s += '<b>Strategia optymalna:</b> ① Fundusz awaryjny (3-6 msc wydatków) → UniCredit KO 4.5% bez warunków. '
+     + '② Reszta krótkiego okresu → VeloBank/Pekao/ING 5-6.5% na 3M. '
+     + '③ Horyzont 1Y+ → EDO obligacje (netto 4.54% > KO po 3M, bez ryzyka, SP gwarancja). '
+     + '<b>Pamiętaj:</b> Po marcowym cięciu NBP banki OBNIŻĄ KO. EDO rok 1 zostanie 5.60% przez cały rok.';
+  s += '</div></div>';
 
-  /* ── OBLIGACJE SKARBOWE ── */
-  s+='<div class="sec">Obligacje Skarbowe Skarbu Państwa — marzec 2026 (obligacjeskarbowe.pl)</div>';
-  s+='<div style="overflow-x:auto;margin-bottom:12px">';
-  s+='<table style="width:100%;border-collapse:collapse;font-size:9.5px">';
-  s+='<tr style="border-bottom:1px solid var(--br);color:var(--t2)">';
-  s+='<th style="text-align:left;padding:5px 8px">Seria</th>';
-  s+='<th style="padding:5px 8px">Oprocentowanie</th>';
-  s+='<th style="padding:5px 8px">Netto (po Belce)</th>';
-  s+='<th style="padding:5px 8px">Realna stopa</th>';
-  s+='<th style="padding:5px 8px">Termin</th>';
-  s+='<th style="padding:5px 8px">Typ</th>';
-  s+='<th style="text-align:left;padding:5px 8px;min-width:180px">Uwagi</th></tr>';
-  bonds.forEach(function(b){
-    var net=taxNet(b.pct);
-    var real=realRet(b.pct);
-    var rowC=b.pct>=5.5?'rgba(0,229,168,.05)':b.pct>=4.5?'rgba(245,192,64,.04)':'';
-    var pctC=b.pct>=5.5?'var(--G)':b.pct>=4.5?'var(--Y)':'var(--t1)';
-    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05);background:'+rowC+'">';
-    s+='<td style="padding:5px 8px;font-weight:700;color:var(--t1)">'+b.name+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;font-weight:700;color:'+pctC+'">'+b.pct.toFixed(2)+'%</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:var(--Y)">'+net.toFixed(2)+'%</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:'+cC(real)+'">'+fP(real)+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:var(--t2)">'+b.term+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:var(--t2);font-size:8.5px">'+b.type+'</td>';
-    s+='<td style="padding:5px 8px;color:var(--t2);font-size:8.5px">'+b.info+'</td></tr>';
+  /* ═══ DCA TRANSZE — wyjaśnienie ════════════════════════════════ */
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 15px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--Y);margin-bottom:8px">📚 Co znaczy "2× transze co 3 tygodnie"? — pełne wyjaśnienie</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:9.5px">';
+  s += '<div>'
+     + '<div style="font-weight:700;color:var(--t1);margin-bottom:5px">Przykład konkretny (portfel IKZE, 9 388 PLN/rok):</div>'
+     + '<div style="line-height:1.85;color:var(--t1)">'
+     + 'Miesięczna pula: 9 388 ÷ 12 = <b>~783 PLN/msc</b><br>'
+     + 'Przy RSI = 35.4 → "2× co 3 tygodnie":<br><br>'
+     + '<b>Transza 1:</b> 15 marca — wpłacasz <b>392 PLN</b><br>'
+     + '&nbsp;&nbsp;→ Kupujesz ETFBMWIG40 za ~235 PLN<br>'
+     + '&nbsp;&nbsp;→ Kupujesz ETFBSWIG80 za ~117 PLN<br>'
+     + '&nbsp;&nbsp;→ Kupujesz ETFBWIG20 za ~40 PLN<br><br>'
+     + '<b>Transza 2:</b> 5 kwietnia — wpłacasz <b>392 PLN</b><br>'
+     + '&nbsp;&nbsp;→ To samo rozkładanie<br><br>'
+     + 'Razem w miesiącu: 2×392 = 784 PLN ≈ plan miesięczny ✓'
+     + '</div></div>';
+  s += '<div>'
+     + '<div style="font-weight:700;color:var(--t1);margin-bottom:5px">Dlaczego transze, a nie jednorazowo?</div>'
+     + '<div style="line-height:1.75;color:var(--t1)">'
+     + '<b style="color:var(--G)">Uśredniasz cenę zakupu (DCA)</b> — nie wiesz czy właśnie teraz jest dno. '
+     + 'Może jutro RSI spadnie do 28% i cena będzie niższa o 5%.<br><br>'
+     + '<b>Zasada RSI → liczba transz:</b><br>'
+     + '<span style="color:var(--G)">RSI &lt;30:</span> 3 transze (max agresja, prawdopodobne dno)<br>'
+     + '<span style="color:var(--G)">RSI 30-40:</span> 2 transze co 3 tyg. <b>← teraz RSI=35.4</b><br>'
+     + '<span style="color:var(--Y)">RSI 40-55:</span> 1 transza/miesiąc<br>'
+     + '<span style="color:#fb923c)">RSI 55-70:</span> 0.5 transzy (co 6 tyg.)<br>'
+     + '<span style="color:var(--R)">RSI &gt;70:</span> STOP → parkuj w ETFBTBSP'
+     + '</div></div>';
+  s += '</div></div>';
+
+  /* ═══ ETFBTBSP i ETFBCASH — kiedy kupować ════════════════════ */
+  s += '<div style="background:rgba(245,192,64,.05);border:1px solid rgba(245,192,64,.3);border-radius:var(--r);padding:12px 15px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--Y);margin-bottom:8px">⚠️ ETFBTBSP i ETFBCASH — kiedy kupować, kiedy unikać</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:9.5px;margin-bottom:8px">';
+  s += '<div style="background:rgba(0,229,168,.06);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">✅ KIEDY KUPOWAĆ ETFBTBSP/CASH</div>'
+     + '<div style="line-height:1.75">'
+     + '• RSI SP500 &gt;70 (wykupienie rynku akcji)<br>'
+     + '• Dual Momentum fail: SP500 12M &lt; IB01<br>'
+     + '• Sahm Rule ≥ 0.5 (recesja potwierdzona)<br>'
+     + '• NBP/Fed zatrzymał cięcia → stopy stałe<br>'
+     + '• Krzywa rentowności normalizuje się (po inwersji)<br>'
+     + '• Chcesz parkować nowe wpłaty gdy akcje za drogie<br>'
+     + '<b style="color:var(--G)">ETFBCASH: zawsze gdy chcesz parking 2-4 tyg.</b>'
+     + '</div></div>';
+  s += '<div style="background:rgba(255,51,85,.06);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-weight:700;color:var(--R);margin-bottom:4px">❌ KIEDY UNIKAĆ ETFBTBSP</div>'
+     + '<div style="line-height:1.75">'
+     + '• Rentowności rosną (NBP podwyżki) → ceny obligacji SPADAJĄ<br>'
+     + '• Inflacja niespodziewanie rośnie → obligacje tracą realnie<br>'
+     + '• Rynek dyskontuje wyższe stopy długo → duration ryzyko<br>'
+     + '• Panika na rynku długu (jak 2022) → ETFBTBSP −15%<br>'
+     + '• Lepiej wtedy: ETFBCASH (rynek pieniężny, brak duration)<br>'
+     + '<b style="color:var(--R)">Teraz (2026): NBP tnie → ETFBTBSP OK. Gdyby inflacja wróciła → ETFBCASH zamiast ETFBTBSP.</b>'
+     + '</div></div>';
+  s += '</div>';
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:9px 12px;font-size:9px;color:var(--t1);line-height:1.7">'
+     + '<b>Mechanizm działania ETFBTBSP:</b> ETF trzyma krótkie obligacje skarbowe PL (0-3 lata). '
+     + 'Gdy NBP OBNIŻA stopy → rentowności obligacji spadają → ceny ROSNĄ → ETFBTBSP zyska. '
+     + 'Gdy NBP PODNOSI stopy (lub inflacja skacze) → rentowności rosną → ceny SPADAJĄ → ETFBTBSP traci. '
+     + '<b>Aktualnie:</b> NBP tnie (3.75% → 3.25% w 2026) = środowisko PRO-ETFBTBSP. '
+     + '<b>ETFBCASH:</b> działa jak lokata dzienna — nie zależy od stóp długu, zawsze rośnie ~NBP rate. Brak ryzyka duration. '
+     + 'Wadą: niższy zwrot ~3.8% vs ETFBTBSP ~5.5% przy środowisku cięć.'
+     + '</div></div>';
+
+  /* ═══ DŁUGOTERMINOWE OBLIGACJE USA — DTLA, IBTA, IBTS ══════════ */
+  s += '<div style="background:rgba(42,157,245,.05);border:1px solid rgba(42,157,245,.3);border-radius:var(--r);padding:12px 15px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:8px">🇺🇸 Obligacje USA długoterminowe — DTLA, IBTA (7-10Y), IBTS (1-3Y) — kiedy kupować?</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:9px;margin-bottom:8px">';
+  /* IBTS 1-3Y */
+  s += '<div style="background:rgba(42,157,245,.08);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:4px">IBTS (1-3Y US Treasury)</div>'
+     + '<div style="color:var(--t2);margin-bottom:4px;font-size:8.5px">iShares 1-3 Year Treasury Bond ETF</div>'
+     + '<div style="line-height:1.7">'
+     + '<b style="color:var(--G)">KUPUJ gdy:</b><br>'
+     + '• Fed spodziewa się ciąć stopy (forward pricing)<br>'
+     + '• Rentowność 2Y &gt;4.5% (historycznie wysoka)<br>'
+     + '• Recesja zbliża się → safe haven USD<br>'
+     + '• RSI akcji &gt;70 → parking z lepszym niż cash zwrotem<br>'
+     + '• Teraz: 2Y yield ~4.0%. DCA akceptowalny.<br>'
+     + '<b style="color:var(--R)">UNIKAJ gdy:</b> inflacja znów skacze, Fed pauze/hike'
+     + '</div></div>';
+  /* IBTA 7-10Y */
+  s += '<div style="background:rgba(42,157,245,.06);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:4px">IBTA (7-10Y US Treasury)</div>'
+     + '<div style="color:var(--t2);margin-bottom:4px;font-size:8.5px">iShares 7-10 Year Treasury Bond ETF</div>'
+     + '<div style="line-height:1.7">'
+     + '<b style="color:var(--G)">KUPUJ gdy:</b><br>'
+     + '• Rentowność 10Y &gt;4.5% (yield wysoki = tanie ceny)<br>'
+     + '• Fed ogłasza pivot / cięcia długoterminowe<br>'
+     + '• Recesja USA potwierdzona (Sahm &gt;0.5)<br>'
+     + '• Deflacja / dezinflacja silna i trwała<br>'
+     + '• Teraz: 10Y ~4.3%. Neutralne — DCA małymi kwotami.<br>'
+     + '<b style="color:var(--R)">UNIKAJ:</b> przy rosnącej inflacji, stagflacji, dług USA rośnie szybko'
+     + '</div></div>';
+  /* DTLA długie 20Y+ */
+  s += '<div style="background:rgba(255,51,85,.05);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-size:10px;font-weight:700;color:var(--R);margin-bottom:4px">DTLA / TLT (20Y+ US Treasury)</div>'
+     + '<div style="color:var(--t2);margin-bottom:4px;font-size:8.5px">Długoterminowe obligacje 20+ lat</div>'
+     + '<div style="line-height:1.7">'
+     + '<b style="color:var(--G)">KUPUJ gdy:</b><br>'
+     + '• 30Y yield &gt;4.8% (historycznie rzadkie)<br>'
+     + '• Fed pivotem obniży stopy drastycznie (jak 2020)<br>'
+     + '• Recesja systemowa / kryzys finansowy<br>'
+     + '• Deflacja — rzadki scenariusz ale DTLA +50%<br>'
+     + '<b style="color:var(--R)">RYZYKO DURATION:</b> +1% yield = −15% ceny ETF!<br>'
+     + '<b style="color:var(--R)">Teraz: UNIKAJ</b> — dług USA rośnie, inflacja usług 4.8%, niepewność fiskalna.'
+     + '</div></div>';
+  s += '</div>';
+  /* Porównanie yield */
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:9px 12px;font-size:9px;color:var(--t1);line-height:1.7">'
+     + '<b>Mechanizm cen obligacji:</b> Cena obligacji i rentowność (yield) są ODWROTNIE proporcjonalne. '
+     + 'Gdy Fed tnie stopy → rentowności SPADAJĄ → ceny obligacji ROSNĄ → IBTA/DTLA zyska. '
+     + 'Gdy inflacja wraca → rentowności ROSNĄ → ceny SPADAJĄ → strata ETF. '
+     + '<b>Duration (czułość):</b> IBTS 1-3Y: duration ~2 lata (mały ruch cen). IBTA 7-10Y: duration ~8 lat (umiarkowany). DTLA 20Y+: duration ~16 lat (BARDZO duże wahania). '
+     + '<b style="color:var(--Y)">Zasada dla portfela:</b> Im niepewność wyższa, tym krótsza duration (IBTS bezpieczniejsza). '
+     + 'DTLA tylko przy pewności głębokich cięć Fed i recesji. Teraz US10Y ~4.3% = historycznie w środku zakresu = IBTS/IBTA DCA małymi kwotami OK.'
+     + '</div></div>';
+
+  /* ═══ KONTA OSZCZĘDNOŚCIOWE TABELA ══════════════════════════════ */
+  s += '<div class="sec">Ranking kont oszczędnościowych — marzec 2026 (aktualne dane z rankingów)</div>';
+  s += '<div style="overflow-x:auto;margin-bottom:10px">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s += '<tr style="border-bottom:1px solid var(--br);color:var(--t2)">'
+     + '<th style="text-align:left;padding:4px 7px">#</th>'
+     + '<th style="text-align:left;padding:4px 7px">Bank / Konto</th>'
+     + '<th style="padding:4px 7px">Brutto</th>'
+     + '<th style="padding:4px 7px">Netto (Belka)</th>'
+     + '<th style="padding:4px 7px">Realna (−CPI 2,1%)</th>'
+     + '<th style="padding:4px 7px">Limit / Okres</th>'
+     + '<th style="text-align:left;padding:4px 7px;min-width:160px">Warunki</th></tr>';
+  accounts.forEach(function(a, i) {
+    var net  = taxNet(a.pct);
+    var real = realRet(a.pct);
+    var rowBg = a.pct >= 6 ? 'rgba(0,229,168,.04)' : a.pct >= 5 ? 'rgba(245,192,64,.03)' : '';
+    var pctC  = a.pct >= 6 ? 'var(--G)' : a.pct >= 5 ? 'var(--Y)' : 'var(--t1)';
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.04);background:' + rowBg + '">'
+       + '<td style="padding:4px 7px;color:var(--t2)">' + (i+1) + '</td>'
+       + '<td style="padding:4px 7px"><b style="color:var(--t1)">' + a.bank + '</b><br>'
+       + '<span style="color:var(--t2);font-size:8px">' + a.name + '</span></td>'
+       + '<td style="padding:4px 7px;text-align:center;font-weight:700;color:' + pctC + '">' + a.pct.toFixed(1) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:var(--Y)">' + net.toFixed(2) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:' + cC(real) + '">' + fP(real) + '</td>'
+       + '<td style="padding:4px 7px;font-size:8.5px;color:var(--t2)">' + a.limit + '<br>' + a.term + '</td>'
+       + '<td style="padding:4px 7px;font-size:8px;color:var(--t2)">' + a.cond + '</td></tr>';
   });
-  s+='</table></div>';
+  s += '</table></div>';
 
-  /* ── KONTA OSZCZĘDNOŚCIOWE ── */
-  s+='<div class="sec">Najlepsze konta oszczędnościowe — marzec 2026 (ranking aktualizowany)</div>';
-  s+='<div style="overflow-x:auto;margin-bottom:12px">';
-  s+='<table style="width:100%;border-collapse:collapse;font-size:9.5px">';
-  s+='<tr style="border-bottom:1px solid var(--br);color:var(--t2)">';
-  s+='<th style="text-align:left;padding:5px 8px">Bank / Konto</th>';
-  s+='<th style="padding:5px 8px">Oprocentowanie</th>';
-  s+='<th style="padding:5px 8px">Netto</th>';
-  s+='<th style="padding:5px 8px">Realnie</th>';
-  s+='<th style="padding:5px 8px">Limit</th>';
-  s+='<th style="text-align:left;padding:5px 8px">Warunki / Uwagi</th></tr>';
-  accounts.forEach(function(a){
-    var net=taxNet(a.pct);
-    var real=realRet(a.pct);
-    var rowC=a.pct>=6?'rgba(0,229,168,.05)':a.pct>=5?'rgba(245,192,64,.04)':'';
-    var pctC=a.pct>=6?'var(--G)':a.pct>=5?'var(--Y)':'var(--t1)';
-    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05);background:'+rowC+'">';
-    s+='<td style="padding:5px 8px"><b style="color:var(--t1)">'+a.bank+'</b><br><span style="color:var(--t2);font-size:8.5px">'+a.name+'</span></td>';
-    s+='<td style="padding:5px 8px;text-align:center;font-weight:700;color:'+pctC+'">'+a.pct.toFixed(1)+'%</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:var(--Y)">'+net.toFixed(2)+'%</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:'+cC(real)+'">'+fP(real)+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;font-size:8.5px;color:var(--t2)">'+a.limit+'</td>';
-    s+='<td style="padding:5px 8px;font-size:8.5px;color:var(--t2)">'+a.term+' — '+a.cond+'</td></tr>';
+  /* ═══ OBLIGACJE TABELA ═══════════════════════════════════════════ */
+  s += '<div class="sec">Obligacje Skarbowe — marzec 2026 (obligacjeskarbowe.pl)</div>';
+  s += '<div style="overflow-x:auto;margin-bottom:10px">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s += '<tr style="border-bottom:1px solid var(--br);color:var(--t2)">'
+     + '<th style="text-align:left;padding:4px 7px">Seria</th>'
+     + '<th style="padding:4px 7px">Brutto</th>'
+     + '<th style="padding:4px 7px">Netto (Belka)</th>'
+     + '<th style="padding:4px 7px">Realna (−CPI 2,1%)</th>'
+     + '<th style="padding:4px 7px">Typ</th><th style="text-align:left;padding:4px 7px">Uwagi</th></tr>';
+  bonds.forEach(function(b) {
+    var net  = taxNet(b.pct);
+    var real = realRet(b.pct);
+    var rc   = b.pct >= 5 ? 'rgba(0,229,168,.04)' : b.pct >= 4 ? 'rgba(245,192,64,.03)' : '';
+    var pc   = b.pct >= 5 ? 'var(--G)' : b.pct >= 4 ? 'var(--Y)' : 'var(--t1)';
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.04);background:' + rc + '">'
+       + '<td style="padding:4px 7px;font-weight:700;color:var(--t1)">' + b.name + '</td>'
+       + '<td style="padding:4px 7px;text-align:center;font-weight:700;color:' + pc + '">' + b.pct.toFixed(2) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:var(--Y)">' + net.toFixed(2) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:' + cC(real) + '">' + fP(real) + '</td>'
+       + '<td style="padding:4px 7px;font-size:8.5px;color:var(--t2)">' + b.type + '</td>'
+       + '<td style="padding:4px 7px;font-size:8.5px;color:var(--t2)">' + b.info + '</td></tr>';
   });
-  s+='</table></div>';
+  s += '</table></div>';
 
-  /* ── KALKULATOR: IB01 vs OBLIGACJE vs KONTO ── */
-  s+='<div class="sec">Kalkulator: co się bardziej opłaca? IB01 USD vs Obligacje PLN vs Konto PLN</div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:14px;margin-bottom:12px">';
-  /* Live comparison table */
-  var upVal=usdpln?usdpln:3.85;
-  var options=[
-    {name:'IB01 ETF (T-bill USD)',gross:ib01yield,note:'Yield USD ~'+ib01yield.toFixed(2)+'%. Ryzyko walutowe USD/PLN! Koszty hedgingu ~1.5%',currency:'USD',hedge:true,eff:ib01yield-1.5},
-    {name:'EDO Obligacje 10L (rok 1)',gross:5.60,note:'5.60% stały rok 1, potem CPI+2%. Gwarancja Skarbu Państwa. Brak ryzyka walutowego. Na IKE: BRAK BELKI!',currency:'PLN',hedge:false,eff:5.60},
-    {name:'TOS 3-letnie stałe',gross:4.65,note:'4.65% stałe na 3 lata. Dobra blokada przy cyklu cięć NBP.',currency:'PLN',hedge:false,eff:4.65},
-    {name:'COI 4-letnie antyinflacyjne',gross:5.00,note:'5.00% rok 1, potem inflacja+1.5%. Ochrona realna.',currency:'PLN',hedge:false,eff:5.00},
-    {name:'VeloBank / Credit Agricole KO',gross:6.50,note:'6.50% ale max 3 miesiące, nowi klienci, limity kwotowe.',currency:'PLN',hedge:false,eff:6.50},
-    {name:'UniCredit KO (bez limitu)',gross:4.50,note:'4.50% bez limitu kwotowego i warunków. Elastyczne.',currency:'PLN',hedge:false,eff:4.50},
-    {name:'ETF ETFBMWIG40 (GPW)',gross:null,note:'2025: +33.6%. Brak gwarancji. Wyższe ryzyko. Dla IKE: brak Belki. 10L śr.: ~8% rocznie (mWIG40TR)',currency:'PLN',hedge:false,eff:null,risky:true},
-    {name:'ETF VWCE (MSCI World)',gross:null,note:'Hist. 10L: ~14% USD. 2025: +~12% (SP500). Ryzyko walutowe + rynkowe. Najlepsza długoterminowa opcja.',currency:'EUR/USD',hedge:false,eff:null,risky:true},
-  ];
+  /* ═══ GPW ETF vs MSCI ═══════════════════════════════════════════ */
+  s += '<div class="sec">GPW ETF vs MSCI World — kiedy Polska, kiedy Świat?</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 13px">'
+     + '<div style="font-size:9px;font-weight:700;color:var(--G);margin-bottom:6px">✅ KUPUJ GPW (mWIG40/sWIG80) gdy:</div>'
+     + '<div style="font-size:9px;line-height:1.8;color:var(--t1)">'
+     + '• NBP tnie stopy (teraz: ✓ 3.75%)<br>'
+     + '• PKB Polska &gt;3% (teraz: ✓ 3.9% proj.)<br>'
+     + '• CPI PL blisko celu NBP (teraz: ✓ 2.1%)<br>'
+     + '• WIG20 P/E &lt;12x (teraz: ~10-11x ✓)<br>'
+     + '• KPO inwestycje szczyt (teraz: ✓ 2026-27)<br>'
+     + '• EUR/PLN &gt;4.30 (tani zakup → PLN ETF)<br>'
+     + '• mWIG40 po korekcie &gt;10% od szczytu<br>'
+     + '<b style="color:var(--G)">TERAZ: większość spełniona → DCA GPW</b>'
+     + '</div></div>';
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 13px">'
+     + '<div style="font-size:9px;font-weight:700;color:var(--B);margin-bottom:6px">🌍 KUPUJ MSCI World (VWCE/ISAC) gdy:</div>'
+     + '<div style="font-size:9px;line-height:1.8;color:var(--t1)">'
+     + '• SP500 RSI &lt;40 (teraz: ✓ 35.4)<br>'
+     + '• USD/PLN &lt;3.90 → tani USD (teraz: ~3.90 OK)<br>'
+     + '• EUR/PLN &lt;4.25 → tani EUR dla VWCE<br>'
+     + '• DM signal: SP500 12M &gt; IB01 (teraz: ✓)<br>'
+     + '• Długoterminowo zawsze: 9-14% śr./rok<br>'
+     + '• Dywersyfikacja geograficzna (nie tylko PL)<br>'
+     + '<b style="color:var(--B)">TERAZ: RSI okno zakupu ✓. DCA ISAC/VWCE.</b>'
+     + '</div></div>';
+  s += '</div>';
 
-  s+='<div style="overflow-x:auto">';
-  s+='<table style="width:100%;border-collapse:collapse;font-size:9.5px">';
-  s+='<tr style="border-bottom:1px solid var(--br);color:var(--t2)">';
-  s+='<th style="text-align:left;padding:5px 8px">Instrument</th>';
-  s+='<th style="padding:5px 8px">Brutto</th>';
-  s+='<th style="padding:5px 8px">Netto (Belka)</th>';
-  s+='<th style="padding:5px 8px">Realnie (-CPI 4.5%)</th>';
-  s+='<th style="padding:5px 8px">Waluta</th>';
-  s+='<th style="text-align:left;padding:5px 8px">Komentarz</th></tr>';
-  options.forEach(function(o){
-    var net=o.eff!=null?taxNet(o.eff):null;
-    var real=o.eff!=null?realRet(o.eff):null;
-    var rowC=o.risky?'rgba(42,157,245,.04)':o.eff!=null&&o.eff>=5.5?'rgba(0,229,168,.05)':o.eff!=null&&o.eff>=4.5?'rgba(245,192,64,.03)':'';
-    var grossC=o.risky?'var(--B)':o.eff!=null&&o.eff>=5.5?'var(--G)':o.eff!=null&&o.eff>=4.5?'var(--Y)':'var(--t1)';
-    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05);background:'+rowC+'">';
-    s+='<td style="padding:5px 8px;font-weight:700;color:var(--t1)">'+o.name+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;font-weight:700;color:'+grossC+'">'+(o.eff!=null?o.eff.toFixed(2)+'%':'hist. ~8-14%')+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:var(--Y)">'+(net!=null?net.toFixed(2)+'%':'po Belce')+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;color:'+(real!=null?cC(real):'var(--B)')+'">'+(real!=null?fP(real):'rynkowe')+'</td>';
-    s+='<td style="padding:5px 8px;text-align:center;font-size:8.5px;color:var(--t2)">'+o.currency+'</td>';
-    s+='<td style="padding:5px 8px;font-size:8.5px;color:var(--t2)">'+o.note+'</td></tr>';
-  });
-  s+='</table></div>';
-
-  /* IKE/IKZE note */
-  s+='<div style="margin-top:10px;background:rgba(0,229,168,.06);border:1px solid rgba(0,229,168,.2);border-radius:5px;padding:10px 12px;font-size:9.5px;color:var(--t1);line-height:1.7">';
-  s+='<b style="color:var(--G)">🌟 KLUCZOWE: IKE-Obligacje = BRAK podatku Belki 19%</b><br>';
-  s+='Kupując EDO lub COI na rachunku IKE, zamiast 5.60% netto=4.54%, masz <b>5.60% netto</b> (lub CPI+2% w kolejnych latach).<br>';
-  s+='Na IKZE dodatkowo odliczasz od podatku dochodowego (limit 2026: ~9 tys. PLN). To łącznie może dać efektywny zwrot >8% brutto ekwiwalentny.<br>';
-  s+='<b>Limit IKE 2026: ok. 26 019 PLN.</b> Można łączyć IKE-Obligacje z IKE w biurze maklerskim (VWCE, ETFBMWIG40 itd.).';
-  s+='</div></div>';
-
-  /* ── POLSKIE ETF vs MSCI World ── */
-  s+='<div class="sec">GPW ETF vs MSCI World — kiedy kupić Polskę, kiedy Świat?</div>';
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
-  /* Performance table */
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
-  s+='<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:8px">Porównanie stóp zwrotu</div>';
-  s+='<table style="width:100%;font-size:9px;border-collapse:collapse">';
-  s+='<tr style="color:var(--t2)"><th style="text-align:left;padding:3px 6px">Indeks</th><th style="padding:3px 6px">2025</th><th style="padding:3px 6px">5 lat TR</th><th style="padding:3px 6px">10 lat TR</th></tr>';
-  var perf=[
-    {n:'WIG20TR',y25:'+45%',y5:'+106%',y10:'+81%',c:'var(--G)'},
-    {n:'mWIG40TR',y25:'+33.6%',y5:'+155%',y10:'+183%',c:'var(--G)'},
-    {n:'sWIG80TR',y25:'+25.4%',y5:'+159%',y10:'+215%',c:'var(--G)'},
-    {n:'SP500 (USD)',y25:'+23.3%',y5:'+~95%',y10:'+~233%',c:'var(--Y)'},
-    {n:'MSCI World',y25:'+~12%',y5:'+~80%',y10:'+~164%',c:'var(--Y)'},
-    {n:'DAX (EUR)',y25:'+~18%',y5:'+~90%',y10:'+~138%',c:'var(--Y)'},
-  ];
-  perf.forEach(function(p){
-    s+='<tr style="border-top:1px solid rgba(255,255,255,.05)">';
-    s+='<td style="padding:3px 6px;font-weight:700;color:var(--t1)">'+p.n+'</td>';
-    s+='<td style="padding:3px 6px;text-align:center;color:'+p.c+'">'+p.y25+'</td>';
-    s+='<td style="padding:3px 6px;text-align:center;color:var(--Y)">'+p.y5+'</td>';
-    s+='<td style="padding:3px 6px;text-align:center;color:var(--t2)">'+p.y10+'</td></tr>';
-  });
-  s+='</table>';
-  s+='<div style="margin-top:8px;font-size:8.5px;color:var(--t2);line-height:1.6">2025 był rokiem GPW — WIG20 +45% najsilniejszy rok od dekad. Historycznie jednak MSCI World (9.8% śr/rok) bije mWIG40 (4.8% śr/rok w ostatniej dekadzie). Wyjątek: krótkie okna gdy PLN tani i GPW tanie = rotacja jak 2025.</div></div>';
-
-  /* Strategy grid */
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
-  s+='<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:8px">Strategia: kiedy Polska, kiedy Świat?</div>';
-  s+='<div style="font-size:9px;line-height:1.8;color:var(--t1)">';
-  s+='<div style="background:rgba(0,229,168,.06);border-radius:4px;padding:6px 9px;margin-bottom:6px">';
-  s+='<b style="color:var(--G)">GPW lepsze gdy:</b> EUR/PLN &gt;4.40 (tani EUR → tanią zagraniczne ETF), WIG20 P/E &lt;10 (tanio), gospodarka PL przyspiesza, Polska outperformuje (jak 2025).</div>';
-  s+='<div style="background:rgba(255,51,85,.06);border-radius:4px;padding:6px 9px;margin-bottom:6px">';
-  s+='<b style="color:var(--R)">MSCI World lepsze gdy:</b> Polska droga (P/E WIG20 &gt;14), USD/EUR silny, długoterminowy DCA bez timingu — SP500/MSCI World jest bardziej dywersyfikowany.</div>';
-  s+='<div style="background:rgba(245,192,64,.06);border-radius:4px;padding:6px 9px">';
-  s+='<b style="color:var(--Y)">Twoja strategia (IKE/IKZE mix):</b> GPW (mWIG40+sWIG80) na IKE PLN = brak Belki + ekspozycja lokalna. VWCE/ISAC na XETRA w EUR = globalna dywersyfikacja. Obie mają sens razem.</div>';
-  s+='</div>';
-  s+='<div style="margin-top:8px;font-size:8.5px;color:var(--t2);line-height:1.6">';
-  s+='<b>mWIG40 vs sWIG80:</b> mWIG40 TER=0.96%, sWIG80 TER=1.19%. Od 1994r sWIG80 +2500% vs mWIG40 +2200%. Ale mWIG40 twardszy — trudniej wypaść z indeksu, więcej prywatnych tech/pharma spółek. Przy równym pytaniu: mWIG40 = bezpieczniejszy, sWIG80 = wyższy potencjał.';
-  s+='</div></div></div>';
-
-  /* ── REKOMENDACJA dla Twoich portfeli ── */
-  s+='<div class="sec">🧮 Rekomendacja: co teraz z PLN? (marzec 2026)</div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:14px;margin-bottom:12px">';
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:9.5px">';
-
-  /* Option 1: obligacje */
-  s+='<div style="background:rgba(0,229,168,.06);border:1px solid rgba(0,229,168,.2);border-radius:5px;padding:10px 12px">';
-  s+='<div style="font-weight:700;color:var(--G);margin-bottom:6px">✅ OBLIGACJE EDO (IKE)</div>';
-  s+='<div style="line-height:1.7">Rok 1: 5.60% bez Belki = <b>5.60% netto</b>.<br>Rok 2+: CPI+2% ≈ 6.5% przy inflacji 4.5%.<br>Gwarancja Skarbu Państwa.<br>Wcześniejszy wykup możliwy (-3 zł/szt).<br><b>Idealne dla: poduszka bezpieczeństwa, IKE, fundusz rezerwowy.</b></div></div>';
-
-  /* Option 2: KO */
-  s+='<div style="background:rgba(245,192,64,.06);border:1px solid rgba(245,192,64,.2);border-radius:5px;padding:10px 12px">';
-  s+='<div style="font-weight:700;color:var(--Y);margin-bottom:6px">⚡ KONTO OSZCZĘDNOŚCIOWE</div>';
-  s+='<div style="line-height:1.7">VeloBank/Credit Agricole: 6.5% ale tylko ~3 msc i nowi klienci.<br>UniCredit: 4.5% bezterminowo bez limitu.<br><b>Dla: krótki termin &lt;6 msc, płynność konieczna.</b><br>Po Belce: 5.27% netto → realnie 0.77%.<br>Gorzej niż EDO na IKE w długim horyzoncie!</div></div>';
-
-  /* Option 3: ETF */
-  s+='<div style="background:rgba(42,157,245,.06);border:1px solid rgba(42,157,245,.2);border-radius:5px;padding:10px 12px">';
-  s+='<div style="font-weight:700;color:var(--B);margin-bottom:6px">📈 ETF / AKCJE</div>';
-  s+='<div style="line-height:1.7">MSCI World (VWCE/ISAC): hist. 9-14% rocznie. DCA agresywny przy RSI&lt;40.<br>mWIG40 (IKE GPW): 2025 +33%, bez Belki. Lokalne ryzyko.<br>IB01 USD: 4.15% ale ryzyko USD/PLN.<br><b>Dla: 5+ lat, apetyt na ryzyko, IKE/IKZE.</b></div></div>';
-
-  s+='</div>';
-
-  /* Bottom verdict */
-  var upN=usdpln?(usdpln>4.2?'USD/PLN='+usdpln.toFixed(4)+' WYSOKI → nie zamieniaj USD na PLN teraz. Trzymaj USD w IB01/ISAC.':usdpln<3.8?'USD/PLN='+usdpln.toFixed(4)+' NISKI → kup USD agresywnie do ETF USD.':'USD/PLN='+usdpln.toFixed(4)+' neutralny.'):'';
-  var epN=eurpln?(eurpln>4.4?'EUR/PLN='+eurpln.toFixed(4)+' WYSOKI → nie zamieniaj EUR na PLN.':eurpln<4.15?'EUR/PLN='+eurpln.toFixed(4)+' NISKI → kup EUR do VWCE/LYP6.':'EUR/PLN='+eurpln.toFixed(4)+' neutralny.'):'';
-  s+='<div style="margin-top:10px;background:rgba(255,255,255,.03);border-radius:5px;padding:10px 12px;font-size:9.5px;color:var(--t1);line-height:1.7">';
-  s+='<b>Bieżący sygnał walutowy:</b> '+(upN||'ładowanie USDPLN…')+' '+(epN||'')+'<br>';
-  s+='<b>Konkluzja marzec 2026:</b> NBP obniżył stopy → ROR/DOR mniej atrakcyjne. EDO na IKE = najlepsza bezpieczna opcja PLN. KO promocyjne dobre na krótki termin. Dla aktywów ryzykownych: RSI SP500=35.4 = okno DCA. GPW może korygować po silnym 2025 (+45% WIG20). Dywersyfikacja: 50% MSCI World DCA + 30% IKE Obligacje EDO + 20% GPW (mWIG40) to rozsądny mix dla portfela PLN.';
-  s+='</div></div>';
-
-  el.innerHTML='<div class="wrap">'+s+'</div>';
+  el.innerHTML = '<div class="wrap">' + s + '</div>';
 }
+
 
 
 
