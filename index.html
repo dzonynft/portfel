@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>MacroTerminal v28</title>
+<title>MacroTerminal</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v41</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v42</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -337,6 +337,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
     <button class="tab" data-t="technical">TECHNIKA</button>
     <button class="tab" data-t="polska">POLSKA PLN</button>
     <button class="tab" data-t="symulator">SYMULATOR</button>
+    <button class="tab" data-t="projekcja">📊 PROJEKCJA NBP</button>
     <button class="tab" data-t="portfolio">PORTFEL</button>
     <button class="tab" data-t="journal">DZIENNIK</button>
     <button class="tab" data-t="sources">ŹRÓDŁA</button>
@@ -351,6 +352,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-technical"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
     <div class="panel" id="p-polska"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
     <div class="panel" id="p-symulator"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+    <div class="panel" id="p-projekcja"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
     <div class="panel" id="p-portfolio"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-journal"><div class="wrap"></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
@@ -1774,6 +1776,306 @@ function renderSymulator() {
   },100);
 }
 
+
+
+function renderProjekcja() {
+  var el=document.getElementById('p-projekcja');
+  if(!el) return;
+
+  var usdpln=(D.q&&D.q.usdpln)?D.q.usdpln.price:null;
+  var eurpln=(D.q&&D.q.eurpln)?D.q.eurpln.price:null;
+  var wig20p=(D.q&&D.q.wig20)?D.q.wig20.price:null;
+  var nbpRate=3.75;
+  var currentCPI=2.1; /* GUS luty 2026 */
+
+  /* ─── NBP PROJECTION DATA (marzec 2026) ─────────────────────────────── */
+  var NBP={
+    inflacja:{
+      history:[{y:'2021',v:5.1},{y:'2022',v:14.4},{y:'2023',v:11.4},{y:'2024',v:3.6},{y:'2025',v:2.7},
+               {y:'Sty 26',v:2.2},{y:'Lut 26',v:2.1}],
+      proj:[
+        {y:'2026',c:2.3,lo:1.6,hi:2.9,src:'NBP marzec 2026'},
+        {y:'2027',c:2.4,lo:1.1,hi:3.7,src:'NBP marzec 2026'},
+        {y:'2028',c:2.3,lo:0.9,hi:4.0,src:'NBP marzec 2026'},
+      ]
+    },
+    pkb:{
+      history:[{y:'2022',v:5.1},{y:'2023',v:0.2},{y:'2024',v:2.9},{y:'2025',v:3.6},{y:'IV Q25',v:4.0}],
+      proj:[
+        {y:'2026',c:3.9,lo:3.1,hi:4.7,src:'NBP'},
+        {y:'2027',c:2.9,lo:2.0,hi:3.8,src:'NBP'},
+        {y:'2028',c:2.9,lo:1.5,hi:4.0,src:'NBP'},
+      ]
+    },
+    stopy:[
+      {y:'2025 start',v:4.00},{y:'Lut 2026',v:4.00},{y:'Mar 2026',v:3.75},
+      {y:'Koniec 2026*',v:3.25},{y:'2027*',v:3.00}
+    ]
+  };
+
+  /* ─── DECISION MATRIX based on projections ───────────────────────────── */
+  /* Low inflation (2.1%) + rate cuts + GDP 3.9% + KPO funds = IDEAL for:
+     - Obligacje EDO (lock in 5.6% before more cuts)
+     - GPW (low rates + strong GDP = bull case)
+     - Avoid: long USD (NBP cuts → PLN might strengthen)
+     - Avoid: cash KO (rates will fall further) */
+
+  var phases=[
+    {period:'Teraz–Q3 2026',phase:'Dezinflacja + cięcia stóp',
+     cpi:'~2.1-2.5%',pkb:'~3.9%',nbp:'3.75→3.25%',
+     color:'var(--G)',
+     recom:[
+       {asset:'EDO 10L (IKE)',action:'KUPUJ TERAZ',why:'5.60% stałe rok 1 przed dalszymi cięciami. Realna stopa = 5.6-2.1=+3.5% — historyczne maximum!',c:'var(--G)'},
+       {asset:'TOS 3L',action:'KUPUJ',why:'4.65% stałe na 3 lata. NBP będzie ciął → TOS zablokuje wysoki % na 3 lata.',c:'var(--G)'},
+       {asset:'mWIG40/sWIG80',action:'DCA AGRESYWNIE',why:'PKB 3.9% + KPO szczyt 2026 + cięcia stóp = klasyczna hossa GPW. P/E historycznie niskie.',c:'var(--G)'},
+       {asset:'MSCI World/VWCE',action:'DCA NORMALNIE',why:'SP500 RSI=35 (blisko wyprzedania). Globalne akcje tanie. USD/PLN 3.90 ok.',c:'var(--Y)'},
+       {asset:'Złoto',action:'TRZYMAJ 15%',why:'USD może słabnąć przy Fed cuts + taryfy Trump = złoto nadal wspierane.',c:'var(--Y)'},
+       {asset:'Konto KO',action:'TYLKO KRÓTKO',why:'Oprocentowanie KO spadnie gdy banki dostosują do 3.75% NBP. Lepsza EDO.',c:'var(--R)'},
+       {asset:'EUR/USD kupno',action:'NEUTRAL',why:'EUR/PLN 4.25 = normalne. Bez silnego sygnału.',c:'var(--t2)'},
+     ]},
+    {period:'Q4 2026–2027',phase:'Wzrost PKB + inflacja stabilna',
+     cpi:'~2.3-2.5%',pkb:'~3.5-3.9%',nbp:'~3.00-3.25%',
+     color:'var(--Y)',
+     recom:[
+       {asset:'GPW akcje',action:'KONTYNUUJ DCA',why:'KPO szczyt, PKB silny, stopy niskie = hossa może trwać. Rebalancuj jeśli WIG20 P/E>15.',c:'var(--G)'},
+       {asset:'MSCI World',action:'DCA NORMALNIE',why:'Globalna hossa. Dolar może słabnąć gdy Fed tnie.',c:'var(--G)'},
+       {asset:'EDO',action:'NADAL KUPUJ',why:'CPI+2% = ~4.3-4.5% gdy CPI=2.3-2.5%. Dalej atrakcyjne vs KO.',c:'var(--Y)'},
+       {asset:'Srebro',action:'ROZWAŻ',why:'Przemysłowe zapotrzebowanie + dezinflacja + słaby USD = srebro może odrabiać.',c:'var(--Y)'},
+       {asset:'USD trzymanie',action:'ROTUJ DO EUR',why:'EUR/PLN może spaść gdy strefa euro ożywa (ECB cuts powolniejsze).',c:'var(--t2)'},
+     ]},
+    {period:'2028+',phase:'Spowolnienie po KPO',
+     cpi:'~2.3%',pkb:'~2.9%',nbp:'~3.0%?',
+     color:'var(--t2)',
+     recom:[
+       {asset:'MSCI World',action:'GŁÓWNY ENGINE',why:'Po KPO GPW może spowolnić. Globalna dywersyfikacja ważniejsza.',c:'var(--G)'},
+       {asset:'GPW',action:'TRZYMAJ 20%',why:'Nadal wartościowe ale spowolnienie. Rebalancuj do globalnych.',c:'var(--Y)'},
+       {asset:'Obligacje',action:'KRÓTKIE SERIE',why:'Jeśli stopy niskie — COI/TOS lepsze od EDO dla nowych zakupów.',c:'var(--Y)'},
+     ]},
+  ];
+
+  var s='';
+
+  /* ─── 1. CURRENT DATA HEADER ─────────────────────────────────────────── */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+  /* CPI atual */
+  s+='<div style="background:var(--bg2);border:1px solid var(--G);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Inflacja PL — luty 2026 (GUS 13.03)</div>';
+  s+='<div style="font-size:28px;font-weight:700;color:var(--G)">2,1%</div>';
+  s+='<div style="font-size:9px;color:var(--G);font-weight:700;margin-bottom:4px">PONIŻEJ CELU NBP (2.5%)</div>';
+  s+='<div style="font-size:9px;color:var(--t1);line-height:1.6">Usługi: +4.8% r/r<br>Towary: +1.0% r/r<br>m/m: +0.3%<br>Polska = lider dezinflacji w regionie</div></div>';
+  /* PKB */
+  s+='<div style="background:var(--bg2);border:1px solid var(--G);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">PKB Polska — IV kw. 2025 (GUS)</div>';
+  s+='<div style="font-size:28px;font-weight:700;color:var(--G)">4,0%</div>';
+  s+='<div style="font-size:9px;color:var(--G);font-weight:700;margin-bottom:4px">POWYŻEJ OCZEKIWAŃ</div>';
+  s+='<div style="font-size:9px;color:var(--t1);line-height:1.6">Rok 2025 cały: +3.6%<br>Prognoza 2026: +3.9%<br>KPO szczyt + konsumpcja<br>Najlepsza gospodarka w regionie</div></div>';
+  /* NBP rate */
+  s+='<div style="background:var(--bg2);border:1px solid var(--Y);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Stopa referencyjna NBP</div>';
+  s+='<div style="font-size:28px;font-weight:700;color:var(--Y)">3,75%</div>';
+  s+='<div style="font-size:9px;color:var(--Y);font-weight:700;margin-bottom:4px">-25bp (5 marca 2026)</div>';
+  s+='<div style="font-size:9px;color:var(--t1);line-height:1.6">Spadła z 4.00%<br>Konsensus koniec 2026: ~3.25%<br>Dalsze cięcia zależne od CPI<br>Złoty umocnił się po decyzji!</div></div>';
+  /* Real rate on EDO */
+  var realEDO=(5.60-currentCPI).toFixed(2);
+  s+='<div style="background:var(--bg2);border:1px solid var(--G);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">Realna stopa EDO rok 1 (bez Belki na IKE)</div>';
+  s+='<div style="font-size:28px;font-weight:700;color:var(--G)">+'+realEDO+'%</div>';
+  s+='<div style="font-size:9px;color:var(--G);font-weight:700;margin-bottom:4px">HISTORYCZNE MAXIMUM!</div>';
+  s+='<div style="font-size:9px;color:var(--t1);line-height:1.6">EDO 5.60% - inflacja 2.1%<br>Najlepsza bezpieczna inwestycja PLN.<br>Kupuj TERAZ zanim NBP utnie więcej.</div></div>';
+  s+='</div>';
+
+  /* ─── 2. NBP PROJECTION CHARTS ─────────────────────────────────────────── */
+  s+='<div class="sec">Projekcja NBP — inflacja i PKB 2026-2028 (marzec 2026)</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Inflacja CPI Polska 2021-2028</span><span class="ch-s">Dane GUS + Projekcja NBP marzec 2026 (ścieżka centralna + przedziały)</span></div><div class="chbody"><div id="ch-nbp-cpi" style="height:200px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">PKB Polska 2022-2028 (r/r %)</span><span class="ch-s">Dane GUS + Projekcja NBP marzec 2026</span></div><div class="chbody"><div id="ch-nbp-pkb" style="height:200px"></div></div></div>';
+  s+='</div>';
+
+  /* ─── 3. STOPY CHART ─────────────────────────────────────────────────── */
+  s+='<div class="chartbox" style="margin-bottom:12px"><div class="chdr"><span class="ch-t">Stopa referencyjna NBP + ścieżka prognozowana</span><span class="ch-s">Dane NBP + konsensus rynkowy (linia przerywana = prognoza)</span></div><div class="chbody"><div id="ch-nbp-rates" style="height:160px"></div></div></div>';
+
+  /* ─── 4. PHASE-BASED DECISION MATRIX ─────────────────────────────────── */
+  s+='<div class="sec">🗺️ Mapa decyzji inwestycyjnych opartych na projekcji NBP — co kupować kiedy?</div>';
+  phases.forEach(function(ph){
+    s+='<div style="background:var(--bg2);border:1px solid '+ph.color+';border-radius:var(--r);padding:14px;margin-bottom:10px">';
+    s+='<div style="display:grid;grid-template-columns:auto 1fr;gap:14px">';
+    s+='<div style="min-width:130px">';
+    s+='<div style="font-size:9px;color:var(--t2);margin-bottom:2px">Horyzont</div>';
+    s+='<div style="font-size:11px;font-weight:700;color:'+ph.color+';margin-bottom:8px">'+ph.period+'</div>';
+    s+='<div style="font-size:10px;font-weight:700;color:var(--t1);margin-bottom:6px">'+ph.phase+'</div>';
+    s+='<div style="font-size:8.5px;color:var(--t2);line-height:1.7">CPI: '+ph.cpi+'<br>PKB: '+ph.pkb+'<br>NBP: '+ph.nbp+'</div></div>';
+    s+='<div>';
+    s+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px">';
+    ph.recom.forEach(function(r){
+      s+='<div style="background:rgba(255,255,255,.03);border-left:2px solid '+r.c+';border-radius:0 4px 4px 0;padding:6px 8px">';
+      s+='<div style="font-size:9px;font-weight:700;color:var(--t1)">'+r.asset+'</div>';
+      s+='<div style="font-size:9px;font-weight:700;color:'+r.c+';margin:2px 0">'+r.action+'</div>';
+      s+='<div style="font-size:8.5px;color:var(--t2);line-height:1.5">'+r.why+'</div></div>';
+    });
+    s+='</div></div></div></div>';
+  });
+
+  /* ─── 5. KEY INSIGHT: EDO WINDOW ─────────────────────────────────────── */
+  s+='<div style="background:rgba(0,229,168,.07);border:1px solid rgba(0,229,168,.3);border-radius:var(--r);padding:14px;margin-bottom:12px">';
+  s+='<div style="font-size:10.5px;font-weight:700;color:var(--G);margin-bottom:8px">🌟 KLUCZOWA OKAZJA: Okno EDO na IKE — ZAMKNIE SIĘ przy kolejnych cięciach NBP</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:9.5px;color:var(--t1)">';
+  s+='<div><b>Teraz (NBP 3.75%):</b><br>EDO rok 1 = 5.60%<br>Inflacja = 2.1%<br><b style="color:var(--G)">Realna stopa = +3.49%</b><br>Najlepsza bezpieczna lokata PLN w historii!</div>';
+  s+='<div><b>Po cięciu do 3.25% (koniec 2026):</b><br>EDO nowe serie: ~5.10%<br>Inflacja ~2.3%<br><b style="color:var(--Y)">Realna stopa = +2.8%</b><br>Nadal dobra, ale gorzej niż teraz.</div>';
+  s+='<div><b>Po cięciu do 3.00% (2027):</b><br>EDO: ~4.85%<br>KO: ~3.5%<br><b style="color:var(--Y)">Realna stopa = +2.5%</b><br>EDO nadal bije KO dzięki brakowi Belki na IKE.</div>';
+  s+='</div>';
+  s+='<div style="margin-top:10px;padding:8px 12px;background:rgba(0,229,168,.1);border-radius:4px;font-size:9.5px;color:var(--t1)">';
+  s+='<b>Wniosek:</b> Jeśli masz wolny limit IKE-Obligacje (~26 019 PLN/rok) → <b>KUP EDO JUŻ TERAZ</b> przed kolejnymi cięciami. Rok 1: 5.60% bez Belki. Rok 2-10: CPI+2% — automatyczna ochrona antyinflacyjna. Wcześniejszy wykup możliwy (-3 zł/szt, ok. 0.03%).';
+  s+='</div></div>';
+
+  /* ─── 6. GPW TIMING ────────────────────────────────────────────────────── */
+  s+='<div class="sec">📈 Kiedy kupować GPW? Macierz decyzyjna oparta na projekcji NBP</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
+
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9.5px;font-weight:700;color:var(--G);margin-bottom:8px">✅ Sygnały PRO-GPW (wszystkie spełnione marzec 2026!)</div>';
+  var gpwBull=[
+    ['NBP tnie stopy','✓ 3.75% i spada','Tani pieniądz = P/E wyższe, kredyt tańszy'],
+    ['PKB >3%','✓ 3.9% w 2026','Zyski spółek rosną przy silnym PKB'],
+    ['Inflacja ~cel','✓ 2.1% (cel=2.5%)','Brak presji stagflacyjnej'],
+    ['KPO inwestycje','✓ szczyt 2026-27','Miliardowe inwestycje w infra/tech'],
+    ['WIG20 P/E','~10-12x','Historycznie tanie vs rynki rozwinięte'],
+    ['EUR/PLN','~4.25 neutral','Nie blokuje zagranicznych zakupów ETF'],
+  ];
+  s+='<table style="width:100%;font-size:8.5px;border-collapse:collapse">';
+  gpwBull.forEach(function(r){
+    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05)">';
+    s+='<td style="padding:3px 6px;color:var(--t1)">'+r[0]+'</td>';
+    s+='<td style="padding:3px 6px;color:var(--G);font-weight:700">'+r[1]+'</td>';
+    s+='<td style="padding:3px 6px;color:var(--t2)">'+r[2]+'</td></tr>';
+  });
+  s+='</table></div>';
+
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9.5px;font-weight:700;color:var(--R);margin-bottom:8px">⚠️ Czynniki ryzyka GPW (wg NBP raportu)</div>';
+  var gpwRisk=[
+    ['Geopolityka Bliski Wschód','WYSOKIE','Cieśnina Ormuz → ropa → inflacja wróci'],
+    ['Strefa euro spowalnia','ŚREDNIE','PL eksport ucierpi, PKB 2027 spada do 2.9%'],
+    ['Polityka fiskalna PL','ŚREDNIE','Deficyt 5.4% PKB, dług rośnie'],
+    ['Taryfy Trump','ŚREDNIE','Import deflacja z Chin osłabnie'],
+    ['WIG20 po +45% w 2025','WYSOKIE','Korekta po silnym roku statystycznie prawdopodobna'],
+    ['PLN może się umocnić','NISKIE','Cięcia NBP wolniejsze niż ECB → PLN silniejszy'],
+  ];
+  s+='<table style="width:100%;font-size:8.5px;border-collapse:collapse">';
+  gpwRisk.forEach(function(r){
+    var rc=r[1]==='WYSOKIE'?'var(--R)':r[1]==='ŚREDNIE'?'var(--Y)':'var(--t2)';
+    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05)">';
+    s+='<td style="padding:3px 6px;color:var(--t1)">'+r[0]+'</td>';
+    s+='<td style="padding:3px 6px;color:'+rc+';font-weight:700">'+r[1]+'</td>';
+    s+='<td style="padding:3px 6px;color:var(--t2)">'+r[2]+'</td></tr>';
+  });
+  s+='</table></div>';
+  s+='</div>';
+
+  /* ─── 7. WALUTA TIMING ─────────────────────────────────────────────────── */
+  s+='<div class="sec">💱 Kiedy kupować waluty i zagraniczne ETF? Implikacje projekcji NBP</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+
+  var upv=usdpln?usdpln.toFixed(4):'~3.90';
+  var epv=eurpln?eurpln.toFixed(4):'~4.25';
+  var upC=usdpln?(usdpln>4.2?'var(--R)':usdpln<3.8?'var(--G)':'var(--Y)'):'var(--Y)';
+  var epC=eurpln?(eurpln>4.4?'var(--R)':eurpln<4.15?'var(--G)':'var(--Y)'):'var(--Y)';
+
+  s+='<div style="background:var(--bg2);border:1px solid '+upC+';border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">USD/PLN — teraz</div>';
+  s+='<div style="font-size:22px;font-weight:700;color:'+upC+'">'+upv+'</div>';
+  s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.7;margin-top:5px">';
+  s+='<b>Projekcja NBP implikuje:</b> Polska tnie szybciej niż Fed → PLN może się umocnić. Ale KPO napływ EUR + geopolityka = niepewność.<br>';
+  s+='<b style="color:var(--G)">Zakres kupna USD:</b> &lt;3.70 agresywnie, 3.70-3.95 normalnie.<br>';
+  s+='<b>Aktualny '+upv+': </b>'+(usdpln?(usdpln>4.0?'<span style="color:var(--R)">CZEKAJ na &lt;3.90</span>':usdpln<3.8?'<span style="color:var(--G)">KUPUJ AGRESYWNIE</span>':'<span style="color:var(--Y)">KUPUJ NORMALNIE — DCA</span>'):'neutral')+'</div></div>';
+
+  s+='<div style="background:var(--bg2);border:1px solid '+epC+';border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:3px">EUR/PLN — teraz</div>';
+  s+='<div style="font-size:22px;font-weight:700;color:'+epC+'">'+epv+'</div>';
+  s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.7;margin-top:5px">';
+  s+='<b>Projekcja:</b> ECB tnie wolniej (inflacja usług trwała). PLN mocniejszy strukturalnie w 2026 dzięki KPO.<br>';
+  s+='<b style="color:var(--G)">Zakres kupna EUR (do VWCE/LYP6):</b> &lt;4.15 agresywnie, 4.15-4.35 normalnie.<br>';
+  s+='<b>Aktualny '+epv+': </b>'+(eurpln?(eurpln>4.40?'<span style="color:var(--R)">WSTRZYMAJ</span>':eurpln<4.15?'<span style="color:var(--G)">KUPUJ AGRESYWNIE</span>':'<span style="color:var(--Y)">KUPUJ NORMALNIE</span>'):'neutral')+'</div></div>';
+
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9px;color:var(--t2);margin-bottom:6px">Makro-scenariusze walutowe</div>';
+  s+='<div style="font-size:8.5px;color:var(--t1);line-height:1.75">';
+  s+='<div style="background:rgba(0,229,168,.07);border-radius:3px;padding:4px 7px;margin-bottom:4px"><b style="color:var(--G)">Bazowy:</b> NBP tnie do 3.25%, PKB 3.9%, CPI~2.3% → PLN stabilny/mocniejszy. DCA waluty normalnie.</div>';
+  s+='<div style="background:rgba(245,192,64,.07);border-radius:3px;padding:4px 7px;margin-bottom:4px"><b style="color:var(--Y)">Ropa skoczy (Bliski Wschód):</b> Inflacja wróci do 3-4%, NBP pauzuje → USD/PLN może wzrosnąć do 4.2+. Trzymaj USD.</div>';
+  s+='<div style="background:rgba(255,51,85,.07);border-radius:3px;padding:4px 7px"><b style="color:var(--R)">Recesja strefa euro:</b> Eksport PL spada, PKB 2027 2%, PLN słabnie. Zwiększ MSCI World USD.</div>';
+  s+='</div></div>';
+  s+='</div>';
+
+  /* ─── 8. NBP SOURCES ─────────────────────────────────────────────────── */
+  s+='<div style="background:rgba(255,255,255,.02);border-radius:5px;padding:8px 12px;font-size:8.5px;color:var(--t2);line-height:1.7">';
+  s+='<b>Źródła danych:</b> ';
+  s+='<a href="https://stat.gov.pl/obszary-tematyczne/ceny-handel/wskazniki-cen/wskazniki-cen-towarow-i-uslug-konsumpcyjnych-w-lutym-2026-r-,2,172.html" target="_blank" style="color:var(--B)">GUS CPI luty 2026 (13.03.2026)</a> · ';
+  s+='<a href="https://nbp.pl/projekcja-inflacji-i-pkb-marzec-2026/" target="_blank" style="color:var(--B)">NBP Projekcja inflacji i PKB marzec 2026</a> · ';
+  s+='<a href="https://nbp.pl/polityka-pieniezna/decyzje-rpp/" target="_blank" style="color:var(--B)">NBP Decyzje RPP (3.75% od 5.03.2026)</a>';
+  s+='<br>Inflacja usług +4.8% r/r to czynnik ryzyka. NBP monitoruje "inflację bazową głęboko w gospodarce". Następne posiedzenie RPP: maj 2026.';
+  s+='</div>';
+
+  el.innerHTML='<div class="wrap">'+s+'</div>';
+
+  /* ─── CHARTS ─────────────────────────────────────────────────────────── */
+  setTimeout(function(){
+    /* CPI Chart */
+    var cpiHist=NBP.inflacja.history;
+    var cpiProj=NBP.inflacja.proj;
+    var allX=cpiHist.map(function(d){return d.y;}).concat(cpiProj.map(function(d){return d.y;}));
+    var histY=cpiHist.map(function(d){return d.v;});
+    var projX=cpiProj.map(function(d){return d.y;});
+    var projC=cpiProj.map(function(d){return d.c;});
+    var projLo=cpiProj.map(function(d){return d.lo;});
+    var projHi=cpiProj.map(function(d){return d.hi;});
+    /* Transition point */
+    var lastHistX=cpiHist[cpiHist.length-1].y,lastHistY=cpiHist[cpiHist.length-1].v;
+    Plotly.newPlot('ch-nbp-cpi',[
+      /* confidence band */
+      {x:projX.concat(projX.slice().reverse()),
+       y:projHi.concat(projLo.slice().reverse()),
+       fill:'toself',fillcolor:'rgba(96,165,250,.12)',line:{width:0},name:'Przedział 50%',showlegend:true},
+      /* historical */
+      {x:cpiHist.map(function(d){return d.y;}),y:histY,mode:'lines+markers',name:'CPI hist.',
+       line:{color:'#f87171',width:2},marker:{size:5}},
+      /* projection central */
+      {x:[lastHistX].concat(projX),y:[lastHistY].concat(projC),mode:'lines+markers',name:'Proj. centralna',
+       line:{color:'#60a5fa',width:2,dash:'dash'},marker:{size:5}},
+      /* target line */
+      {x:allX,y:Array(allX.length).fill(2.5),mode:'lines',name:'Cel NBP 2.5%',
+       line:{color:'#00e5a8',width:1,dash:'dot'}},
+    ],pLy({height:200,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},
+      margin:{l:40,r:8,t:8,b:28},yaxis:{title:'%',range:[0,16]}}),PLY);
+
+    /* PKB Chart */
+    var pkbHist=NBP.pkb.history;
+    var pkbProj=NBP.pkb.proj;
+    var pkbLastX=pkbHist[pkbHist.length-1].y,pkbLastY=pkbHist[pkbHist.length-1].v;
+    Plotly.newPlot('ch-nbp-pkb',[
+      {x:pkbProj.map(function(d){return d.y;}).concat(pkbProj.map(function(d){return d.y;}).slice().reverse()),
+       y:pkbProj.map(function(d){return d.hi;}).concat(pkbProj.map(function(d){return d.lo;}).slice().reverse()),
+       fill:'toself',fillcolor:'rgba(0,229,168,.1)',line:{width:0},name:'Przedział 50%'},
+      {x:pkbHist.map(function(d){return d.y;}),y:pkbHist.map(function(d){return d.v;}),
+       mode:'lines+markers',name:'PKB hist.',line:{color:'#fb923c',width:2},marker:{size:5}},
+      {x:[pkbLastX].concat(pkbProj.map(function(d){return d.y;})),
+       y:[pkbLastY].concat(pkbProj.map(function(d){return d.c;})),
+       mode:'lines+markers',name:'Proj. centralna',line:{color:'#4ade80',width:2,dash:'dash'},marker:{size:5}},
+    ],pLy({height:200,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},
+      margin:{l:40,r:8,t:8,b:28},yaxis:{title:'%'}}),PLY);
+
+    /* NBP Rates Chart */
+    var rateX=NBP.stopy.map(function(d){return d.y;});
+    var rateY=NBP.stopy.map(function(d){return d.v;});
+    Plotly.newPlot('ch-nbp-rates',[
+      {x:rateX.slice(0,3),y:rateY.slice(0,3),mode:'lines+markers',name:'Faktyczna',
+       line:{color:'#f5c040',width:2.5},marker:{size:7}},
+      {x:rateX.slice(2),y:rateY.slice(2),mode:'lines+markers',name:'Prognoza rynkowa',
+       line:{color:'#f5c040',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
+      {x:rateX,y:Array(rateX.length).fill(2.5),mode:'lines',name:'Neutralna stopa ~2.5%',
+       line:{color:'#666',width:1,dash:'dot'}},
+    ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},
+      margin:{l:40,r:8,t:8,b:28},yaxis:{title:'%',range:[2,5]}}),PLY);
+  },100);
+}
 
 async function fetchFG() {
   setS('ld','F&G CNN…'); D.fg=null;
@@ -3372,6 +3674,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if(t==='technical')renderTechnical();
       if(t==='polska')renderPolska();
       if(t==='symulator')renderSymulator();
+      if(t==='projekcja')renderProjekcja();
       if(t==='portfolio')renderPortfolio();
       if(t==='journal')renderJournal();
       if(t==='sources')renderSources();
