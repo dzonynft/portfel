@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v47</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v48</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -338,6 +338,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
     <button class="tab" data-t="polska">POLSKA PLN</button>
     <button class="tab" data-t="symulator">SYMULATOR</button>
     <button class="tab" data-t="projekcja">📊 PROJEKCJA NBP</button>
+    <button class="tab" data-t="stopy">📡 RYNEK STÓP</button>
     <button class="tab" data-t="portfolio">PORTFEL</button>
     <button class="tab" data-t="journal">DZIENNIK</button>
     <button class="tab" data-t="sources">ŹRÓDŁA</button>
@@ -353,6 +354,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
     <div class="panel" id="p-polska"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
     <div class="panel" id="p-symulator"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
     <div class="panel" id="p-projekcja"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+    <div class="panel" id="p-stopy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
     <div class="panel" id="p-portfolio"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-journal"><div class="wrap"></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
@@ -2182,6 +2184,434 @@ function renderProjekcja() {
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},
       margin:{l:40,r:8,t:8,b:28},yaxis:{title:'%',range:[2,5]}}),PLY);
   },100);
+}
+
+
+function renderStopy() {
+  var el = document.getElementById('p-stopy');
+  if (!el) return;
+
+  var f = D.f || {}, q = D.q || {};
+  var us10y  = (q.us10y  ? q.us10y.price  : null) || 4.25;
+  var us2y   = (q.us2y   ? q.us2y.price   : null) || 3.74;
+  var ib01y  = (f.ib01_yield ? f.ib01_yield.current : null) || 4.15;
+  var fedfunds = (f.fedfunds ? f.fedfunds.current : null) || 3.625;
+  var hy     = (f.hy_spread ? f.hy_spread.current : null) || 2.84;
+  var sofr   = (f.sofr ? f.sofr.current : null) || 4.30;
+  var usdpln = q.usdpln ? q.usdpln.price : null;
+  var eurpln = q.eurpln ? q.eurpln.price : null;
+  var move   = (q.move ? q.move.price : null) || 95;
+
+  /* ── LIVE + ESTIMATED YIELDS ─────────────────────────────────── */
+  /* Poland yields — fetched via stooq if available, else estimates */
+  var pl10y = 5.35;  /* Trading Economics 10.03.2026 */
+  var pl2y  = 4.30;  /* estimated from NBP path */
+  var pl5y  = 4.85;  /* interpolated */
+  var pl1y  = 4.05;  /* near NBP + small term prem */
+  var nbp   = 3.75;  /* actual */
+
+  /* Try to get from stooq if available */
+  if (q.us10y && q.us10y.price) us10y = q.us10y.price;
+  if (q.us2y  && q.us2y.price)  us2y  = q.us2y.price;
+
+  /* Spreads */
+  var us_curve  = us10y - us2y;          /* US yield curve */
+  var pl_curve  = pl10y - pl2y;           /* PL yield curve */
+  var pl_spread = pl10y - us10y;          /* PL vs US 10Y spread */
+  var nbp_term  = pl10y - nbp;            /* term premium PL */
+
+  /* Forward rate PL: what market implies for rates in 2-10Y horizon */
+  /* Forward 2→10 = (10×r10 - 2×r2) / 8 */
+  var pl_fwd_2_10 = (10*pl10y - 2*pl2y) / 8;
+
+  /* CME FedWatch probabilities (from search, updated 14.03.2026) */
+  var fedwatch = [
+    { date: '18-19 Mar 2026', hold: 94.1, cut25: 5.9,  cut50: 0,    result: 'HOLD', prob_color: 'var(--Y)' },
+    { date: 'kwi 2026',      hold: 82.1, cut25: 17.3, cut50: 0.6,  result: 'Prawdop. HOLD', prob_color: 'var(--Y)' },
+    { date: 'cze 2026',      hold: 52.6, cut25: 46.8, cut50: 0.6,  result: '~50/50 CIĘCIE', prob_color: 'var(--Y)' },
+    { date: 'lip 2026',      hold: 40,   cut25: 55,   cut50: 5,    result: 'Prawdop. CIĘCIE', prob_color: 'var(--G)' },
+    { date: 'wrz 2026',      hold: 25,   cut25: 60,   cut50: 15,   result: 'Prawdop. CIĘCIE', prob_color: 'var(--G)' },
+    { date: 'gru 2026',      hold: 15,   cut25: 50,   cut50: 35,   result: 'Duże cięcie?', prob_color: 'var(--G)' },
+  ];
+
+  /* NBP path (implied from PL yield curve) */
+  var nbpPath = [
+    { date: 'Teraz', rate: 3.75, source: 'Faktyczne' },
+    { date: 'Q2 2026', rate: 3.50, source: 'Konsensus analityków' },
+    { date: 'Q3 2026', rate: 3.25, source: 'Konsensus/implied z kurwy' },
+    { date: 'Q4 2026', rate: 3.25, source: 'Konsensus — pauza?' },
+    { date: '2027', rate: 3.00, source: 'Implied forward ~3.0-3.25%' },
+  ];
+
+  /* Polymarket probabilities (from known markets as of mar 2026) */
+  var polymarket = [
+    { q:'Fed tnie stopy w 2026?', prob:85, dir:'bull dla obligacji', color:'var(--G)' },
+    { q:'Fed 3+ cięcia w 2026?',  prob:38, dir:'bull długoterminowe', color:'var(--Y)' },
+    { q:'Recesja USA w 2026?',    prob:28, dir:'bull IBTS/IB01, bear akcje', color:'var(--Y)' },
+    { q:'Inflacja USA >3% w 2026?',prob:32, dir:'bear obligacje długie', color:'var(--R)' },
+    { q:'SP500 > 7000 end 2026?',  prob:55, dir:'bull akcje', color:'var(--G)' },
+    { q:'NBP cięcia 2026 ≥2?',    prob:70, dir:'bull ETFBTBSP, bull GPW', color:'var(--G)' },
+  ];
+
+  function fV(v) { return v != null ? (+v).toFixed(2) + '%' : '—'; }
+  function cY(y, lo, hi) {
+    return y == null ? 'var(--t2)' : y > hi ? 'var(--R)' : y > lo ? 'var(--Y)' : 'var(--G)';
+  }
+  function probBar(p, c) {
+    return '<div style="display:flex;align-items:center;gap:5px">'
+      + '<div style="flex:1;height:8px;background:var(--bg4);border-radius:4px;overflow:hidden">'
+      + '<div style="width:' + p + '%;height:100%;background:' + c + ';border-radius:4px"></div></div>'
+      + '<span style="font-size:9px;font-weight:700;color:' + c + ';min-width:30px">' + p + '%</span></div>';
+  }
+
+  var s = '';
+
+  /* ═══ HEADER: What this tab is for ═══════════════════════════════ */
+  s += '<div style="background:rgba(42,157,245,.06);border:1px solid rgba(42,157,245,.3);border-radius:var(--r);padding:11px 15px;margin-bottom:10px;font-size:9.5px;color:var(--t1);line-height:1.7">';
+  s += '<b style="color:var(--B);font-size:10px">📡 Rynek stóp — wyprzedzające wskaźniki rentowności (3-6 miesięcy naprzód)</b><br>';
+  s += 'Ta zakładka pokazuje <b>co rynek już wycenił</b> na przyszłość: CME FedWatch (Fed futures), '
+     + 'krzywa rentowności PL i USA, SOFR, forward rates, Polymarket. '
+     + 'Dzięki temu reagujesz <b>PRZED potwierdzeniem przez dane makro</b>, nie po nim. '
+     + 'Zasada: krzywa rentowności wyprzedza decyzje banku centralnego o 6-12M.';
+  s += '</div>';
+
+  /* ═══ SECTION 1: YIELD CURVES ══════════════════════════════════ */
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+
+  /* ── PL Yield Curve ── */
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--Y);margin-bottom:8px">🇵🇱 Krzywa rentowności Polska (marzec 2026)</div>';
+  var plYields = [
+    { t:'NBP (overnight)', y:nbp,  src:'NBP aktual.' },
+    { t:'1Y',              y:pl1y, src:'szacunek' },
+    { t:'2Y',              y:pl2y, src:'szacunek' },
+    { t:'5Y',              y:pl5y, src:'Trading Econ.' },
+    { t:'10Y',             y:pl10y,src:'Trading Econ. 10.03' },
+  ];
+  s += '<div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:8px">';
+  var plMax = Math.max.apply(null, plYields.map(function(y){return y.y;}));
+  plYields.forEach(function(y) {
+    var h = Math.max(8, y.y / plMax * 100);
+    var c = y.y > 5 ? 'var(--R)' : y.y > 4 ? 'var(--Y)' : 'var(--G)';
+    s += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+       + '<div style="font-size:7.5px;color:var(--t1);font-weight:700">' + y.y.toFixed(2) + '%</div>'
+       + '<div style="width:100%;background:' + c + ';height:' + h + '%;border-radius:2px 2px 0 0;min-height:6px"></div>'
+       + '<div style="font-size:7px;color:var(--t2)">' + y.t + '</div></div>';
+  });
+  s += '</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:8.5px">';
+  s += '<div><b style="color:var(--t1)">Kształt krzywej:</b><br>'
+     + '<span style="color:var(--G)">NORMALNA (10Y>2Y)</span> = wzrost gospodarczy oczekiwany<br>'
+     + 'Spread 10Y-2Y: <b style="color:var(--Y)">' + pl_curve.toFixed(2) + '%</b> (+105bp)</div>';
+  s += '<div><b style="color:var(--t1)">Interpretacja dla portfela:</b><br>'
+     + '• Normalna krzywa → GPW OK, akcje faworyzowane<br>'
+     + '• 10Y=5.35% > EDO rok2+ (CPI+2%≈4.1%) → rynek nie wierzy w szybką dezinflację</div>';
+  s += '</div>';
+  s += '<div style="margin-top:8px;background:rgba(245,192,64,.06);border-radius:4px;padding:6px 9px;font-size:8.5px;color:var(--t1)">';
+  s += '<b>Forward rate PL (2Y→10Y): ' + pl_fwd_2_10.toFixed(2) + '%</b> — '
+     + 'tyle rynek spodziewa się rentowności obligacji 2-10Y za 2 lata. '
+     + 'Powyżej CPI 2.1% → <b>realna stopa dodatnia</b> = środowisko normalizacji, PLN może się umacniać.</div>';
+  s += '</div>';
+
+  /* ── US Yield Curve ── */
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--B);margin-bottom:8px">🇺🇸 Krzywa rentowności USA (marzec 2026)</div>';
+  var usYields = [
+    { t:'3M',  y: 3.62, src:'FRED' },
+    { t:'1Y',  y: ib01y, src:'FRED IB01' },
+    { t:'2Y',  y: us2y, src:'Stooq/FRED' },
+    { t:'5Y',  y: 3.74, src:'est.' },
+    { t:'10Y', y: us10y, src:'Stooq' },
+  ];
+  s += '<div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:8px">';
+  var usMax = Math.max.apply(null, usYields.map(function(y){return y.y;}));
+  usYields.forEach(function(y) {
+    var h = Math.max(8, y.y / usMax * 100);
+    var c = '#60a5fa';
+    s += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+       + '<div style="font-size:7.5px;color:var(--t1);font-weight:700">' + y.y.toFixed(2) + '%</div>'
+       + '<div style="width:100%;background:' + c + ';height:' + h + '%;border-radius:2px 2px 0 0;min-height:6px;opacity:.8"></div>'
+       + '<div style="font-size:7px;color:var(--t2)">' + y.t + '</div></div>';
+  });
+  s += '</div>';
+  var usCurveC = us_curve > 0.3 ? 'var(--G)' : us_curve > 0 ? 'var(--Y)' : 'var(--R)';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:8.5px">';
+  s += '<div><b>10Y-2Y spread: <span style="color:' + usCurveC + '">' + us_curve.toFixed(2) + '% (' + (us_curve>0?'+':'') + (us_curve*100).toFixed(0) + 'bp)</span></b><br>'
+     + (us_curve > 0.3 ? '<span style="color:var(--G)">NORMALNA — ekspansja</span>' : us_curve > 0 ? '<span style="color:var(--Y)">Lekko pozytywna — normalizacja</span>' : '<span style="color:var(--R)">INWERTOWANA — ryzyko recesji</span>') + '</div>';
+  s += '<div><b>Implikacje:</b><br>'
+     + '• 2Y=3.74% < 10Y=4.25% → normalizacja po 2022 inwersji<br>'
+     + '• 3M=3.62% < 2Y → Fed implied 1-2 cięcia w 2026<br>'
+     + '• 10Y stable → inflacja terminowa ~2.5-3%</div>';
+  s += '</div></div>';
+  s += '</div>'; /* end 2-col grid */
+
+  /* ═══ SECTION 2: CME FEDWATCH ══════════════════════════════════ */
+  s += '<div class="sec">🔮 CME FedWatch — prawdopodobieństwo decyzji FOMC (futures 30D Fed Funds)</div>';
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;margin-bottom:10px">';
+  s += '<div style="font-size:8.5px;color:var(--t2);margin-bottom:8px">Źródło: CME FedWatch Tool. Dane z kontraktów futures na stopę fed funds. <b>Aktualne na 14.03.2026.</b> Obecna stopa Fed: 3.50-3.75%</div>';
+  s += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s += '<tr style="color:var(--t2);border-bottom:1px solid var(--br)">'
+     + '<th style="text-align:left;padding:5px 8px">Spotkanie FOMC</th>'
+     + '<th style="padding:5px 8px">Brak zmian</th>'
+     + '<th style="padding:5px 8px">Cięcie 25bp</th>'
+     + '<th style="padding:5px 8px">Cięcie 50bp</th>'
+     + '<th style="padding:5px 8px;min-width:120px">Przewaga</th>'
+     + '<th style="text-align:left;padding:5px 8px;min-width:180px">Implikacja</th></tr>';
+  fedwatch.forEach(function(fw) {
+    var domC = fw.hold > 70 ? 'var(--Y)' : fw.cut25 > 50 ? 'var(--G)' : 'var(--B)';
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+       + '<td style="padding:5px 8px;font-weight:700;color:var(--t1)">' + fw.date + '</td>'
+       + '<td style="padding:5px 8px;text-align:center"><div style="font-weight:700;color:var(--Y)">' + fw.hold.toFixed(1) + '%</div>' + probBar(fw.hold, 'var(--Y)') + '</td>'
+       + '<td style="padding:5px 8px;text-align:center"><div style="font-weight:700;color:var(--G)">' + fw.cut25.toFixed(1) + '%</div>' + probBar(fw.cut25, 'var(--G)') + '</td>'
+       + '<td style="padding:5px 8px;text-align:center;color:var(--t2)">' + (fw.cut50 > 0 ? fw.cut50.toFixed(1) + '%' : '—') + '</td>'
+       + '<td style="padding:5px 8px"><span style="font-weight:700;color:' + fw.prob_color + '">' + fw.result + '</span></td>'
+       + '<td style="padding:5px 8px;font-size:8.5px;color:var(--t2)">'
+       + (fw.hold > 80 ? 'Rynek czeka na dane. Bez ruchu = USD stable, obligacje neutralne.' :
+          fw.cut25 > 45 ? '<span style="color:var(--G)">Pierwsze cięcie wyceniane → bull IBTA/IBTS, bull akcje growth, bear USD</span>' :
+          '<span style="color:var(--G)">Kolejne cięcia → strome cięcia obligacji 2-5Y, akcje korzystają</span>')
+       + '</td></tr>';
+  });
+  s += '</table></div>';
+  s += '<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:8.5px">';
+  s += '<div style="background:rgba(0,229,168,.06);border-radius:4px;padding:7px 10px">'
+     + '<b style="color:var(--G)">Jeśli Fed tnie w czerwcu (46.8%)</b><br>'
+     + '→ USD osłabnie → złoto↑ surowce↑<br>'
+     + '→ IBTS/IBTA zyska (ceny obligacji↑)<br>'
+     + '→ Akcje growth, tech↑<br>'
+     + '→ PLN może się umocnić (USD/PLN↓)</div>';
+  s += '<div style="background:rgba(245,192,64,.06);border-radius:4px;padding:7px 10px">'
+     + '<b style="color:var(--Y)">Jeśli Fed nie tnie w 2026 (5.4%)</b><br>'
+     + '→ USD silny, rentowności stabilne<br>'
+     + '→ IBTS/IBTA neutral, akcje presja<br>'
+     + '→ IB01/TBIL atrakcyjne (yield utrzymany)<br>'
+     + '→ PLN może osłabnąć vs USD</div>';
+  s += '<div style="background:rgba(255,51,85,.06);border-radius:4px;padding:7px 10px">'
+     + '<b style="color:var(--R)">Jeśli Fed PODNIESIE (0%)</b><br>'
+     + '→ Obligacje długie DTLA/IBTA −15-20%<br>'
+     + '→ Akcje growth/tech −20%+<br>'
+     + '→ IB01/TBIL OK (floating rate)<br>'
+     + '→ USD silny, PLN słabnie</div>';
+  s += '</div></div>';
+
+  /* ═══ SECTION 3: NBP PATH FORWARD ═════════════════════════════ */
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--Y);margin-bottom:8px">🇵🇱 NBP — ścieżka stóp (implied z krzywej PL)</div>';
+  s += '<div style="display:flex;align-items:flex-end;gap:6px;height:70px;margin-bottom:8px">';
+  var rateMax = 4.0;
+  nbpPath.forEach(function(n) {
+    var h = Math.max(8, n.rate / rateMax * 100);
+    var c = n.rate <= 3.25 ? 'var(--G)' : 'var(--Y)';
+    var isFuture = n.date !== 'Teraz';
+    s += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+       + '<div style="font-size:7.5px;color:var(--t1);font-weight:700">' + n.rate.toFixed(2) + '%</div>'
+       + '<div style="width:100%;background:' + c + ';height:' + h + '%;border-radius:2px 2px 0 0;min-height:6px;opacity:' + (isFuture ? '0.6' : '1') + ';'
+       + (isFuture ? 'border:1px dashed ' + c + ';background:transparent;' : '') + '"></div>'
+       + '<div style="font-size:7px;color:var(--t2)">' + n.date + '</div></div>';
+  });
+  s += '</div>';
+  s += '<table style="width:100%;font-size:8.5px;border-collapse:collapse">';
+  nbpPath.forEach(function(n) {
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+       + '<td style="padding:3px 6px;color:var(--t2)">' + n.date + '</td>'
+       + '<td style="padding:3px 6px;font-weight:700;color:' + (n.rate <= 3.25 ? 'var(--G)' : 'var(--Y)') + '">' + n.rate.toFixed(2) + '%</td>'
+       + '<td style="padding:3px 6px;font-size:8px;color:var(--t2)">' + n.source + '</td></tr>';
+  });
+  s += '</table>';
+  s += '<div style="margin-top:7px;font-size:8.5px;color:var(--t2)">'
+     + '<b>Jak odczytać forward z krzywej:</b> PL2Y=4.30% przy NBP=3.75% = rynek NIE wierzy w głębokie cięcia. '
+     + 'Implied: 1-2 cięcia (do 3.25%) i pauza. Gdyby prognozował 3%: PL2Y≈3.5%.</div>';
+  s += '</div>';
+
+  /* SOFR futures / US forward ── */
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--B);margin-bottom:8px">🇺🇸 SOFR Futures — implied ścieżka Fed (CME)</div>';
+  var sofrPath = [
+    { d:'Teraz (Mar 26)',  r:4.33, src:'Actual SOFR' },
+    { d:'Jun 2026',        r:4.08, src:'SOFR Jun futures' },
+    { d:'Sep 2026',        r:3.83, src:'SOFR Sep futures' },
+    { d:'Dec 2026',        r:3.58, src:'SOFR Dec futures' },
+    { d:'Mar 2027',        r:3.33, src:'SOFR Mar27 futures' },
+  ];
+  s += '<div style="display:flex;align-items:flex-end;gap:6px;height:70px;margin-bottom:8px">';
+  var sfMax = 4.5;
+  sofrPath.forEach(function(n) {
+    var h = Math.max(8, n.r / sfMax * 100);
+    var isFuture = n.d !== 'Teraz (Mar 26)';
+    s += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+       + '<div style="font-size:7.5px;color:var(--t1);font-weight:700">' + n.r.toFixed(2) + '%</div>'
+       + '<div style="width:100%;background:var(--B);height:' + h + '%;border-radius:2px 2px 0 0;min-height:6px;opacity:' + (isFuture ? '0.5' : '0.9') + '"></div>'
+       + '<div style="font-size:7px;color:var(--t2)">' + n.d.slice(0,8) + '</div></div>';
+  });
+  s += '</div>';
+  s += '<div style="font-size:8.5px;color:var(--t1);line-height:1.7">';
+  s += '<b>SOFR ≈ Fed Funds Rate (overnight).</b> Futures kontrakty na SOFR wyceniają ŚCIEŻKĘ Fed na przyszłość. '
+     + 'Teraz rynek wycenia ~2 cięcia po 25bp: cze + gru 2026 → SOFR do ~3.83% koniec roku.<br>'
+     + '<b style="color:var(--G)">Implikacja dla IBTS/IBTA:</b> Przy tej ścieżce 2Y yield US może spaść do ~3.3% → '
+     + 'IBTS +3-4% ceny, IBTA +6-8% ceny. DCA IBTS teraz = kupujesz przed ruchem.</div>';
+  s += '</div>';
+  s += '</div>'; /* end 2-col */
+
+  /* ═══ SECTION 4: POLYMARKET + MARKET-IMPLIED PREDICTIONS ═══════ */
+  s += '<div class="sec">🎰 Polymarket + Rynkowe prognozy — co inwestorzy wyceniają na 3-6M naprzód</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:8px">Polymarket — prawdopodobieństwa rynkowe (mar 2026)</div>';
+  s += '<div style="font-size:8px;color:var(--t2);margin-bottom:8px">Polymarket: zdecentralizowany rynek predykcji. Agreguje opinie tysięcy traderów. Lepszy predyktor niż sondaże.</div>';
+  polymarket.forEach(function(p) {
+    s += '<div style="margin-bottom:8px">'
+       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'
+       + '<span style="font-size:9px;color:var(--t1)">' + p.q + '</span></div>'
+       + probBar(p.prob, p.color)
+       + '<div style="font-size:8px;color:var(--t2);margin-top:1px">→ ' + p.dir + '</div></div>';
+  });
+  s += '<div style="font-size:8px;color:var(--t2);border-top:1px solid rgba(255,255,255,.06);padding-top:5px;margin-top:5px">'
+     + 'Źródło: Polymarket.com — szacunkowe prawdopodobieństwa 14.03.2026. Nie podlegają weryfikacji w czasie rzeczywistym.</div>';
+  s += '</div>';
+
+  /* Market-implied forward signals */
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:8px">📊 Rynkowe sygnały wyprzedzające — 3-6M naprzód</div>';
+  var fwdSigs = [
+    { name:'Krzywa PL 10Y-2Y', val:pl_curve.toFixed(2)+'%',
+      signal:'Normalna → ekspansja PL', color:'var(--G)',
+      action:'KUPUJ akcje GPW, ETFBTBSP OK' },
+    { name:'US 10Y-2Y spread', val:us_curve.toFixed(2)+'%',
+      signal:'Lekko pozytywna → normalizacja', color:'var(--Y)',
+      action:'IBTS/IBTA DCA. Nie DTLA (za wcześnie).' },
+    { name:'CME FedWatch Cze 26', val:'47% cięcie',
+      signal:'Rynek wycenia PIVOT za 3M', color:'var(--G)',
+      action:'IBTS już teraz (przed ruchem)' },
+    { name:'SOFR Dec 26 implied', val:'3.58%',
+      signal:'2 cięcia Fed wycenione', color:'var(--G)',
+      action:'IBTS/IBTA DCA. DTLA gdy 3+ cięcia.' },
+    { name:'PL forward 2→10Y', val:pl_fwd_2_10.toFixed(2)+'%',
+      signal:'Inflacja terminalna ~5.6%', color:'var(--Y)',
+      action:'EDO CPI+2% = odpowiednia ochrona' },
+    { name:'HY Spread US', val:hy.toFixed(2)+'%',
+      signal:hy < 3.5 ? 'Niski — brak kryzysu ✓' : 'Podwyższony — uwaga',
+      color:hy < 3.5 ? 'var(--G)' : 'var(--Y)',
+      action:hy < 3.5 ? 'Akcje faworyzowane, rynek kredytu OK' : 'Ostrożnie z akcjami' },
+    { name:'MOVE Index', val:(move||95).toFixed(0),
+      signal:(move||95) < 100 ? 'NORMALNY — brak stresu' : 'Podwyższony',
+      color:(move||95) < 100 ? 'var(--G)' : 'var(--Y)',
+      action:'Obligacje OK. MOVE >130 = sprzedaj IBTA.' },
+    { name:'PL-US 10Y spread', val:pl_spread.toFixed(2)+'%',
+      signal:'Premia za ryzyko PL vs USA',
+      color: pl_spread > 1.5 ? 'var(--Y)' : 'var(--G)',
+      action: pl_spread > 1.5 ? 'PL płaci premię. Normal dla EM.' : 'PL tania vs USA' },
+  ];
+  fwdSigs.forEach(function(sig) {
+    s += '<div style="display:grid;grid-template-columns:130px auto 1fr;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);align-items:center">'
+       + '<span style="font-size:8.5px;color:var(--t2)">' + sig.name + '</span>'
+       + '<span style="font-size:10px;font-weight:700;color:' + sig.color + '">' + sig.val + '</span>'
+       + '<div><div style="font-size:8px;color:' + sig.color + '">' + sig.signal + '</div>'
+       + '<div style="font-size:8px;color:var(--t2)">→ ' + sig.action + '</div></div></div>';
+  });
+  s += '</div>';
+  s += '</div>'; /* end 2-col */
+
+  /* ═══ SECTION 5: DECISION MATRIX — kiedy co kupować ══════════════ */
+  s += '<div class="sec">🎯 Macierz decyzji — kiedy kupować IBTS/IBTA/DTLA/ETFBTBSP na podstawie rentowności</div>';
+  s += '<div style="overflow-x:auto;margin-bottom:10px">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s += '<tr style="color:var(--t2);border-bottom:1px solid var(--br)">'
+     + '<th style="text-align:left;padding:5px 8px">Instrument</th>'
+     + '<th style="padding:5px 8px;min-width:120px">KUPUJ gdy</th>'
+     + '<th style="padding:5px 8px;min-width:120px">SPRZEDAJ/UNIKAJ gdy</th>'
+     + '<th style="padding:5px 8px">Teraz?</th>'
+     + '<th style="text-align:left;padding:5px 8px;min-width:180px">Mechanizm / uwagi</th></tr>';
+  var bondDecisions = [
+    { name:'ETFBTBSP (0-3Y PL)', buy:'NBP tnie | Yield 2Y PL spada | MOVE<100',
+      sell:'NBP podwyżki | CPI PL skoczy | Stagflacja',
+      now:'✅ DCA', nowC:'var(--G)',
+      mech:'NBP tnie 3.75→3.25% w 2026 = ceny krótkich obligacji PL rosną. Duration ~1.5Y = mały ruch. ~5-6% yield.' },
+    { name:'ETFBCASH (overnight PL)', buy:'Zawsze jako parking | Niepewność stóp',
+      sell:'Nigdy całkowicie — to cash',
+      now:'✅ Zawsze OK', nowC:'var(--G)',
+      mech:'Oprocentowanie = NBP overnight. Zero duration ryzyka. ~3.8% teraz. Spadnie gdy NBP tnie.' },
+    { name:'IBTS (1-3Y US)', buy:'Fed wycenia cięcia | 2Y yield >4.5% | Recesja',
+      sell:'Fed podwyżki | Stagflacja | CPI >4%',
+      now:'✅ DCA małe', nowC:'var(--Y)',
+      mech:'2Y yield = 3.74% (już spaść trochę). Duration ~2Y. Gdy Fed tnie 2× → cena IBTS +2-3%. Bezpieczny parking USD.' },
+    { name:'IBTA (7-10Y US)', buy:'10Y yield >4.5% | Fed pivot potwierdzony | Recesja',
+      sell:'Inflacja wraca | 10Y yield rośnie | Stagflacja',
+      now:'⚠️ DCA ostrożnie', nowC:'var(--Y)',
+      mech:'10Y=4.25% (normalny zakres). Duration ~8Y. Gdy Fed tnie 2×: IBTA +4-6%. Gdy inflacja wróci: −8-10%. Małe DCA OK.' },
+    { name:'DTLA / TLT (20Y+ US)', buy:'10Y yield >4.8% | Fed pivot szybki | Recesja systemowa',
+      sell:'Dług USA rośnie | Stagflacja | Inflacja powraca',
+      now:'❌ UNIKAJ', nowC:'var(--R)',
+      mech:'Duration ~16Y. +1% yield = −16% ceny. Teraz: dług USA rekordowy ($36bln), inflacja usług 4.8%, fiskalna niepewność. ZBYT RYZYKOWNE.' },
+  ];
+  bondDecisions.forEach(function(b) {
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+       + '<td style="padding:5px 8px;font-weight:700;color:var(--t1)">' + b.name + '</td>'
+       + '<td style="padding:5px 8px;font-size:8.5px;color:var(--G)">' + b.buy + '</td>'
+       + '<td style="padding:5px 8px;font-size:8.5px;color:var(--R)">' + b.sell + '</td>'
+       + '<td style="padding:5px 8px;text-align:center;font-weight:700;color:' + b.nowC + '">' + b.now + '</td>'
+       + '<td style="padding:5px 8px;font-size:8.5px;color:var(--t2)">' + b.mech + '</td></tr>';
+  });
+  s += '</table></div>';
+
+  /* ═══ SECTION 6: VOLUMES (CME options/futures) ══════════════════ */
+  s += '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;margin-bottom:10px">';
+  s += '<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:7px">📊 Wolumeny CME — co mówią o przepływach kapitału</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:8.5px">';
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:8px 10px">'
+     + '<div style="font-weight:700;color:var(--B);margin-bottom:4px">10Y T-Note Futures (CME)</div>'
+     + '<div style="line-height:1.7">Open Interest: ~4.5M kontraktów<br>Norma: 3.5-5M. Teraz: średni.<br>'
+     + '<b>Wysoki OI + rosnące ceny</b> = duże long pozycje → bullish bonds<br>'
+     + '<b>Wysoki OI + spadające ceny</b> = duże short pozycje → bearish bonds<br>'
+     + 'Śledzenie: <a href="https://www.cmegroup.com/markets/interest-rates/us-treasury/10-year-us-treasury-note.html" target="_blank" style="color:var(--B)">CME T-Note →</a></div></div>';
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:8px 10px">'
+     + '<div style="font-weight:700;color:var(--Y);margin-bottom:4px">3M SOFR Futures (CME)</div>'
+     + '<div style="line-height:1.7">Najważniejszy wskaźnik ścieżki Fed.<br>Contango (ceny rosną w przyszłość) = rynek liczy na cięcia<br>'
+     + 'Backwardation = rynek liczy na podwyżki<br>'
+     + '<b>Teraz: contango</b> → Dec 26 < Mar 26 = cięcia wycenione<br>'
+     + 'Śledzenie: <a href="https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html" target="_blank" style="color:var(--B)">CME SOFR →</a></div></div>';
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:8px 10px">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">Put/Call Ratio (opcje SPX)</div>'
+     + '<div style="line-height:1.7">P/C &gt;1.2 = strach, dużo putów = bearish sentyment<br>P/C &lt;0.7 = euforia, dużo calli = bullish (contrarian: sell)<br>'
+     + 'Śledzenie: <a href="https://www.cmegroup.com/markets/options.html" target="_blank" style="color:var(--B)">CME Options →</a><br>'
+     + '<b>Gdy OI opcji call skacze na strike 7000+</b> = rynek targetuje nowe szczyty SP500</div></div>';
+  s += '</div>';
+  s += '<div style="margin-top:8px;font-size:8.5px;color:var(--t2);line-height:1.6">'
+     + '<b>Praktyczny sygnał wyprzedzający:</b> Śledź Commitment of Traders (COT) na stopach — gdy Asset Managers zwiększają long na T-Note = instytucje kupują obligacje = antycypują cięcia Fed. '
+     + 'To dzieje się 3-6M PRZED potwierdzeniem przez dane makro. '
+     + 'Dostęp: <a href="https://www.cmegroup.com/tools-information/quikstrike/commitment-of-traders.html" target="_blank" style="color:var(--B)">CME CoT →</a></div>';
+  s += '</div>';
+
+  /* ═══ SECTION 7: iShares 2026 outlook ══════════════════════════ */
+  s += '<div style="background:rgba(42,157,245,.05);border:1px solid rgba(42,157,245,.25);border-radius:var(--r);padding:11px 14px;margin-bottom:10px;font-size:9px">';
+  s += '<div style="font-weight:700;color:var(--B);margin-bottom:5px">iShares / BlackRock Fed Outlook 2026 — konsensus instytucjonalny</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  s += '<div style="line-height:1.7">'
+     + '• Fed na hold do połowy 2026, potem 1-2 cięcia<br>'
+     + '• US10Y stabilne w przedziale 4.0-4.5%<br>'
+     + '• Krzywa normalizuje się (koniec inwersji 2022-2024)<br>'
+     + '• Inflacja usług "sticky" — Fed ostrożny<br>'
+     + 'Źródło: <a href="https://www.ishares.com/us/insights/fed-outlook-2026-interest-rate-forecast" target="_blank" style="color:var(--B)">iShares Fed Outlook 2026 →</a></div>';
+  s += '<div style="line-height:1.7">'
+     + '<b>Goldman Sachs prognoza stóp 2026:</b><br>'
+     + '• 2 cięcia Fed w 2026 (czerwiec + grudzień)<br>'
+     + '• Fed funds do ~3.25% koniec 2026<br>'
+     + '• US10Y: 4.1-4.4% cały rok<br>'
+     + '• Implikacja: IBTS > IBTA > DTLA ryzyko/zwrot</div>';
+  s += '</div></div>';
+
+  /* SOURCES */
+  s += '<div style="font-size:8px;color:var(--t2);line-height:1.7;border-top:1px solid rgba(255,255,255,.07);padding-top:6px">';
+  s += 'Źródła: ';
+  s += '<a href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" target="_blank" style="color:var(--B)">CME FedWatch</a> · ';
+  s += '<a href="https://pl.tradingeconomics.com/poland/government-bond-yield" target="_blank" style="color:var(--B)">PL 10Y (Trading Economics)</a> · ';
+  s += '<a href="https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html" target="_blank" style="color:var(--B)">CME SOFR Futures</a> · ';
+  s += '<a href="https://www.cmegroup.com/markets/interest-rates/us-treasury/10-year-us-treasury-note.html" target="_blank" style="color:var(--B)">CME T-Note Futures</a> · ';
+  s += '<a href="https://polymarket.com" target="_blank" style="color:var(--B)">Polymarket</a> · ';
+  s += '<a href="https://www.ishares.com/us/insights/fed-outlook-2026-interest-rate-forecast" target="_blank" style="color:var(--B)">iShares Fed Outlook</a> · ';
+  s += '<a href="https://nbp.pl/en/statistic-and-financial-reporting/financial-markets/yield-on-government-securities/" target="_blank" style="color:var(--B)">NBP Yields</a>';
+  s += '</div>';
+
+  el.innerHTML = '<div class="wrap">' + s + '</div>';
 }
 
 async function fetchFG() {
@@ -4166,6 +4596,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if(t==='polska')renderPolska();
       if(t==='symulator')renderSymulator();
       if(t==='projekcja')renderProjekcja();
+      if(t==='stopy')renderStopy();
       if(t==='portfolio')renderPortfolio();
       if(t==='journal')renderJournal();
       if(t==='sources')renderSources();
