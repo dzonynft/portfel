@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v45</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v46</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -2429,275 +2429,275 @@ function renderTicker(){
 /* ═══════════════════════════════
    RENDER: DECISION
 ═══════════════════════════════ */
-function renderDecision(){
-  var el=document.getElementById('p-decision');if(!el)return;
-  var sc=calcScore(),f=D.f||{},q=D.q||{};
-  var ta=D.ta||{};
-  var vix=sc.vix||(q.vix?q.vix.price:null)||20;
-  var fg=D.fg?D.fg.score:null;
-  var sp12m=sc.sp12m||D.sp12m||17.7;
-  var ib01=sc.ib01||4.15;
-  var sahm=sc.sahm||(f.sahm?f.sahm.current:null)||0.15;
-  var yc=(f.yield_curve&&f.yield_curve.current!=null)?f.yield_curve.current:0.4;
-  var hy=sc.hy||(f.hy_spread?f.hy_spread.current:null)||2.84;
-  var fed=sc.fed||4.33;
-  var m2yoy=(f.m2&&f.m2.yoy!=null)?f.m2.yoy:null;
-  var cpi=(f.cpi&&f.cpi.yoy!=null)?f.cpi.yoy:null;
-  var move=(q.move?q.move.price:null)||(f.move?f.move.current:null);
-  var rsi=ta.rsi14||35.4;
-  var macdH=ta.macd?ta.macd.hist:-12.6;
-  var spP=(q.sp500?q.sp500.price:null)||6775;
-  var sma200=ta.sma?ta.sma.s200:6851;
-  var usdpln=q.usdpln?q.usdpln.price:null;
-  var eurpln=q.eurpln?q.eurpln.price:null;
-  var plCPI=2.1;
-  var nbpRate=3.75;
+function renderDecision() {
+  var el = document.getElementById('p-decision');
+  if (!el) return;
+  var sc = calcScore(), f = D.f || {}, q = D.q || {};
+  var ta = D.ta || {};
+  var rsi = ta.rsi14 || 35.4;
+  var macdH = ta.macd ? ta.macd.hist : -12.6;
+  var sp12m = sc.sp12m || D.sp12m || 17.7;
+  var ib01 = sc.ib01 || 4.15;
+  var sahm = sc.sahm || 0.15;
+  var hy = sc.hy || 2.84;
+  var vix = sc.vix || (q.vix ? q.vix.price : null) || 20;
+  var fg = D.fg ? D.fg.score : null;
+  var usdpln = q.usdpln ? q.usdpln.price : null;
+  var eurpln = q.eurpln ? q.eurpln.price : null;
+  var wig20p = q.wig20 ? q.wig20.price : null;
+  var gold = q.gold ? q.gold.price : null;
+  var total = sc.total, norm = sc.norm, verdict = sc.verdict, vColor = sc.color, vhg = sc.vhg;
+  var dims = sc.dims || [];
+  var plCPI = 2.1, nbpRate = 3.75;
+  var dmBull = sp12m > ib01;
+  var rsiTrig=rsi>70,dmTrig=!dmBull,sahmTrig=sahm>=0.5,hyTrig=hy>5,vixMacd=(vix>28&&macdH<-5);
+  var trigCount=[rsiTrig,dmTrig,sahmTrig,hyTrig,vixMacd].filter(Boolean).length;
+  var defensiveMode=trigCount>=3;
 
-  /* ── helpers ── */
-  function fV(v,d){return v!=null?(+v).toFixed(d!=null?d:1):'—';}
-  function cG(v,lo,hi){return v==null?'var(--t2)':v>hi?'var(--R)':v>lo?'var(--Y)':'var(--G)';}
-  function cI(v,lo,hi){return v==null?'var(--t2)':v<lo?'var(--G)':v<hi?'var(--Y)':'var(--R)';}
-  function bar(pct,c){return '<div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:3px"><div style="width:'+pct+'%;height:100%;background:'+c+';border-radius:3px;transition:width .4s"></div></div>';}
-  function vbar(pts,max,c){var p=Math.max(0,Math.min(100,(pts+max)/(2*max)*100));return bar(p,c);}
-  function dimCard(label,pts,max,v,sub,note,hist){
-    var p=Math.max(0,Math.min(100,(pts+max)/(2*max)*100));
-    var c=pts>=max*.6?'var(--G)':pts>=0?'var(--Y)':pts>=-max*.4?'#ff7c3e':'var(--R)';
-    return '<div style="background:var(--bg2);border:1px solid '+c+'40;border-radius:var(--r);padding:10px 12px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">'
-      +'<div><div style="font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:.04em">'+label+'</div>'
-      +'<div style="font-size:22px;font-weight:800;color:'+c+';line-height:1">'+(pts>0?'+':'')+pts+'<span style="font-size:11px;color:var(--t2)"> /'+max+'</span></div>'
-      +'<div style="font-size:9px;font-weight:700;color:'+c+'">'+sub+'</div></div>'
-      +'<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:var(--t1)">'+v+'</div>'
-      +'<div style="font-size:8.5px;color:var(--t2)">teraz</div></div></div>'
-      +bar(p,c)
-      +'<div style="font-size:8.5px;color:var(--t2);margin-top:5px;line-height:1.55">'+note+'</div>'
-      +(hist?'<div style="font-size:8px;color:var(--t2);margin-top:3px;border-top:1px solid rgba(255,255,255,.05);padding-top:3px">'+hist+'</div>':'')
-    +'</div>';
+  function scoreColor(pts,max){return pts>=(max*.6)?'var(--G)':pts>0?'var(--Y)':pts>=-(max*.3)?'#ff7c3e':'var(--R)';}
+  function argCard(icon,title,strength,args,color,small){
+    var sc2=strength==='SILNY'?'var(--G)':strength==='UMIARK.'?'var(--Y)':strength==='SŁABY'?'#ff7c3e':'var(--R)';
+    return '<div style="background:var(--bg2);border:1px solid '+color+'40;border-radius:var(--r);overflow:hidden">'
+      +'<div style="background:'+color+'12;border-bottom:1px solid '+color+'30;padding:8px 11px;display:flex;justify-content:space-between;align-items:center">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--t1)">'+icon+' '+title+'</div>'
+      +'<div style="font-size:8px;font-weight:700;padding:2px 7px;border-radius:3px;background:'+color+'20;color:'+color+'">'+strength+'</div></div>'
+      +'<div style="padding:8px 11px">'
+      +args.map(function(a){
+        var ic=a.bull?'<span style="color:var(--G);font-weight:700">↑</span>':'<span style="color:var(--R);font-weight:700">↓</span>';
+        return '<div style="display:grid;grid-template-columns:14px 1fr;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+          +'<div style="margin-top:1px">'+ic+'</div>'
+          +'<div><div style="font-size:9px;font-weight:700;color:var(--t1)">'+a.title+'</div>'
+          +'<div style="font-size:8px;color:var(--t2);line-height:1.5">'+a.note+'</div>'
+          +(a.val?'<div style="font-size:8px;font-weight:700;color:'+(a.bull?'var(--G)':'var(--R)')+'">'+a.val+'</div>':'')
+          +'</div></div>';
+      }).join('')
+      +(small?'<div style="margin-top:5px;font-size:8px;color:var(--t2);border-top:1px solid rgba(255,255,255,.06);padding-top:4px">'+small+'</div>':'')
+      +'</div></div>';
   }
 
-  var total=sc.total,norm=sc.norm,verdict=sc.verdict,vColor=sc.color,vhg=sc.vhg;
-  var dims=sc.dims||[];
+  var s = '';
 
-  /* Dimension helpers for notes */
-  var vixNote=vix>=40?'KRYZYS — historycznie najlepsze okno zakupu':vix>=28?'PANIKA — okazja DCA (contrarian)':vix>=20?'Podwyższona zmienność':vix<15?'Euforia — ostrożnie':'Normalna zmienność';
-  var fgNote=fg==null?'Ładowanie F&G…':fg<=25?'STRACH — contrarian KUP':fg<=40?'Lekki strach — pozytywne':fg<=60?'Neutralny':fg<=75?'Chciwość — uwaga':'EKSTREMALNA CHCIWOŚĆ — sprzedaj';
-  var dmNote=sp12m>ib01?'Dual Momentum: SP500 12M ('+sp12m.toFixed(1)+'%) > IB01 ('+ib01.toFixed(1)+'%) → AKCJE':'Dual Momentum: SP500 12M ('+sp12m.toFixed(1)+'%) < IB01 ('+ib01.toFixed(1)+'%) → WYJDŹ Z AKCJI';
-  var sahmNote=sahm<0.3?'Brak recesji ✓':sahm<0.5?'Ryzyko recesji — ostrożnie':'RECESJA — Sahm Rule aktywna';
-  var hyNote=hy<3.5?'Rynek kredytowy spokojny ✓':hy<5?'Podwyższony spread — uwaga':'KRYZYS KREDYTOWY';
-  var m2Note=m2yoy==null?'Ładowanie':m2yoy>6?'M2 rośnie szybko = ekspansja płynności':m2yoy>0?'M2 umiarkowany wzrost':m2yoy<0?'M2 SPADA — deflacja płynności':'M2 płaskie';
-  var rsiNote=rsi<30?'WYPRZEDANY — klasyczne okno DCA':rsi<40?'Blisko wyprzedania — dobry moment':rsi<55?'Neutralny':rsi<70?'Blisko wykupienia — ostrożnie':'WYKUPIONY — wstrzymaj DCA';
-  var macdNote=macdH>0?'Momentum bycze — trend wzrostowy':'Momentum niedźwiedzie — trend spadkowy';
-  var ycNote=yc>0.5?'Krzywa normalna — cykl expancji':yc>0?'Lekko inwertowana — ostrożność':yc<-0.5?'GŁĘBOKA INWERSJA — recesja historycznie':'Inwertowana — oczekiwania spadku stóp';
-  var moveNote=move==null?'Ładowanie MOVE':move>130?'MOVE wysoki — stres obligacyjny':move>100?'MOVE podwyższony':'MOVE normalny';
-
-  /* ── Currency ── */
-  var usdSig='—',eurSig='—',usdC='var(--t2)',eurC='var(--t2)';
-  if(usdpln){
-    if(usdpln<3.70){usdSig='KUPUJ USD AGRESYWNIE';usdC='var(--G)';}
-    else if(usdpln<3.95){usdSig='KUPUJ USD (DCA ISAC)';usdC='var(--G)';}
-    else if(usdpln<4.20){usdSig='Neutral — DCA normalnie';usdC='var(--Y)';}
-    else if(usdpln<4.50){usdSig='Wstrzymaj PLN→USD';usdC='var(--R)';}
-    else{usdSig='Zamień USD→PLN (GPW/EDO)';usdC='var(--R)';}
-  }
-  if(eurpln){
-    if(eurpln<4.10){eurSig='KUPUJ EUR AGRESYWNIE';eurC='var(--G)';}
-    else if(eurpln<4.25){eurSig='KUPUJ EUR (DCA VWCE)';eurC='var(--G)';}
-    else if(eurpln<4.40){eurSig='Neutral EUR';eurC='var(--Y)';}
-    else if(eurpln<4.60){eurSig='Wstrzymaj PLN→EUR';eurC='var(--R)';}
-    else{eurSig='Zamień EUR→PLN';eurC='var(--R)';}
-  }
-
-  /* DCA tranches */
-  var trN=rsi<30?'3× co 2 tygodnie':rsi<40?'2× co 3 tygodnie':rsi<55?'1×/miesiąc':rsi<70?'0.5× ogranicz':'STOP → defensive';
+  /* ═══ 1. MASTER VERDICT + SCORE (compact) ═══════════════════════ */
+  s+='<div style="background:'+vhg+';border:2px solid '+vColor+';border-radius:var(--r);padding:12px 16px;margin-bottom:8px">';
+  s+='<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center">';
+  s+='<div>'
+    +'<div style="font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.07em">Decyzja makro — '+new Date().toLocaleDateString('pl-PL')+'</div>'
+    +'<div style="font-size:32px;font-weight:900;color:'+vColor+';line-height:1.1">'+verdict+'</div></div>';
+  s+='<div>'
+    +'<div style="height:10px;background:linear-gradient(to right,#ff3355,#ff7c3e,#f5c040,#a3e635,#00e5a8);border-radius:5px;position:relative;margin-bottom:3px">'
+    +'<div style="position:absolute;top:-3px;left:'+((total+50)/100*100).toFixed(0)+'%;width:12px;height:16px;background:#fff;border-radius:2px;transform:translateX(-50%);box-shadow:0 0 5px rgba(0,0,0,.5)"></div></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--t2)"><span>-50 SPRZEDAJ</span><span>-20</span><span>0</span><span>+5 KUP</span><span>+50</span></div>'
+    +'<div style="font-size:18px;font-weight:700;color:'+vColor+';margin-top:2px">'+(total>0?'+':'')+total+' pkt <span style="font-size:10px;color:var(--t2)">| '+norm+'/100</span></div></div>';
+  /* DCA + waluta mini */
   var trC=rsi<40?'var(--G)':rsi<55?'var(--Y)':rsi<70?'#fb923c':'var(--R)';
-
-  /* ─── BUILD ─────────────────────────────────────────────────── */
-  var s='';
-
-  /* ═══════ 1. MASTER VERDICT BAR ═══════════════════════════════════ */
-  s+='<div style="background:'+vhg+';border:2px solid '+vColor+';border-radius:var(--r);padding:14px 18px;margin-bottom:10px">';
-  s+='<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;flex-wrap:wrap">';
-  /* Verdict */
+  var trN=rsi<30?'3× co 2 tyg':rsi<40?'2× co 3 tyg':rsi<55?'1×/msc':rsi<70?'0.5× ogranicz':'STOP';
+  s+='<div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px 12px;text-align:center">'
+    +'<div style="font-size:7px;color:var(--t2);text-transform:uppercase">Transze DCA</div>'
+    +'<div style="font-size:13px;font-weight:700;color:'+trC+'">'+trN+'</div>'
+    +'<div style="font-size:8px;color:var(--t2)">RSI '+rsi.toFixed(1)+'</div></div>';
   s+='<div>'
-    +'<div style="font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em">Decyzja makro</div>'
-    +'<div style="font-size:36px;font-weight:900;color:'+vColor+';letter-spacing:-.02em;line-height:1">'+verdict+'</div>'
-    +'<div style="font-size:9px;color:var(--t2);margin-top:2px">'+new Date().toLocaleDateString('pl-PL')+'</div></div>';
-  /* Score */
-  s+='<div>'
-    +'<div style="font-size:9px;color:var(--t2);margin-bottom:5px">SCORING (-50 do +50)</div>'
-    +'<div style="height:12px;background:linear-gradient(to right,#ff3355 0%,#ff7c3e 20%,#f5c040 40%,#a3e635 60%,#00e5a8 80%,#00e5a8 100%);border-radius:6px;position:relative">'
-    +'<div style="position:absolute;top:-3px;left:'+((total+50)/100*100).toFixed(0)+'%;width:14px;height:18px;background:#fff;border-radius:3px;transform:translateX(-50%);box-shadow:0 0 6px rgba(0,0,0,.5)"></div></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:7.5px;color:var(--t2);margin-top:2px"><span>-50</span><span>-20 Sprzedaj</span><span>0</span><span>+5 Kup</span><span>+50</span></div>'
-    +'<div style="font-size:22px;font-weight:700;color:'+vColor+';margin-top:4px">'+(total>0?'+':'')+total+' pkt <span style="font-size:12px;color:var(--t2)">/ '+norm+'/100</span></div></div>';
-  /* DCA tranches */
-  s+='<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;min-width:130px">'
-    +'<div style="font-size:8px;color:var(--t2);text-transform:uppercase;margin-bottom:3px">Transze DCA</div>'
-    +'<div style="font-size:14px;font-weight:700;color:'+trC+'">'+trN+'</div>'
-    +'<div style="font-size:9px;color:var(--t2);margin-top:3px">RSI='+rsi.toFixed(1)+'</div></div>';
-  /* Waluta pills */
-  s+='<div style="min-width:180px">'
-    +'<div style="font-size:8px;color:var(--t2);text-transform:uppercase;margin-bottom:4px">Waluty</div>';
-  if(usdpln) s+='<div style="font-size:9px;font-weight:700;color:'+usdC+';margin-bottom:2px">USD '+usdpln.toFixed(3)+' — '+usdSig+'</div>';
-  if(eurpln) s+='<div style="font-size:9px;font-weight:700;color:'+eurC+'">EUR '+eurpln.toFixed(3)+' — '+eurSig+'</div>';
-  s+='</div>';
+    +(usdpln?'<div style="font-size:8.5px;font-weight:700;color:'+(usdpln<3.95?'var(--G)':usdpln<4.20?'var(--Y)':'var(--R)')+'">USD '+(+usdpln).toFixed(4)+(usdpln<3.95?' → KUP USD':usdpln<4.20?' → neutral':' → czekaj')+'</div>':'')
+    +(eurpln?'<div style="font-size:8.5px;font-weight:700;color:'+(eurpln<4.25?'var(--G)':eurpln<4.40?'var(--Y)':'var(--R)')+'">EUR '+(+eurpln).toFixed(4)+(eurpln<4.25?' → KUP EUR':eurpln<4.40?' → neutral':' → czekaj')+'</div>':'')
+    +'</div>';
   s+='</div></div>';
 
-  /* ═══════ 2. FIVE SCORING DIMENSIONS ═══════════════════════════════ */
-  s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📊 Scoring — 5 wymiarów (każdy -10 do +10 pkt)</div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:10px">';
+  /* ═══ 2. FIVE SCORING DIMS (compact) ════════════════════════════ */
+  s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:8px">';
+  var dimNotesMini=[
+    'VIX '+vix.toFixed(1)+(vix<18?' euforia':vix<28?' normalny':' PANIKA')+' | F&G '+(fg!=null?fg+'/100':'—'),
+    'M2 YoY '+(f.m2&&f.m2.yoy!=null?f.m2.yoy.toFixed(1)+'%':'ład.')+' | Fed '+sc.fed.toFixed(2)+'%',
+    'Krzywa '+(f.yield_curve&&f.yield_curve.current!=null?f.yield_curve.current.toFixed(2)+'%':'—')+' | VIX proxy',
+    'Sahm '+sahm.toFixed(2)+' | HY '+hy.toFixed(2)+'% | ISM '+D.ism,
+    'DM '+(dmBull?'✓ akcje':'✗ obligacje')+' | CAPE '+(D.cape?D.cape.toFixed(1):'—')
+  ];
   if(dims.length>0){
-    var dimNotes=[
-      vixNote+' | F&G: '+(fg!=null?fg+'/100':'')+' — '+fgNote+' | MOVE: '+(move?move.toFixed(0):'—'),
-      m2Note+' | Fed: '+fed.toFixed(2)+'% | SOFR trend: monitoruj',
-      'VIX proxy: '+vix.toFixed(1)+' | Krzywa: '+yc.toFixed(2)+'% | '+ycNote,
-      sahmNote+' | HY: '+hy.toFixed(2)+'% — '+hyNote,
-      dmNote+' | CAPE: '+(D.cape?D.cape.toFixed(1):'—')+' | CPI US: '+(cpi?cpi.toFixed(1)+'%':'ład.')
-    ];
-    var dimHist=[
-      'Hist: VIX>28 = okazja DCA. F&G<25 = panika = KUP. MOVE>150 = stres obligacji.',
-      'Hist: M2 wzrost >6% = ekspansja 6-18M. Fed<3% = akcje favored.',
-      'Hist: Krzywa <0% = recesja 12-18M później. VIX proxy sentyment short.',
-      'Hist: Sahm>0.5 = recesja potwierdzona. HY>500bp = Lehman-style kryzys.',
-      'Hist: DM: SP12M>IB01 = akcje >80% historycznie pozytywne 12M. CAPE<20=tanio.'
-    ];
     dims.forEach(function(d,i){
       var dc=d.pts>=6?'var(--G)':d.pts>=2?'var(--Y)':d.pts<=-2?'#ff7c3e':'var(--R)';
-      if(d.pts>=0&&d.pts<2) dc='var(--t1)';
-      s+=dimCard(d.label,d.pts,10,d.v,d.sub,dimNotes[i]||'',dimHist[i]||'');
+      if(d.pts>-2&&d.pts<2) dc='var(--t1)';
+      var pct=Math.max(0,Math.min(100,(d.pts+10)/20*100));
+      s+='<div style="background:var(--bg2);border:1px solid '+dc+'40;border-radius:var(--r);padding:7px 9px">'
+        +'<div style="font-size:8px;color:var(--t2);text-transform:uppercase">'+d.label+'</div>'
+        +'<div style="font-size:19px;font-weight:800;color:'+dc+';line-height:1.1">'+(d.pts>0?'+':'')+d.pts+'</div>'
+        +'<div style="height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;margin:3px 0">'
+        +'<div style="width:'+pct+'%;height:100%;background:'+dc+'"></div></div>'
+        +'<div style="font-size:7.5px;color:var(--t2)">'+dimNotesMini[i]+'</div></div>';
     });
   }
   s+='</div>';
 
-  /* ═══════ 3. TECHNICAL OSCILLATORS (mini) ══════════════════════════ */
-  s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📈 Technika S&P500 (→ zakładka TECHNIKA dla pełnej analizy)</div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px">';
-  var techItems=[
-    {k:'RSI(14)',v:rsi.toFixed(1),c:rsi<30?'var(--G)':rsi<40?'#a3e635':rsi<70?'var(--t1)':'var(--R)',
-     s:rsi<30?'WYPRZEDANY':rsi<40?'Słaby':rsi<55?'Neutral':rsi<70?'Silny':'WYKUPIONY',
-     bar:rsi,barMax:100},
-    {k:'MACD hist',v:(macdH>0?'+':'')+macdH.toFixed(1),c:macdH>0?'var(--G)':'var(--R)',
-     s:macdH>2?'Bycze':macdH>0?'Słabo+':'Niedźwiedzie',bar:50+(macdH/Math.max(Math.abs(macdH)*2,1))*50,barMax:100},
-    {k:'vs MA50',v:spP.toFixed(0),c:sma200&&ta.sma&&ta.sma.s50?(spP>ta.sma.s50?'var(--G)':'var(--R)'):'var(--t2)',
-     s:ta.sma&&ta.sma.s50?(spP>ta.sma.s50?'ABOVE':'BELOW'):'—',bar:50,barMax:100},
-    {k:'vs MA200',v:(sma200?sma200.toFixed(0):'—'),c:sma200?(spP>sma200?'var(--G)':'var(--R)'):'var(--t2)',
-     s:sma200?(spP>sma200?'ABOVE ✓':'BELOW ✗'):'—',bar:sma200?((spP/sma200-0.85)*4*100):50,barMax:100},
-    {k:'Golden X',v:ta.goldCross!=null?(ta.goldCross?'GOLD':'DEATH'):'—',
-     c:ta.goldCross!=null?(ta.goldCross?'var(--G)':'var(--R)'):'var(--t2)',
-     s:ta.goldCross!=null?(ta.goldCross?'MA50>200':'MA50<200'):'Obliczam',bar:ta.goldCross?75:25,barMax:100},
-    {k:'ADX(14)',v:(ta.adx?ta.adx.toFixed(0):'25'),c:ta.adx&&ta.adx>25?'var(--Y)':'var(--t2)',
-     s:ta.adx?(ta.adx>40?'Silny trend':ta.adx>25?'Trend':'Zakres'):'—',bar:ta.adx||25,barMax:60},
+  /* ═══ 3. ARGUMENTS GRID (main content) ══════════════════════════ */
+  s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">'
+    +'Za i przeciw — wskaźniki · przepływy · wiadomości · projekcja · sentyment · historia</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px">';
+
+  /* ── ISAC / Globalne ETF ── */
+  var isacBullCount=0,isacBearCount=0;
+  var isacArgs=[
+    {bull:rsi<40,title:'RSI SP500 = '+rsi.toFixed(1),note:'Blisko strefy wyprzedania (30-40). Hist. 80%+ szans na zwrot +15% w 12M po RSI<40.',val:'RSI<40 → '+(rsi<40?'KUP ISAC':'poczekaj na <40')},
+    {bull:dmBull,title:'Dual Momentum SP500 vs T-bill',note:'SP500 12M ('+sp12m.toFixed(1)+'%) '+(dmBull?'>':' <')+' IB01 ('+ib01.toFixed(1)+'%). DM model: '+(dmBull?'zostań w akcjach':'wyjdź z akcji')+'.',val:(dmBull?'✓ AKCJE':'✗ OBLIGACJE/CASH')},
+    {bull:sahm<0.3,title:'Sahm Rule = '+sahm.toFixed(2),note:sahm<0.3?'Brak recesji USA. Konsumenci wydają. PKB Q4 2025: +2.6%. Rynek pracy silny.':'Ryzyko recesji rośnie. Ostrożność z ISAC.',val:sahm<0.3?'Brak recesji ✓':'Ryzyko recesji'},
+    {bull:hy<4,title:'HY Spread = '+hy.toFixed(2)+'%',note:hy<3.5?'Normalny spread. Rynek kredytowy spokojny. Firmy mają dostęp do kapitału. Pro-akcje.':hy<5?'Podwyższony spread — uwaga':'ALARM >5%: kryzys kredytowy',val:hy<3.5?'Spokojny ✓':'Podwyższony'},
+    {bull:vix>25&&vix<35,title:'VIX = '+vix.toFixed(1)+' (contrarian)',note:vix>25?'VIX podwyższony = strach rynkowy = contrarian okazja. Hist: kupno przy VIX>25 daje +18% median 12M.':'VIX niski — brak premium za strach.',val:vix>25?'Contrarian okazja':'VIX neutralny'},
+    {bull:fg!=null&&fg<40,title:'Fear & Greed = '+(fg!=null?fg+'/100':'—'),note:fg==null?'Ładowanie...':fg<25?'SKRAJNY STRACH = historycznie najlepsze wejście.':fg<40?'Strach = pozytywne nastawienie contrarian.':fg>75?'EUFORIA = sprzedaj':'Neutralny sentyment.',val:fg!=null?(fg<40?'Strach = KUP':(fg>75?'Euforia = ostrożnie':'Neutral')):'—'},
+    {bull:true,title:'Goldman Sachs: SP500 target 2026',note:'GS prognoza marzec 2026: SP500 docelowy +12% do końca roku. BofA, JPMorgan: podobne. Konsensus analityków: bull.',val:'+10-12% target consensus'},
+    {bull:false,title:'SP500 poniżej MA50 i MA200',note:'Cena 6775 < MA50 (6746) < MA200 (6851). Techniczne: STRONG SELL. Trend krótkoterminowy negatywny. Momentum niedźwiedzie.',val:'6775 < MA200 6851 ✗'},
+    {bull:false,title:'MACD = '+macdH.toFixed(1),note:'Histogram ujemny = momentum niedźwiedzie. Linia MACD -32.6 < sygnał -20. Presja sprzedaży dominuje krótkoterminowo.',val:'MACD ujemny — ostrożnie'},
   ];
-  techItems.forEach(function(t){
-    var bp=Math.max(0,Math.min(100,t.bar));
-    s+='<div style="background:var(--bg2);border:1px solid '+t.c+'30;border-radius:var(--r);padding:8px 10px">'
-      +'<div style="font-size:8px;color:var(--t2)">'+t.k+'</div>'
-      +'<div style="font-size:17px;font-weight:700;color:'+t.c+'">'+t.v+'</div>'
-      +'<div style="font-size:8px;color:'+t.c+'">'+t.s+'</div>'
-      +'<div style="height:4px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden">'
-      +'<div style="width:'+bp+'%;height:100%;background:'+t.c+'"></div></div>'
-    +'</div>';
-  });
+  isacArgs.forEach(function(a){a.bull?isacBullCount++:isacBearCount++;});
+  var isacStr=isacBullCount>6?'SILNY':isacBullCount>4?'UMIARK.':isacBullCount>2?'SŁABY':'NEGATYWNY';
+  var isacC=isacBullCount>6?'#00e5a8':isacBullCount>4?'#60a5fa':isacBullCount>2?'#f5c040':'#ff3355';
+  s+=argCard('🌍','ISAC.UK / VWCE / MSCI World',isacStr,isacArgs,isacC,
+    'ISAC = MSCI All Country World. 2600+ spółek. Gdy SP500 kichnie, cały świat dostaje przeziębienie. Long-term: 9-14% śr./rok. Kup USD<3.90 + RSI<40.');
+
+  /* ── GPW ETF (mWIG40, WIG20, sWIG80) ── */
+  var gpwArgs=[
+    {bull:true,title:'NBP tnie stopy: 3.75%',note:'Obniżka 5.03.2026. Tańszy pieniądz → PE wyższe → akcje atrakcyjniejsze. Hist: WIG+25% śr. w 12M po pivot NBP.',val:'Pivot NBP = pro-GPW ✓'},
+    {bull:true,title:'PKB Polska 2026: 3.9%',note:'NBP projekcja. Najsilniejszy wzrost PKB w UE. KPO szczyt 2026-27: 35 mld EUR inwestycji. Popyt krajowy silny.',val:'PKB 3.9% — bull case'},
+    {bull:true,title:'WIG kapitalizacja +46.6% r/r',note:'WIG Total Return +46.6% w 12M. GPW = jeden z najlepszych rynków na świecie w 2025. Momentum trwa.',val:'+46.6% r/r (Trading Economics)'},
+    {bull:true,title:'Obroty GPW +19.9% r/r (lut 26)',note:'49.3 mld PLN obrotów w lutym 2026. Rosnąca płynność. Zagraniczni inwestorzy wracają na GPW po latach nieobecności.',val:'49.3 mld PLN obrotów'},
+    {bull:true,title:'WIG20 P/E ~10-11x',note:'Vs SP500 CAPE 34x. GPW historycznie tanie. WIG20 P/E w dolnym kwartylu historii. EU mandate: fundusze MSCI mogą rotować.',val:'P/E ~10-11x vs SP500 34x'},
+    {bull:true,title:'CPI PL 2.1% + NBP cięcia',note:'Inflacja poniżej celu NBP. Realne stopy rosną w sensie realnym. Środowisko dezinflacji = EPS spółek rośnie.',val:'CPI 2.1% — dezinflacja'},
+    {bull:false,title:'WIG20 +45% w 2025 — korekta?',note:'Po silnym roku statystycznie prawdopodobna korekta 10-20%. Mean reversion. Nie jest to pewność — ale ryzyko istnieje.',val:'Ryzyko mean reversion'},
+    {bull:false,title:'WIG20: 60% banki i energia',note:'WIG20 zdominowany przez PKO BP, PKN Orlen, PZU. Wrażliwe na regulacje, ceny surowców, ryzyko polityczne.',val:'Koncentracja sektorowa'},
+    {bull:true,title:'mWIG40: private companies tech',note:'40 średnich spółek prywatnych — mniej polityczne, bardziej tech/pharma/consumer. Hist.: bije WIG20 long-term.',val:'mWIG40 > WIG20 long-term'},
+  ];
+  var gpwBull=gpwArgs.filter(function(a){return a.bull;}).length;
+  var gpwStr=gpwBull>6?'SILNY':gpwBull>4?'UMIARK.':'SŁABY';
+  s+=argCard('🇵🇱','ETF GPW (mWIG40 / WIG20 / sWIG80)',gpwStr,gpwArgs,'#4ade80',
+    'Priorytet: mWIG40 (60%) + sWIG80 (30%). WIG20 (10%) jako stabilizator. IKE/IKZE = brak Belki = extra 19% zwrotu netto.');
+
+  /* ── Euro Stoxx 600 ── */
+  var euArgs=[
+    {bull:true,title:'Euro Stoxx tani vs SP500',note:'Euro Stoxx 600 P/E ~14x vs SP500 ~22x. Discount strukturalny. Przy rotacji kapitału z USA → Europa korzysta.',val:'P/E ~14x — dyskonto 35%'},
+    {bull:true,title:'ECB tnie stopy (3.15% → 2.75%)',note:'ECB agresywnie obniżał 2024-2025. Tanie euro-pieniądze. Kredyt dostępny. Pro-europejskie spółki.',val:'ECB 2.75% i spada'},
+    {bull:false,title:'PKB strefy euro: ~1.2%',note:'Niemcy w technicznej recesji 2024. Francja: budżet napięty. Eksport słaby. Wzrost PKB EU <<< Polska (3.9%).',val:'PKB EU ~1.2% — słabo'},
+    {bull:true,title:'EUR/PLN 4.25 — neutral/tanie',note:eurpln&&eurpln<4.30?'EUR tanie lub neutralne → dobry moment na zakup EuroStoxx za PLN.':'EUR nieco drogie → poczekaj na <4.20.',val:eurpln?'EUR/PLN '+eurpln.toFixed(4):'—'},
+    {bull:false,title:'USD silniejszy = presja na EUR',note:'Przy silnym USD: EUR słabnie → EuroStoxx w USD traci. Dla inwestora PLN: EUR/PLN kompensuje częściowo.',val:'USD/EUR ryzyko walutowe'},
+    {bull:true,title:'Obrona: wzrost wydatków EU',note:'NATO 3% PKB. Niemcy ReArm. Francja. Polska. Spółki zbrojeniowe, budowlane, infrastruktura → w Euro Stoxx 600.',val:'Defence boom = EU bull case'},
+  ];
+  var euBull=euArgs.filter(function(a){return a.bull;}).length;
+  var euStr=euBull>4?'UMIARK.':euBull>2?'SŁABY':'NEUTRALNY';
+  s+=argCard('🇪🇺','Euro Stoxx 600 (EU)',euStr,euArgs,'#a78bfa',
+    'EU tańsze niż USA. Dobre jako dywersyfikacja geograficzna. Dla portfela EUR — naturalny wybór obok MSCI World.');
+
+  s+='</div>'; /* close 3-col grid */
+
+  /* ═══ Row 2: Waluta / Obligacje / KO ═══════════════════════════ */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px">';
+
+  /* ── USD/PLN i EUR/PLN ── */
+  var fxArgs=[
+    {bull:usdpln&&usdpln<3.95,title:'USD/PLN = '+(usdpln?usdpln.toFixed(4):'—'),
+     note:usdpln?(usdpln<3.70?'TANIE USD. Historyczne minimum bliskie. KUPUJ agresywnie → ISAC, IB01.':usdpln<3.95?'Tanie-neutral USD. Dobry DCA w USD.':usdpln<4.20?'Neutralny USD/PLN. DCA bez presji.':'DROGI USD. Nie zamieniaj PLN→USD. Poczekaj.'):' Ładowanie',
+     val:usdpln?(usdpln<3.95?'→ KUPUJ USD':'→ CZEKAJ'):'—'},
+    {bull:eurpln&&eurpln<4.25,title:'EUR/PLN = '+(eurpln?eurpln.toFixed(4):'—'),
+     note:eurpln?(eurpln<4.10?'TANIE EUR. Kupuj agresywnie → VWCE, EuroStoxx.':eurpln<4.25?'Lekko tanie EUR. DCA w EUR.':eurpln<4.40?'Neutralny EUR/PLN.':'DROGI EUR. Poczekaj.'):' Ładowanie',
+     val:eurpln?(eurpln<4.25?'→ KUPUJ EUR':'→ CZEKAJ'):'—'},
+    {bull:true,title:'NBP tnie → PLN może się umocnić',note:'Cięcia NBP szybsze niż ECB → PLN relatywnie silniejszy. Trend: PLN umacniał się od 2022 szczytu EUR/PLN 4.95.',val:'PLN trend: umocnienie'},
+    {bull:true,title:'KPO napływ EUR → PLN wsparcie',note:'35 mld EUR z KPO w 2026-27. Napływ EUR → przeliczanie na PLN → strukturalne umocnienie złotego.',val:'KPO EUR inflow 2026-27'},
+    {bull:false,title:'Geopolityka: ryzyko PLN',note:'Konflikt na Ukrainie, Bliski Wschód. Przy eskalacji: PLN wyprzedany. EUR/USD może skoczyć. Zabezpieczaj część w USD/złoto.',val:'Geopolityczne ryzyko PLN'},
+  ];
+  var fxBull=fxArgs.filter(function(a){return a.bull;}).length;
+  var fxStr=fxBull>3?'UMIARK.':'SŁABY';
+  s+=argCard('💱','Waluty — USD/PLN i EUR/PLN',fxStr,fxArgs,'#f5c040',
+    'Zasada: kupuj ETF zagraniczne gdy waluta tania. USD<3.90 → ISAC. EUR<4.25 → VWCE. Nie zamieniaj PLN przy EUR>4.40 lub USD>4.20.');
+
+  /* ── Obligacje (EDO, ETFBTBSP) ── */
+  var bondArgs=[
+    {bull:true,title:'EDO rok 1: 5.60% stałe',note:'Rok 1 stały, niezależnie od inflacji. Przy CPI 2.1% = realna stopa +3.5% NETTO (IKE). Historyczne maximum.',val:'5.60% → realna +3.49%'},
+    {bull:true,title:'IKE-Obligacje: brak Belki',note:'Na IKE EDO = 5.60% netto bez 19% podatku. Vs KO: 6.5% × 0.81 = 5.27% netto. EDO wygrywa!',val:'5.60% vs KO 5.27% netto'},
+    {bull:true,title:'NBP tnie → lock-in stopy',note:'Każde cięcie NBP obniży oprocentowanie nowych serii EDO. Kup teraz = zablokujesz 5.60% rok 1.',val:'KUPUJ przed kolejnym cięciem'},
+    {bull:true,title:'COI/TOS: gwarancja państwa',note:'100% gwarancja Skarbu Państwa. Zerowe ryzyko kredytowe. Wcześniejszy wykup -3 PLN/szt (~0.03%).',val:'SP: 0% ryzyko defaultu'},
+    {bull:true,title:'ETFBTBSP: krótkie obligacje PL',note:'Na IKE/IKZE gdy rynek akcji zły: ETFBTBSP daje ~5.5% (obligacje skarbowe 0-3Y PL). Bezpieczna przystań.',val:'~5.5% przy defensive mode'},
+    {bull:false,title:'EDO rok 2+: CPI+2% zmienna',note:'Rok 2-10: CPI+2%. Przy deflacji CPI→0%: oprocentowanie spada do 2%. Ryzyko przy oczekiwanej deflacji.',val:'Rok 2+ zależny od CPI'},
+  ];
+  var bondBull=bondArgs.filter(function(a){return a.bull;}).length;
+  s+=argCard('📜','Obligacje EDO / ETFBTBSP',bondBull>4?'SILNY':'UMIARK.',bondArgs,'#00e5a8',
+    'Priorytet: EDO na IKE (5.60% netto, brak Belki). ETFBTBSP na IKZE/IKE gdy rynek akcji defensywny. Nie kupuj krótkich obligacji bez IKE (Belka niszczy zwrot).');
+
+  /* ── Konto Oszczędnościowe ── */
+  var koArgs=[
+    {bull:true,title:'VeloBank/CA: 6.5% (3 msc)',note:'Krótkoterminowo najwyższe oprocentowanie. Ale tylko 3 miesiące, nowi klienci, limity kwotowe.',val:'6.5% → 5.27% netto'},
+    {bull:true,title:'UniCredit: 4.5% bez limitu',note:'Bezterminowo, bez warunków. Bezpieczna rezerwa płynności. Dobra dla funduszu awaryjnego.',val:'4.5% → 3.65% netto'},
+    {bull:false,title:'Po Belce realna stopa < EDO',note:'KO 6.5% × 0.81 = 5.27% netto. EDO na IKE = 5.60% netto. EDO wygrywa zawsze przy dostępnym limicie IKE.',val:'KO < EDO IKE po podatkach'},
+    {bull:false,title:'NBP tnie → KO spadnie',note:'Banki obniżą KO w ślad za NBP. VeloBank 6.5% → za 3-6 msc będzie ~5%. EDO blokuje dziś 5.6%.',val:'Stopy KO spadną 2026-27'},
+    {bull:true,title:'Płynność T+1',note:'KO najważniejsza rola: FUNDUSZ AWARYJNY 3-6 msc wydatków. Płynność natychmiastowa. EDO: wykup 5-7 dni.',val:'Najlepsza płynność'},
+  ];
+  var koBull=koArgs.filter(function(a){return a.bull;}).length;
+  s+=argCard('🏦','Konto Oszczędnościowe (KO)',koBull>3?'UMIARK.':'SŁABY',koArgs,'#94a3b8',
+    'KO = TYLKO fundusz awaryjny (3-6 msc wydatków). Nie blokuj tu więcej kapitału. Każda nadwyżka → EDO na IKE (wyższe netto) lub ETF przy długim horyzoncie.');
+
+  s+='</div>'; /* close row 2 */
+
+  /* ═══ 4. DEFENSIVE TRIGGER BOX (compact) ══════════════════════ */
+  var defC=trigCount>=3?'var(--R)':trigCount>=2?'var(--Y)':'var(--G)';
+  s+='<div style="background:'+defC+'0c;border:1px solid '+defC+'35;border-radius:var(--r);padding:9px 13px;margin-bottom:8px">';
+  s+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">';
+  s+='<div style="font-size:9px;font-weight:700;color:'+defC+'">ETFBTBSP/IB01/TBIL trigger — '+trigCount+'/5 aktywnych</div>';
+  s+='<div style="font-size:12px;font-weight:800;color:'+defC+'">'+(trigCount>=3?'⚠️ DEFENSIVE':'✅ ZOSTAŃ W AKCJACH')+'</div></div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">';
+  [{k:'RSI>70',met:rsiTrig,v:rsi.toFixed(1)},{k:'DM fail',met:dmTrig,v:sp12m.toFixed(1)+'%'},{k:'Sahm≥0.5',met:sahmTrig,v:sahm.toFixed(2)},{k:'HY>5%',met:hyTrig,v:hy.toFixed(2)+'%'},{k:'VIX>28+MACD-',met:vixMacd,v:vix.toFixed(1)}]
+    .forEach(function(t){
+      s+='<div style="background:rgba(255,255,255,.03);border-radius:3px;padding:4px 6px;border-left:2px solid '+(t.met?'var(--R)':'var(--G)')+';font-size:8px">'
+        +'<span style="font-weight:700;color:'+(t.met?'var(--R)':'var(--G)')+'"> '+(t.met?'✗':'✓')+' '+t.k+'</span>'
+        +'<div style="color:var(--t2)">'+t.v+'</div></div>';
+    });
+  s+='</div></div>';
+
+  /* ═══ 5. WORLD + POLAND DUAL GRID ══════════════════════════════ */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">';
+
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px">';
+  s+='<div style="font-size:9px;font-weight:700;color:var(--B);text-transform:uppercase;margin-bottom:6px">🌍 Świat — wskaźniki vs historia</div>';
+  var wRow=function(k,v,hist,c){return '<div style="display:grid;grid-template-columns:90px auto 1fr;gap:4px;align-items:center;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    +'<span style="font-size:8px;color:var(--t2)">'+k+'</span>'
+    +'<span style="font-size:10px;font-weight:700;color:'+c+';text-align:right">'+v+'</span>'
+    +'<span style="font-size:7.5px;color:var(--t2);padding-left:6px">'+hist+'</span></div>';};
+  s+=wRow('SP500 12M',sp12m.toFixed(1)+'%','Śr. +9.8% hist. | >0% hossa',sp12m>10?'var(--G)':sp12m>0?'var(--Y)':'var(--R)');
+  s+=wRow('VIX',vix.toFixed(1),'15-20 norma | >28 panika | >40 kryzys',vix<18?'var(--G)':vix<28?'var(--Y)':'var(--R)');
+  s+=wRow('F&G',(fg!=null?fg+'/100':'—'),'<25 strach=KUP | >75 euforia=sprzedaj',fg==null?'var(--t2)':fg<30?'var(--G)':fg<65?'var(--Y)':'var(--R)');
+  s+=wRow('HY Spread',hy.toFixed(2)+'%','Norma 2.5-3.5% | Stres >4% | Kryzys >6%',hy<3.5?'var(--G)':hy<5?'var(--Y)':'var(--R)');
+  s+=wRow('Sahm Rule',sahm.toFixed(2),'<0.3 OK | 0.3-0.5 ryzyko | >0.5 recesja',sahm<0.3?'var(--G)':sahm<0.5?'var(--Y)':'var(--R)');
+  s+=wRow('MACD',(macdH>0?'+':'')+macdH.toFixed(1),'+ = bycze momentum | − = niedźwiedzie',macdH>0?'var(--G)':'var(--R)');
+  s+=wRow('vs MA200',(sc.vix&&ta.sma?'poniżej':'poniżej*'),'Powyżej=hossa | Poniżej=presja','var(--R)');
+  s+=wRow('Fed rate',sc.fed.toFixed(2)+'%','<3% = akcje fav | 4-5% = neutral | >5% stres',sc.fed<4?'var(--G)':sc.fed<5?'var(--Y)':'var(--R)');
   s+='</div>';
 
-  /* ═══════ 4. WORLD vs POLAND DUAL PANEL ════════════════════════════ */
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px">';
+  s+='<div style="font-size:9px;font-weight:700;color:var(--Y);text-transform:uppercase;margin-bottom:6px">🇵🇱 Polska — wskaźniki vs historia</div>';
+  s+=wRow('CPI PL (lut 26)','2,1%','Cel 2.5%±1pp | 2022 szczyt: 14.4%','var(--G)');
+  s+=wRow('NBP stopa','3,75%','Po cięciu 5.03. Konsensus koniec 26: 3.25%','var(--G)');
+  s+=wRow('PKB proj. 2026','3,9%','Hist. norma 3-4% | Najlepsza w UE','var(--G)');
+  s+=wRow('PPI usług Q4 25','3,4% r/r','PPI>CPI = inflacja usług strukturalna','var(--Y)');
+  s+=wRow('EDO IKE realna','+3,5%','5.6% - CPI 2.1% = historyczne MAX','var(--G)');
+  s+=wRow('WIG 12M','+46.6%','Jeden z najlepszych rynków 2025 (TradEcon)','var(--G)');
+  s+=wRow('USD/PLN',(usdpln?usdpln.toFixed(4):'—'),'Śr. 2015-25: 3.85 | Tanie:<3.7 | Drogie:>4.3',usdpln?(usdpln<3.9?'var(--G)':usdpln<4.2?'var(--Y)':'var(--R)'):'var(--t2)');
+  s+=wRow('EUR/PLN',(eurpln?eurpln.toFixed(4):'—'),'Śr. 2015-25: 4.27 | Tanie:<4.15 | Drogie:>4.45',eurpln?(eurpln<4.25?'var(--G)':eurpln<4.40?'var(--Y)':'var(--R)'):'var(--t2)');
+  s+='</div>';
+  s+='</div>'; /* close dual grid */
 
-  /* WORLD panel */
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
-  s+='<div style="font-size:9px;font-weight:700;color:var(--B);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🌍 Świat — stan i porównanie historyczne</div>';
-  var worldRows=[
-    {k:'SP500 12M',v:sp12m.toFixed(1)+'%',hist:'Śr. hist. +9.8% | >0% = hossa',c:sp12m>15?'var(--G)':sp12m>0?'var(--Y)':'var(--R)'},
-    {k:'VIX',v:vix.toFixed(1),hist:'Norma 15-20 | Panika >28 | Kryzys >40',c:vix<18?'var(--G)':vix<28?'var(--Y)':'var(--R)'},
-    {k:'Fear & Greed',v:(fg!=null?fg+'/100':'—'),hist:'<25=panika(KUP) | 50=neutral | >75=euforia(sprzedaj)',c:fg==null?'var(--t2)':fg<30?'var(--G)':fg<60?'var(--Y)':'var(--R)'},
-    {k:'HY Spread',v:hy.toFixed(2)+'%',hist:'Norma 2.5-3.5% | Stres >4% | Kryzys >6%',c:hy<3.5?'var(--G)':hy<5?'var(--Y)':'var(--R)'},
-    {k:'Sahm Rule',v:sahm.toFixed(2),hist:'<0.3=OK | 0.3-0.5=ryzyko | >0.5=recesja',c:sahm<0.3?'var(--G)':sahm<0.5?'var(--Y)':'var(--R)'},
-    {k:'Yield curve',v:yc.toFixed(2)+'%',hist:'Pozytywna = hossa | <0% = recesja 12-18M',c:yc>0.2?'var(--G)':yc>-0.2?'var(--Y)':'var(--R)'},
-    {k:'M2 YoY',v:(m2yoy!=null?m2yoy.toFixed(1)+'%':'ład.'),hist:'<0%=deflacja(ryzyko) | >6%=ekspansja',c:m2yoy==null?'var(--t2)':m2yoy>3?'var(--G)':m2yoy>0?'var(--Y)':'var(--R)'},
-    {k:'Fed rate',v:fed.toFixed(2)+'%',hist:'<3%=akcje faworyzowane | >5%=ryzyko',c:fed<4?'var(--G)':fed<5?'var(--Y)':'var(--R)'},
-    {k:'MOVE (obligacje)',v:(move?move.toFixed(0):'—'),hist:'Norma 60-100 | Stres >130 | SVB23: 200',c:move==null?'var(--t2)':move<100?'var(--G)':move<130?'var(--Y)':'var(--R)'},
+  /* ═══ 6. HISTORY LESSONS ════════════════════════════════════════ */
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 13px">';
+  s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;margin-bottom:6px">📚 Kiedy było podobnie — lekcje historii</div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">';
+  var hist=[
+    {p:'Mar 2009 (GFC dno)',sc:'+42',v:'KUP',r:'SP500 +60% rok później. RSI<25, VIX=60.',c:'var(--G)'},
+    {p:'Mar 2020 (COVID)',sc:'+38',v:'KUP (PANIKA)',r:'SP500 +75% rok później. RSI=25, VIX=85.',c:'var(--G)'},
+    {p:'Paź 2022 (pivot)',sc:'+15',v:'AKUMULUJ',r:'SP500 +26% w 2023. RSI=34, DM=taktownie.',c:'var(--G)'},
+    {p:'Mar 2026 (teraz)',sc:(total>0?'+':'')+total,v:verdict,r:'RSI=35.4, poniżej MA200, MACD-.',c:vColor},
   ];
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">';
-  worldRows.forEach(function(r){
-    s+='<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<span style="font-size:8px;color:var(--t2)">'+r.k+'</span>'
-      +'<span style="font-size:11px;font-weight:700;color:'+r.c+'">'+r.v+'</span></div>'
-      +'<div style="font-size:7.5px;color:var(--t2);line-height:1.4">'+r.hist+'</div></div>';
+  hist.forEach(function(h){
+    s+='<div style="border-radius:5px;padding:8px 10px;border-top:2px solid '+h.c+';background:rgba(255,255,255,.02)">'
+      +'<div style="font-size:7.5px;color:var(--t2)">'+h.p+'</div>'
+      +'<div style="font-size:17px;font-weight:800;color:'+h.c+'">'+h.sc+' pkt</div>'
+      +'<div style="font-size:9px;font-weight:700;color:'+h.c+';margin:2px 0">'+h.v+'</div>'
+      +'<div style="font-size:8px;color:var(--t2)">'+h.r+'</div></div>';
   });
   s+='</div></div>';
 
-  /* POLAND panel */
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
-  s+='<div style="font-size:9px;font-weight:700;color:var(--Y);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🇵🇱 Polska — stan i porównanie historyczne</div>';
-  var plRows=[
-    {k:'CPI PL (lut 26)',v:'2,1%',hist:'Cel NBP: 2.5% | 2022 szczyt: 14.4% | Teraz PONIŻEJ celu',c:'var(--G)'},
-    {k:'NBP stopa',v:nbpRate+'%',hist:'Obniżka 5.03.2026 z 4.0%. Konsensus koniec 2026: 3.25%',c:'var(--G)'},
-    {k:'PKB 2026 proj.',v:'3,9%',hist:'Hist. norma 3-4%. KPO szczyt. Najlepsza w regionie.',c:'var(--G)'},
-    {k:'PPI usług Q4',v:'3,4% r/r',hist:'PPI>CPI = inflacja usług strukturalna (płace). NBP ostrożny.',c:'var(--Y)'},
-    {k:'EDO realna stopa',v:'+3,5%',hist:'EDO 5.6% - CPI 2.1% = +3.5% realnie. Historyczne MAX!',c:'var(--G)'},
-    {k:'IKZE limit 2026',v:'~9 388 PLN',hist:'Odliczenie od PIT + brak Belki przy wypłacie po 65r.',c:'var(--t1)'},
-    {k:'IKE limit 2026',v:'~26 019 PLN',hist:'Brak Belki 19% na całym zysku kapitałowym.',c:'var(--t1)'},
-    {k:'USD/PLN',v:(usdpln?usdpln.toFixed(4):'—'),hist:'Śr. 2015-25: 3.85 | Tanie: <3.7 | Drogie: >4.3',c:usdpln?(usdpln<3.9?'var(--G)':usdpln<4.2?'var(--Y)':'var(--R)'):'var(--t2)'},
-    {k:'EUR/PLN',v:(eurpln?eurpln.toFixed(4):'—'),hist:'Śr. 2015-25: 4.27 | Tanie: <4.15 | Drogie: >4.45',c:eurpln?(eurpln<4.25?'var(--G)':eurpln<4.40?'var(--Y)':'var(--R)'):'var(--t2)'},
-  ];
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">';
-  plRows.forEach(function(r){
-    s+='<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<span style="font-size:8px;color:var(--t2)">'+r.k+'</span>'
-      +'<span style="font-size:11px;font-weight:700;color:'+r.c+'">'+r.v+'</span></div>'
-      +'<div style="font-size:7.5px;color:var(--t2);line-height:1.4">'+r.hist+'</div></div>';
-  });
-  s+='</div></div>';
-  s+='</div>'; /* end dual grid */
-
-  /* ═══════ 5. DEFENSIVE TRIGGER BOX ═════════════════════════════════ */
-  var rsiTrig=rsi>70,dmTrig=sp12m<ib01,sahmTrig=sahm>=0.5,hyTrig=hy>5,vixMacd=(vix>28&&macdH<-5);
-  var trigCount=[rsiTrig,dmTrig,sahmTrig,hyTrig,vixMacd].filter(Boolean).length;
-  var defMode=trigCount>=3;
-  var defC=defMode?'var(--R)':trigCount>=2?'var(--Y)':'var(--G)';
-  s+='<div style="background:'+defC+'0d;border:1px solid '+defC+'40;border-radius:var(--r);padding:10px 14px;margin-bottom:10px">';
-  s+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-  s+='<div style="font-size:9.5px;font-weight:700;color:'+defC+'">⚠️ ETFBTBSP / IB01 / TBIL trigger ('+trigCount+'/5)</div>';
-  s+='<div style="font-size:13px;font-weight:800;color:'+defC+'">'+(defMode?'DEFENSIVE MODE':'ZOSTAŃ W AKCJACH')+'</div></div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;font-size:8px">';
-  var trigs=[
-    {k:'RSI>70',met:rsiTrig,v:rsi.toFixed(1)},
-    {k:'DM fail',met:dmTrig,v:sp12m.toFixed(1)+'%<'+ib01.toFixed(1)+'%'},
-    {k:'Sahm≥0.5',met:sahmTrig,v:sahm.toFixed(2)},
-    {k:'HY>5%',met:hyTrig,v:hy.toFixed(2)+'%'},
-    {k:'VIX>28+MACD-',met:vixMacd,v:vix.toFixed(1)+'/'+macdH.toFixed(1)},
-  ];
-  trigs.forEach(function(t){
-    s+='<div style="background:rgba(255,255,255,.04);border-radius:4px;padding:5px 7px;border-left:2px solid '+(t.met?'var(--R)':'var(--G)')+'">'
-      +'<div style="color:'+(t.met?'var(--R)':'var(--G)')+';font-weight:700">'+(t.met?'❌':'✅')+' '+t.k+'</div>'
-      +'<div style="color:var(--t2)">'+t.v+'</div></div>';
-  });
-  s+='</div>';
-  s+='<div style="margin-top:6px;font-size:8px;color:var(--t2)">Reguła: ≥3 triggery aktywne = przejdź na ETFBTBSP/ETFBCASH (IKZE/IKE) lub IB01/TBIL (IBKR). Teraz: '+trigCount+' aktywnych. Zasada DCA: nie rebalancuj całości — nowe wpłaty parkuj w defensive.</div>';
-  s+='</div>';
-
-  /* ═══════ 6. VERDICT HISTORY (CRISES MINI TABLE) ══════════════════ */
-  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 14px">';
-  s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;margin-bottom:6px">📚 Kiedy scoring był podobny — lekcje historii</div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:8.5px">';
-  var histLessons=[
-    {period:'Mar 2009 (GFC dno)',score:'+42',action:'KUP',result:'SP500 +60% rok później',c:'var(--G)'},
-    {period:'Mar 2020 (COVID)',score:'+38',action:'KUP (PANIKA)',result:'SP500 +75% rok później',c:'var(--G)'},
-    {period:'Paź 2022 (Fed pivot)',score:'+15',action:'AKUMULUJ',result:'SP500 +26% w 2023',c:'var(--G)'},
-    {period:'Dziś mar 2026',score:(total>0?'+':'')+total,action:verdict,result:'RSI=35, poniżej MA200',c:vColor},
-  ];
-  histLessons.forEach(function(h){
-    s+='<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:7px 9px;border-top:2px solid '+h.c+'">'
-      +'<div style="font-size:8px;color:var(--t2)">'+h.period+'</div>'
-      +'<div style="font-size:15px;font-weight:700;color:'+h.c+'">'+h.score+' pkt</div>'
-      +'<div style="font-size:8.5px;font-weight:700;color:'+h.c+'">'+h.action+'</div>'
-      +'<div style="font-size:8px;color:var(--t2);margin-top:2px">'+h.result+'</div></div>';
-  });
-  s+='</div></div>';
-
-  el.innerHTML='<div class="wrap">'+s+'</div>';
+  el.innerHTML = '<div class="wrap">' + s + '</div>';
 }
+
 
 
 
