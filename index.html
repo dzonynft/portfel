@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v59</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v60</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -353,6 +353,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-journal"><div class="wrap"></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -426,18 +427,20 @@ function fgL(s){ if(s==null)return'—'; if(s<=24)return'EXTREME FEAR'; if(s<=44
 ═══════════════════════════════ */
 /* pGet: sequential proxy fallback — returns fake Response with .text()/.json() */
 var _P=[
-  'https://portfel.dzonyiks.workers.dev?url=',
-  'https://thingproxy.freeboard.io/fetch/',
   'https://api.allorigins.win/raw?url=',
+  'https://portfel.dzonyiks.workers.dev?url=',
   'https://corsproxy.io/?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
+/* Stooq needs direct approach - avoid proxies that block it */
+var _SP=[
+  'https://api.allorigins.win/raw?url=',
+  'https://portfel.dzonyiks.workers.dev?url=',
+  'https://corsproxy.io/?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
 ];
 /* Stooq-specific proxies (stooq blocks corsproxy/allorigins) */
-var _SP=[
-  'https://portfel.dzonyiks.workers.dev?url=',
-  'https://thingproxy.freeboard.io/fetch/',
-  'https://api.codetabs.com/v1/proxy?quest=',
-  'https://corsproxy.io/?url=',
-];
+
 async function pGetSP(url, ms) {
   /* Stooq-specific proxy - different from FRED proxies */
   ms=ms||10000;
@@ -2696,6 +2699,16 @@ function renderPrognozy(){
       +'<b>Sprawdź PL10Y ZANIM kupisz ETFBTBSP.</b> Teraz PL10Y='+pl10y.toFixed(2)+'% | Oil='+oilP.toFixed(0)+'$</div></div>';
   }
 
+  /* PLN Section */
+  s+='<div class="sec">💰 POLSKA PLN — Kursy + Konta Oszczędnościowe + Obligacje</div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
+  s+='<div style="background:var(--bg2);border:1px solid var(--B)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">USD/PLN</div><div style="font-size:20px;font-weight:700;color:var(--B)">'+usdpln.toFixed(4)+'</div><div style="font-size:7.5px;color:var(--t2)">Live NBP API</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--B)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">EUR/PLN</div><div style="font-size:20px;font-weight:700;color:var(--B)">'+eurpln.toFixed(4)+'</div><div style="font-size:7.5px;color:var(--t2)">Live NBP API</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">CPI PL (lut 26)</div><div style="font-size:20px;font-weight:700;color:var(--G)">2,1%</div><div style="font-size:7.5px;color:var(--G)">Poniżej celu</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">NBP stopa ref.</div><div style="font-size:20px;font-weight:700;color:var(--Y)">3,75%</div><div style="font-size:7.5px;color:var(--Y)">Cięcie 5.03.26</div></div>';
+  s+='</div>';
+
+
   /* ═══ HEADER TWO-COLUMN ════════════════════════════════════════ */
   s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:10px;border-radius:var(--r);overflow:hidden">';
   s+='<div style="background:rgba(245,192,64,.07);padding:8px 14px"><b style="color:var(--Y)">🇵🇱 POLSKA</b> <span style="font-size:8.5px;color:var(--t2)">Projekcja NBP marzec 2026 + GUS</span></div>';
@@ -2910,15 +2923,6 @@ function renderPrognozy(){
   s+='</div></div>';
   s+='</div>';
 
-  /* PLN Section */
-  s+='<div class="sec">💰 POLSKA PLN — Kursy + Konta Oszczędnościowe + Obligacje</div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
-  s+='<div style="background:var(--bg2);border:1px solid var(--B)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">USD/PLN</div><div style="font-size:20px;font-weight:700;color:var(--B)">'+usdpln.toFixed(4)+'</div><div style="font-size:7.5px;color:var(--t2)">Live NBP API</div></div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--B)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">EUR/PLN</div><div style="font-size:20px;font-weight:700;color:var(--B)">'+eurpln.toFixed(4)+'</div><div style="font-size:7.5px;color:var(--t2)">Live NBP API</div></div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">CPI PL (lut 26)</div><div style="font-size:20px;font-weight:700;color:var(--G)">2,1%</div><div style="font-size:7.5px;color:var(--G)">Poniżej celu</div></div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">NBP stopa ref.</div><div style="font-size:20px;font-weight:700;color:var(--Y)">3,75%</div><div style="font-size:7.5px;color:var(--Y)">Cięcie 5.03.26</div></div>';
-  s+='</div>';
-
   el.innerHTML='<div class="wrap">'+s+'</div>';
 
   /* CHARTS */
@@ -2986,6 +2990,38 @@ function renderObligacje(){
   function realRet(g){var plCPI2=2.1;return +(taxNet(g)-plCPI2).toFixed(2);}
   function fP(v){return (v>=0?'+':'')+v.toFixed(2)+'%';}
   function cC(v){return v>1.5?'var(--G)':v>0?'var(--Y)':'var(--R)';}
+  var accounts = [
+    { bank:'BOŚ Bank',    name:'Cyfrowy Zysk',               pct:7.0,  limit:'do 15 tys. PLN',   term:'DO 19.03.2026',       cond:'Brak konta osobistego. Tylko nowi. UWAGA: zostały dni!', stars:3 },
+    { bank:'BNP Paribas', name:'Konto Pełne Marzeń',          pct:7.0,  limit:'do 100 tys. PLN',  term:'do 30.04.2026',       cond:'Nowi klienci. 4 transakcje/msc + wpływ 1000 PLN/msc.', stars:4 },
+    { bank:'VeloBank',    name:'Elastyczne KO (Ed.2/2026)',   pct:6.5,  limit:'do 50 tys. PLN',   term:'3 miesiące (92 dni)', cond:'Nowi klienci. Konto osobiste + zgody marketingowe + 5 transakcji.', stars:4 },
+    { bank:'Nest Bank',   name:'Nest KO',                     pct:6.5,  limit:'podaj w banku',    term:'3 miesiące',          cond:'Nowi klienci. Konto osobiste wymagane.', stars:3 },
+    { bank:'Credit Agricole', name:'Lokata powitalna',        pct:6.5,  limit:'do 100 tys. PLN',  term:'3×30 dni',            cond:'Nowi klienci. Konto osobiste + 5 płatności/msc + logowanie.', stars:4 },
+    { bank:'ING Bank Śląski', name:'OKO Bonus na start',      pct:5.5,  limit:'do 400 tys. PLN',  term:'3 miesiące',          cond:'Nowi klienci. Konto + 3× login + 15 transakcji. Do 8.04.2026.', stars:5 },
+    { bank:'Alior Bank',  name:'KO na Start',                 pct:5.2,  limit:'do 200 tys. PLN',  term:'4 miesiące',          cond:'Nowi klienci. Premia 1000 PLN za konto. 5 transakcji/msc.', stars:4 },
+    { bank:'mBank',       name:'Moje Cele',                   pct:5.1,  limit:'do 200 tys. PLN',  term:'90 dni',              cond:'Nowi klienci. Premia 780 PLN. Konto osobiste.', stars:4 },
+    { bank:'Pekao SA',    name:'KO Pekao',                    pct:5.0,  limit:'bez limitu',        term:'3 miesiące',          cond:'Nowi klienci. Premia 850 PLN. 5 transakcji/msc.', stars:5 },
+    { bank:'Bank Millennium', name:'KO Profit',               pct:5.0,  limit:'do 200 tys. PLN',  term:'91 dni',              cond:'Nowi klienci. 5 transakcji kartą/msc. Premia 900 PLN za konto.', stars:5 },
+    { bank:'UniCredit',   name:'KO standard',                 pct:4.5,  limit:'bez limitu',        term:'do 31.03.2026',       cond:'Bez warunków. Bez konta osobistego. Premia 200 PLN.', stars:5 },
+    { bank:'Santander',   name:'Multi Oszczędnościowe',       pct:4.0,  limit:'do 100 tys. PLN',  term:'do 15.04.2026',       cond:'Nowe środki. Nowi i obecni klienci. Premia 900 PLN.', stars:3 },
+    { bank:'PKO BP',      name:'KO Plus',                     pct:4.0,  limit:'do 250 tys. PLN',  term:'90 dni',              cond:'Premia 600 PLN za konto. Dla nowych środków.', stars:3 },
+  ];
+
+  /* ── OBLIGACJE ── */
+  var bonds = [
+    { sym:'OTS0626', name:'3-miesięczne (OTS)', pct:2.50, type:'stałe', term:'3M',
+      info:'Najkrótsze. Minimalna ochrona kapitału. Słabsze od KO.' },
+    { sym:'ROR0327', name:'1-roczne (ROR)',      pct:4.25, type:'zmienna NBP+0%', term:'1Y',
+      info:'NBP 3.75% + marża 0%. Miesięczna wypłata odsetek. Spadnie gdy NBP tnie.' },
+    { sym:'DOR0328', name:'2-letnie (DOR)',       pct:4.40, type:'zmienna NBP+0.15%', term:'2Y',
+      info:'NBP 3.75% + 0.15%. Comiesięczna wypłata. Nieco lepsze od ROR.' },
+    { sym:'TOS0329', name:'3-letnie stałe (TOS)',pct:4.65, type:'stałe 3 lata', term:'3Y',
+      info:'Stałe 4.65% na 3 lata — blokuje stopę przed dalszymi cięciami NBP.' },
+    { sym:'COI0330', name:'4-letnie (COI)',       pct:5.00, type:'rok1 + CPI+1.5%', term:'4Y',
+      info:'Rok 1: 5.00%. Rok 2-4: inflacja+1.5%. Ochrona realna średnioterminowa.' },
+    { sym:'EDO0336', name:'10-letnie (EDO)',      pct:5.60, type:'rok1 + CPI+2.0%', term:'10Y',
+      info:'Rok 1: 5.60%. Rok 2-10: CPI+2.0%. Kapitalizacja roczna. NAJLEPSZA ochrona długoterminowa.' },
+  ];
+
   var s = '';
 
   /* ══ BEZPIECZNE AKTYWA HEADER ══════════════════════════════════ */
@@ -3529,6 +3565,30 @@ function renderIndicatorsExtra(el) {
   var f=D.f||{}, q=D.q||{};
   var s='';
 
+  /* ── Data source dates ── */
+  var q2=D.q||{},f2=D.f||{};
+  var dateBanner='';
+  if(q2.vix&&q2.vix.date) dateBanner+='VIX: '+q2.vix.date+' | ';
+  if(q2.sp500&&q2.sp500.date) dateBanner+='SP500: '+q2.sp500.date+' | ';
+  if(f2.cpi&&f2.cpi.date) dateBanner+='CPI: '+f2.cpi.date+' (FRED) | ';
+  if(f2.fedfunds&&f2.fedfunds.date) dateBanner+='Fed: '+f2.fedfunds.date+' | ';
+  if(q2.pl10y&&q2.pl10y.date) dateBanner+='PL10Y: '+q2.pl10y.date+' | ';
+  if(q2.wig20&&q2.wig20.date) dateBanner+='WIG20: '+q2.wig20.date;
+  if(dateBanner) s+='<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px 10px;margin-bottom:8px;font-size:8px;color:var(--t2)">📅 Daty danych: '+dateBanner+'</div>';
+
+  /* ── Indicator descriptions ── */
+  s+='<div style="background:rgba(42,157,245,.04);border:1px solid rgba(42,157,245,.2);border-radius:var(--r);padding:9px 12px;margin-bottom:8px;font-size:8.5px;color:var(--t2)">'
+    +'<b style="color:var(--B)">📖 Opis wskaźników poniżej:</b> '
+    +'<b>PL10Y tygodniowo</b> = zmiana w bp/tydzień (>30bp alarm) | '
+    +'<b>Ropa YoY</b> = zmiana r/r (geopolityka → inflacja) | '
+    +'<b>VIX tygodniowo</b> = wzrost >20% = stres | '
+    +'<b>WIG20 P/E</b> = stosunek ceny do zysku (>20=drogie, <10=tanie) | '
+    +'<b>EY-PL10Y</b> = przewaga zysku GPW nad obligacją (>0=akcje lepsze) | '
+    +'<b>Realne renty.</b> = US10Y minus CPI USA (>2%=restrykcyjne) | '
+    +'<b>M2 YoY</b> = ekspansja podaży pieniądza (>6%=dobra dla akcji)'
+    +'</div>';
+
+
   /* Asset class returns quilt data (Magnus Q4 2025) */
   s += renderAssetQuilt();
   /* MSCI World decision matrix */
@@ -3633,7 +3693,7 @@ function renderIndicatorsExtra(el) {
     /* USD/PLN + WIG20 correlation */
     var usdData = D.usdPlnHistory || [], wig20Data = D.wig20History || [];
     if (usdData.length > 10 && wig20Data.length > 10) {
-      Plotly.newPlot('ch-ex-usdwig', [
+      if(document.getElementById('ch-ex-usdwig'))Plotly.newPlot('ch-ex-usdwig', [
         {x: usdData.map(function(d){return d.date;}), y: usdData.map(function(d){return d.val;}),
          mode:'lines', name:'USD/PLN', line:{color:'#f5c040',width:1.5}, yaxis:'y'},
         {x: wig20Data.map(function(d){return d.date;}), y: wig20Data.map(function(d){return d.val;}),
@@ -3651,7 +3711,7 @@ function renderIndicatorsExtra(el) {
     ];
     var curPE = (D.q&&D.q.wig20pe) ? D.q.wig20pe.price : (D.wig20PE||15.0);
     var allPE = peData.concat([{y:'2026',pe:curPE}]);
-    Plotly.newPlot('ch-ex-wig20pe', [
+    if(document.getElementById('ch-ex-wig20pe'))Plotly.newPlot('ch-ex-wig20pe', [
       {x: allPE.map(function(d){return d.y;}), y: allPE.map(function(d){return d.pe;}),
        mode:'lines+markers', name:'WIG20 P/E',
        line:{color:'#fb923c',width:2}, marker:{size:6},
@@ -3671,7 +3731,7 @@ function renderIndicatorsExtra(el) {
       var cpiS = f.cpi.series.slice(-60);
       var us10yVal = (D.q&&D.q.us10y) ? D.q.us10y.price : 4.25;
       var realY = cpiS.map(function(r){return us10yVal - r.val;});
-      Plotly.newPlot('ch-ex-real10y', [
+      if(document.getElementById('ch-ex-real10y'))Plotly.newPlot('ch-ex-real10y', [
         {x:cpiS.map(function(r){return r.date;}), y:realY, mode:'lines',
          fill:'tozeroy', fillcolor:'rgba(96,165,250,.08)',
          line:{color:'#60a5fa',width:1.5}, name:'Real US10Y'},
@@ -3686,7 +3746,7 @@ function renderIndicatorsExtra(el) {
       var cpiYoY = f.cpi.series.slice(-36).map(function(r){return {date:r.date,val:r.yoy||r.val};});
       var oilFallback = [{date:'2023-01',val:12},{date:'2023-07',val:-20},{date:'2024-01',val:5},
         {date:'2024-07',val:-8},{date:'2025-01',val:3},{date:'2025-07',val:10},{date:'2026-01',val:15},{date:'2026-03',val:18}];
-      Plotly.newPlot('ch-ex-oilcpi', [
+      if(document.getElementById('ch-ex-oilcpi'))Plotly.newPlot('ch-ex-oilcpi', [
         {x:cpiYoY.map(function(r){return r.date;}), y:cpiYoY.map(function(r){return r.val;}),
          mode:'lines', name:'CPI USA YoY', line:{color:'#f87171',width:2}},
         {x:oilFallback.map(function(r){return r.date;}), y:oilFallback.map(function(r){return r.val;}),
@@ -3707,7 +3767,7 @@ function renderIndicatorsExtra(el) {
     ];
     if (eySpread !== null) eyData.push({y:'2026 (teraz)',s:parseFloat(eySpread.toFixed(2))});
     var eyColor = eySpread > 2 ? 'var(--G)' : eySpread > 0 ? 'var(--Y)' : 'var(--R)';
-    Plotly.newPlot('ch-ex-ey', [
+    if(document.getElementById('ch-ex-ey'))Plotly.newPlot('ch-ex-ey', [
       {x:eyData.map(function(d){return d.y;}), y:eyData.map(function(d){return d.s;}),
        type:'bar', name:'EY-PL10Y spread',
        marker:{color:eyData.map(function(d){return d.s>2?'rgba(0,229,168,.7)':d.s>0?'rgba(245,192,64,.7)':'rgba(255,51,85,.7)';})}},
@@ -3718,7 +3778,7 @@ function renderIndicatorsExtra(el) {
     /* PKB YoY + CPI YoY */
     var pkbPL=[{y:'2020',g:-2.5},{y:'2021',g:5.9},{y:'2022',g:5.1},{y:'2023',g:0.2},{y:'2024',g:2.9},{y:'2025',g:3.6}];
     var cpiPL=[{y:'2020',c:3.4},{y:'2021',c:5.1},{y:'2022',c:14.4},{y:'2023',c:11.4},{y:'2024',c:3.6},{y:'2025',c:2.4},{y:'2026P',c:2.3}];
-    Plotly.newPlot('ch-ex-gdpcpi', [
+    if(document.getElementById('ch-ex-gdpcpi'))Plotly.newPlot('ch-ex-gdpcpi', [
       {x:pkbPL.map(function(d){return d.y;}), y:pkbPL.map(function(d){return d.g;}),
        mode:'lines+markers', name:'PKB PL', line:{color:'#4ade80',width:2}, marker:{size:6}},
       {x:cpiPL.map(function(d){return d.y;}), y:cpiPL.map(function(d){return d.c;}),
@@ -3735,7 +3795,7 @@ function renderIndicatorsExtra(el) {
       ];
       /* ETFBTBSP price approx inverse */
       var etfbtApprox = pl10yApprox.map(function(r){return {d:r.d, v:100*(1-(r.y-3.2)/10)};});
-      Plotly.newPlot('ch-ex-pl10y', [
+      if(document.getElementById('ch-ex-pl10y'))Plotly.newPlot('ch-ex-pl10y', [
         {x:pl10yApprox.map(function(r){return r.d;}), y:pl10yApprox.map(function(r){return r.y;}),
          mode:'lines', name:'PL10Y (%)', line:{color:'#f5c040',width:2}},
         {x:etfbtApprox.map(function(r){return r.d;}), y:etfbtApprox.map(function(r){return r.v;}),
@@ -3749,28 +3809,35 @@ function renderIndicatorsExtra(el) {
     /* USD/PLN + WIG20 */
     var usdD=D.usdPlnHistory||[], w20D=D.wig20History||[];
     if(usdD.length>5&&w20D.length>5){
-      Plotly.newPlot('ch-ex-usdwig',[
+      if(document.getElementById('ch-ex-usdwig'))Plotly.newPlot('ch-ex-usdwig',[
         {x:usdD.map(function(d){return d.date;}),y:usdD.map(function(d){return d.val;}),mode:'lines',name:'USD/PLN',line:{color:'#f5c040',width:1.5}},
         {x:w20D.map(function(d){return d.date;}),y:w20D.map(function(d){return d.val;}),mode:'lines',name:'WIG20',line:{color:'#00e5a8',width:1.5},yaxis:'y2'}
       ],pLy({height:180,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:42,r:42,t:6,b:28},
         yaxis:{title:'USD/PLN'},yaxis2:{title:'WIG20',overlaying:'y',side:'right'}}),PLY);
     }
     /* WIG20 P/E historical */
-    var peHist=[{y:'2015',pe:13.2},{y:'2016',pe:15.1},{y:'2017',pe:17.2},{y:'2018',pe:12.0},
-      {y:'2019',pe:13.5},{y:'2020',pe:14.0},{y:'2021',pe:11.8},{y:'2022',pe:7.2},
-      {y:'2023',pe:8.5},{y:'2024',pe:9.4},{y:'2025',pe:12.0},{y:'2026★',pe:(D.q&&D.q.wig20pe?D.q.wig20pe.price:(D.wig20PE||15.0))}];
-    Plotly.newPlot('ch-ex-wig20pe',[
-      {x:peHist.map(function(d){return d.y;}),y:peHist.map(function(d){return d.pe;}),mode:'lines+markers',
-       line:{color:'#fb923c',width:2},marker:{size:6},fill:'tozeroy',fillcolor:'rgba(251,146,60,.08)'}
-    ],pLy({height:180,showlegend:false,margin:{l:38,r:6,t:6,b:28},
-      shapes:[{type:'line',x0:peHist[0].y,x1:peHist[peHist.length-1].y,y0:20,y1:20,line:{color:'rgba(255,51,85,.5)',width:1,dash:'dot'}},
-              {type:'line',x0:peHist[0].y,x1:peHist[peHist.length-1].y,y0:8,y1:8,line:{color:'rgba(0,229,168,.5)',width:1,dash:'dot'}}]}),PLY);
+    var peHistRaw=[[2015,13.2],[2016,15.1],[2017,17.2],[2018,12.0],[2019,13.5],[2020,14.0],[2021,11.8],[2022,7.2],[2023,8.5],[2024,9.4],[2025,12.0],[2026,(D.q&&D.q.wig20pe?D.q.wig20pe.price:(D.wig20PE||15.0))]];
+    var peHist=peHistRaw.map(function(r){return {y:String(r[0]),pe:r[1]};});
+    if(document.getElementById('ch-ex-wig20pe')){
+      var peX=peHist.map(function(d){return d.y;});
+      var peY=peHist.map(function(d){return d.pe;});
+      var curPEval=(D.q&&D.q.wig20pe?D.q.wig20pe.price:(D.wig20PE||15.0));
+      Plotly.newPlot('ch-ex-wig20pe',[
+        {x:peX,y:peY,mode:'lines+markers',name:'WIG20 P/E',line:{color:'#fb923c',width:2.5},marker:{size:8,color:peY.map(function(v){return v<10?'#00e5a8':v>18?'#ff3355':'#f5c040';})}},
+        {x:peX,y:peX.map(function(){return 20;}),mode:'lines',name:'P/E=20 (drogie)',line:{color:'rgba(255,51,85,.6)',width:1,dash:'dot'},hoverinfo:'skip'},
+        {x:peX,y:peX.map(function(){return 8;}),mode:'lines',name:'P/E=8 (tanie)',line:{color:'rgba(0,229,168,.6)',width:1,dash:'dot'},hoverinfo:'skip'},
+        {x:['2026'],y:[curPEval],mode:'markers',name:'Teraz',marker:{size:14,color:'#fff',symbol:'star'}}
+      ],pLy({height:180,showlegend:true,legend:{x:0,y:1.1,orientation:'h',font:{size:8}},
+        margin:{l:38,r:6,t:6,b:35},
+        xaxis:{type:'category',categoryorder:'array',categoryarray:peX,tickfont:{size:9},tickangle:-20},
+        yaxis:{title:'P/E',range:[0,25]}}),PLY);
+    }
     /* Real yields */
     var fdata=D.f||{};
     if(fdata.cpi&&fdata.cpi.series&&fdata.cpi.series.length>5){
       var cpiS=fdata.cpi.series.slice(-60);
       var us10yV=(D.q&&D.q.us10y)?D.q.us10y.price:4.25;
-      Plotly.newPlot('ch-ex-real10y',[
+      if(document.getElementById('ch-ex-real10y'))Plotly.newPlot('ch-ex-real10y',[
         {x:cpiS.map(function(r){return r.date;}),y:cpiS.map(function(r){return +(us10yV-r.val).toFixed(2);}),
          mode:'lines',fill:'tozeroy',fillcolor:'rgba(96,165,250,.08)',line:{color:'#60a5fa',width:1.5},name:'Real US10Y'},
         {x:[cpiS[0].date,cpiS[cpiS.length-1].date],y:[0,0],mode:'lines',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
@@ -3780,7 +3847,7 @@ function renderIndicatorsExtra(el) {
     var pl10yApprox=[{d:'2022-01',y:3.2},{d:'2022-06',y:7.8},{d:'2022-12',y:6.9},{d:'2023-06',y:5.9},
       {d:'2023-12',y:5.2},{d:'2024-06',y:5.7},{d:'2024-12',y:5.0},{d:'2025-06',y:5.1},{d:'2025-12',y:5.0},{d:'2026-03',y:5.35}];
     var etfbtApprox=pl10yApprox.map(function(r){return {d:r.d,v:+(100*(1-(r.y-3.2)/10)).toFixed(1)};});
-    Plotly.newPlot('ch-ex-pl10y',[
+    if(document.getElementById('ch-ex-pl10y'))Plotly.newPlot('ch-ex-pl10y',[
       {x:pl10yApprox.map(function(r){return r.d;}),y:pl10yApprox.map(function(r){return r.y;}),mode:'lines',name:'PL10Y (%)',line:{color:'#f5c040',width:2}},
       {x:etfbtApprox.map(function(r){return r.d;}),y:etfbtApprox.map(function(r){return r.v;}),mode:'lines',name:'ETFBTBSP (index)',line:{color:'#00e5a8',width:1.5,dash:'dash'},yaxis:'y2'}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:38,r:42,t:6,b:28},
@@ -3792,13 +3859,13 @@ function renderIndicatorsExtra(el) {
     var curPE2=(D.q&&D.q.wig20pe?D.q.wig20pe.price:(D.wig20PE||15.0));
     var curPL10y2=(D.q&&D.q.pl10y?D.q.pl10y.price:5.35);
     eyData.push({y:'2026★',s:+(100/curPE2-curPL10y2).toFixed(2)});
-    Plotly.newPlot('ch-ex-ey',[
+    if(document.getElementById('ch-ex-ey'))Plotly.newPlot('ch-ex-ey',[
       {x:eyData.map(function(d){return d.y;}),y:eyData.map(function(d){return d.s;}),type:'bar',
        marker:{color:eyData.map(function(d){return d.s>2?'rgba(0,229,168,.7)':d.s>0?'rgba(245,192,64,.7)':'rgba(255,51,85,.7)';})}},
     ],pLy({height:160,showlegend:false,margin:{l:38,r:6,t:6,b:28},yaxis:{title:'%'},
       shapes:[{type:'line',x0:eyData[0].y,x1:eyData[eyData.length-1].y,y0:0,y1:0,line:{color:'#666',width:1}}]}),PLY);
     /* PKB + CPI PL */
-    Plotly.newPlot('ch-ex-gdpcpi',[
+    if(document.getElementById('ch-ex-gdpcpi'))Plotly.newPlot('ch-ex-gdpcpi',[
       {x:['2020','2021','2022','2023','2024','2025'],y:[-2.5,5.9,5.1,0.2,2.9,3.6],mode:'lines+markers',name:'PKB PL',line:{color:'#4ade80',width:2},marker:{size:6}},
       {x:['2020','2021','2022','2023','2024','2025','2026P'],y:[3.4,5.1,14.4,11.4,3.6,2.4,2.3],mode:'lines+markers',name:'CPI PL',line:{color:'#f87171',width:2},marker:{size:6}}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:38,r:6,t:6,b:28},yaxis:{title:'%'}}),PLY);
@@ -3806,7 +3873,7 @@ function renderIndicatorsExtra(el) {
     if(fdata.m2&&fdata.m2.series&&fdata.m2.series.length>5){
       var m2s=fdata.m2.series.slice(-48);
       var fedV=(fdata.fedfunds&&fdata.fedfunds.current!=null)?fdata.fedfunds.current:3.625;
-      Plotly.newPlot('ch-ex-m2fed',[
+      if(document.getElementById('ch-ex-m2fed'))Plotly.newPlot('ch-ex-m2fed',[
         {x:m2s.map(function(r){return r.date;}),y:m2s.map(function(r){return r.val/1000;}),mode:'lines',name:'M2 (trln$)',line:{color:'#60a5fa',width:1.5}},
         {x:[m2s[0].date,m2s[m2s.length-1].date],y:[fedV,fedV],mode:'lines',name:'Fed rate',line:{color:'#f5c040',width:1.5,dash:'dot'},yaxis:'y2'}
       ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:48,r:48,t:6,b:28},
@@ -3816,7 +3883,7 @@ function renderIndicatorsExtra(el) {
     if(fdata.cpi&&fdata.cpi.series){
       var cpiY=fdata.cpi.series.slice(-36);
       var oilFb=[{d:'2023-01',v:12},{d:'2023-07',v:-20},{d:'2024-01',v:5},{d:'2024-07',v:-8},{d:'2025-01',v:3},{d:'2025-07',v:10},{d:'2026-01',v:15},{d:'2026-03',v:18}];
-      Plotly.newPlot('ch-ex-oilcpi',[
+      if(document.getElementById('ch-ex-oilcpi'))Plotly.newPlot('ch-ex-oilcpi',[
         {x:cpiY.map(function(r){return r.date;}),y:cpiY.map(function(r){return r.yoy||r.val;}),mode:'lines',name:'CPI USA YoY',line:{color:'#f87171',width:2}},
         {x:oilFb.map(function(r){return r.d;}),y:oilFb.map(function(r){return r.v;}),mode:'lines',name:'Oil WTI YoY (apprx)',line:{color:'#fb923c',width:1.5,dash:'dash'}}
       ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:38,r:6,t:6,b:28},yaxis:{title:'%'}}),PLY);
@@ -3826,7 +3893,7 @@ function renderIndicatorsExtra(el) {
       {d:'2022',pl10:7.8,pl2:7.5,us10:3.8,us2:4.3},{d:'2023',pl10:5.9,pl2:5.5,us10:3.9,us2:4.8},
       {d:'2024',pl10:5.5,pl2:5.0,us10:4.2,us2:4.5},{d:'2025',pl10:5.0,pl2:4.5,us10:4.5,us2:4.2},
       {d:'2026',pl10:5.35,pl2:4.30,us10:4.25,us2:3.74}];
-    Plotly.newPlot('ch-ex-yields',[
+    if(document.getElementById('ch-ex-yields'))Plotly.newPlot('ch-ex-yields',[
       {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.pl10;}),mode:'lines+markers',name:'PL 10Y',line:{color:'#f5c040',width:2},marker:{size:6}},
       {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.pl2;}),mode:'lines+markers',name:'PL 2Y',line:{color:'#f5c040',width:1.5,dash:'dash'},marker:{size:5}},
       {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.us10;}),mode:'lines+markers',name:'US 10Y',line:{color:'#60a5fa',width:2},marker:{size:6}},
@@ -3958,9 +4025,9 @@ function renderMSCIMatrix() {
   var q=D.q||{}, f=D.f||{};
   var sc=typeof SC!=='undefined'&&SC?SC:calcScore();
   var cape=D.cape||25;
-  var hy=f.hy_spread?f.hy_spread.current:2.84;
-  var vix=q.vix?q.vix.price:20;
-  var fg=D.fg||50;
+  var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:2.84;
+  var vix=(q.vix&&q.vix.price)?q.vix.price:20;
+  var fg=(D.fg&&D.fg.score!=null)?D.fg.score:50;
   var rsi=(D.ta&&D.ta.rsi14)?D.ta.rsi14:35.4;
   /* MSCI World valuation score (0-100): based on CAPE */
   var valuation = Math.min(100, Math.max(0, (cape-10)/(35-10)*100));
@@ -3968,7 +4035,7 @@ function renderMSCIMatrix() {
   var riskOn = Math.min(100, Math.max(0,
     (1-(vix-10)/40)*40 +        /* VIX component */
     (1-(hy-1.5)/6)*30 +         /* HY spread */
-    (fg/100)*30                  /* F&G */
+    (fg!=null?fg/100:0.5)*30                  /* F&G */
   ));
   var vC=valuation>70?'var(--R)':valuation>40?'var(--Y)':'var(--G)';
   var rC=riskOn>70?'var(--G)':riskOn>40?'var(--Y)':'var(--R)';
@@ -6802,6 +6869,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
