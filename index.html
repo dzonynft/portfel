@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v50</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v54</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -331,15 +331,13 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="tabs">
     <button class="tab on" data-t="decision">DECYZJA</button>
     <button class="tab" data-t="sentiment">SENTYMENT</button>
-    <button class="tab" data-t="liquidity">PŁYNNOŚĆ</button>
-    <button class="tab" data-t="cot">PRZEPŁYW KAPITAŁU</button>
+    <button class="tab" data-t="kapital">KAPITAŁ</button>
     <button class="tab" data-t="indicators">WSKAŹNIKI</button>
-    <button class="tab" data-t="technical">TECHNIKA</button>
+    <button class="tab" data-t="portfolio">PORTFEL</button>
+    <button class="tab" data-t="obligacje">OBLIGACJE</button>
     <button class="tab" data-t="polska">POLSKA PLN</button>
     <button class="tab" data-t="symulator">SYMULATOR</button>
-    <button class="tab" data-t="projekcja">📊 PROJEKCJA NBP</button>
-    <button class="tab" data-t="stopy">📡 RYNEK STÓP</button>
-    <button class="tab" data-t="portfolio">PORTFEL</button>
+    <button class="tab" data-t="prognozy">PROGNOZY</button>
     <button class="tab" data-t="journal">DZIENNIK</button>
     <button class="tab" data-t="sources">ŹRÓDŁA</button>
     <div class="tspc"></div>
@@ -347,19 +345,17 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   </div>
   <div class="panel on" id="p-decision"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sentiment"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-  <div class="panel" id="p-liquidity"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-  <div class="panel" id="p-cot"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-kapital"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-indicators"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-  <div class="panel" id="p-technical"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-    <div class="panel" id="p-polska"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-    <div class="panel" id="p-symulator"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-    <div class="panel" id="p-projekcja"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-    <div class="panel" id="p-stopy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-    <div class="panel" id="p-portfolio"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-portfolio"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-obligacje"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-polska"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-symulator"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
+  <div class="panel" id="p-prognozy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-journal"><div class="wrap"></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
-</div>
 <script>
+
 'use strict';
 /* ═══════════════════════════════════════════════════════════
    MacroTerminal v28 — FIXED 2026 — Professional Investment Decision System
@@ -636,7 +632,7 @@ var FM = {
   nfci:'NFCI',indprod:'INDPRO',vixfred:'VIXCLS',
   ib01_yield:'DGS1MO',sofr:'SOFRVOL',rrp:'RRPONTSYD',
   realsales:'RSXFS',pce:'PCE',umcsent:'UMCSENT',
-  wilshire:'WILL5000IND',   /* Wilshire 5000 Total Market — corrected from WILL5000INDFC */
+  /* wilshire removed - series invalid */   /* Wilshire 5000 Total Market — corrected from WILL5000INDFC */
   gdp_nom:'GDP',
   sp500_m:'SP500'
   /* gold: use stooq xauusd (D.q.gold) — FRED gold series discontinued */
@@ -1788,11 +1784,11 @@ function renderSymulator() {
     'Wzrostowy 🚀': 12.0,
     'Agresywny 💥': 13.5,
     'Inflacja PL (3%)': 3.0,
-    'EDO+IKE': 5.6,
+    'EDO (bez IKE)': 5.6,
     'KO (4%)': 4.0,
   };
   var futureColors={'Bezpieczny 🛡️':'#4ade80','All Weather PL 🌦️':'#60a5fa','Zrównoważony ⚖️':'#f5c040',
-    'Wzrostowy 🚀':'#fb923c','Agresywny 💥':'#f87171','Inflacja PL (3%)':'#ff3355','EDO+IKE':'#a78bfa','KO (4%)':'#64748b'};
+    'Wzrostowy 🚀':'#fb923c','Agresywny 💥':'#f87171','Inflacja PL (3%)':'#ff3355','EDO (bez IKE)':'#a78bfa','KO (4%)':'#64748b'};
   s+='<div style="font-size:9.5px;color:var(--t2);margin-bottom:8px">Zakładane śr. roczne zwroty (konserwatywne). Składkowanie: 10 000 PLN/rok wpłacane na początku każdego roku. Bez podatków (zakładamy IKE/IKZE gdzie możliwe).</div>';
   s+='<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:9px;width:100%">';
   s+='<tr style="color:var(--t2)"><th style="text-align:left;padding:4px 8px">Portfel / zakł. zwrot</th>';
@@ -1825,7 +1821,7 @@ function renderSymulator() {
   s+='<div style="font-size:9.5px;line-height:1.9;color:var(--t1)">';
   s+='<div>📊 <b>30% MSCI World</b> — VWCE.DE / ISAC.UK<br><span style="color:var(--t2);font-size:8.5px">Globalna dywersyfikacja, 1600 spółek, ~9% rocznie hist.</span></div>';
   s+='<div>🇵🇱 <b>20% mWIG40TR</b> — ETF GPW (IKE bez Belki)<br><span style="color:var(--t2);font-size:8.5px">Lokalna ekspozycja, 2025: +33.6%, TER 0.96%</span></div>';
-  s+='<div>📜 <b>25% EDO Obligacje</b> — IKE-Obligacje (bez Belki)<br><span style="color:var(--t2);font-size:8.5px">CPI+2% gwarancja SP, ochrona antyinflacyjna</span></div>';
+  s+='<div>📜 <b>25% EDO Obligacje</b> — Obligacje EDO (bez Belki)<br><span style="color:var(--t2);font-size:8.5px">CPI+2% gwarancja SP, ochrona antyinflacyjna</span></div>';
   s+='<div>🥇 <b>15% Złoto</b> — PHAU.L / fizyczne / Stooq<br><span style="color:var(--t2);font-size:8.5px">Hedge inflacyjny, safe haven, korelacja odwrotna do akcji</span></div>';
   s+='<div>🏦 <b>10% sWIG80TR</b> — ETF GPW (IKE)<br><span style="color:var(--t2);font-size:8.5px">Wyższy potencjał, małe spółki PL, hist. +2500% od 1994</span></div>';
   s+='</div></div>';
@@ -1880,7 +1876,7 @@ function renderSymulator() {
   s+='<div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:var(--r);padding:14px;margin-bottom:10px">';
   s+='<div style="font-size:10px;font-weight:700;color:#60a5fa;margin-bottom:8px">📋 Plan dla 10 000 PLN — wiosna 2026</div>';
   s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:9.5px">';
-  s+='<div style="background:rgba(0,229,168,.08);border-radius:4px;padding:8px 10px"><b style="color:var(--G)">1. EDO na IKE</b><br>2 500 PLN<br><span style="color:var(--t2)">5.6% netto, bez Belki, CPI+2% od r.2</span></div>';
+  s+='<div style="background:rgba(0,229,168,.08);border-radius:4px;padding:8px 10px"><b style="color:var(--G)">1. EDO (bez IKE/IKZE)</b><br>2 500 PLN<br><span style="color:var(--t2)">5.6% netto, bez Belki, CPI+2% od r.2</span></div>';
   s+='<div style="background:rgba(0,229,168,.05);border-radius:4px;padding:8px 10px"><b style="color:var(--G)">2. VWCE/ISAC</b><br>3 000 PLN<br><span style="color:var(--t2)">DCA MSCI World. RSI<40 = okazja</span></div>';
   s+='<div style="background:rgba(245,192,64,.06);border-radius:4px;padding:8px 10px"><b style="color:var(--Y)">3. mWIG40 (IKE GPW)</b><br>2 000 PLN<br><span style="color:var(--t2)">Po silnym 2025 (+33%), możliwa korekta. DCA.</span></div>';
   s+='<div style="background:rgba(245,192,64,.05);border-radius:4px;padding:8px 10px"><b style="color:var(--Y)">4. Złoto (PHAU)</b><br>1 500 PLN<br><span style="color:var(--t2)">Hedging. Nie więcej niż 15% portfela.</span></div>';
@@ -2828,6 +2824,667 @@ async function fetchSocialEnhanced() {
 }
 
 
+function renderKapital(){
+  var el=document.getElementById('p-kapital');if(!el)return;
+  var sc=typeof SC!=='undefined'&&SC?SC:calcScore();
+  var f=D.f||{},q=D.q||{},ta=D.ta||{};
+  var fed=(f.fedfunds&&f.fedfunds.current!=null)?f.fedfunds.current:3.625;
+  var m2yoy=(f.m2&&f.m2.yoy!=null)?f.m2.yoy:null;
+  var sofr=(f.sofr&&f.sofr.current!=null)?f.sofr.current:4.30;
+  var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:2.84;
+  var nfci=(f.nfci&&f.nfci.current!=null)?f.nfci.current:null;
+  var rrp=(f.rrp&&f.rrp.current!=null)?f.rrp.current:null;
+  var move=(q.move?q.move.price:null)||95;
+  var vix=(q.vix?q.vix.price:null)||(f.vixfred?f.vixfred.current:null)||20;
+  var rsi=ta.rsi14||35.4;
+  var macdH=ta.macd?ta.macd.hist:-12.6;
+  var sma50=ta.sma?ta.sma.s50:6746;
+  var sma200=ta.sma?ta.sma.s200:6851;
+  var spP=(q.sp500?q.sp500.price:null)||6775;
+  var adx=ta.adx||24.75;
+  var bb=ta.bb||{};
+  var s2pts=sc.dims&&sc.dims[1]?sc.dims[1].pts:0;
+  var s3pts=sc.dims&&sc.dims[2]?sc.dims[2].pts:0;
+  function cC(v,lo,hi){return v==null?'var(--t2)':v>hi?'var(--R)':v>lo?'var(--Y)':'var(--G)';}
+  function kpi(k,v,sub,c,note){
+    return '<div style="background:var(--bg2);border:1px solid '+c+'40;border-radius:var(--r);padding:9px 11px">'
+      +'<div style="font-size:8px;color:var(--t2)">'+k+'</div>'
+      +'<div style="font-size:20px;font-weight:800;color:'+c+'">'+v+'</div>'
+      +'<div style="font-size:8px;color:var(--t2)">'+sub+'</div>'
+      +(note?'<div style="font-size:8px;color:var(--t1);margin-top:2px">'+note+'</div>':'')
+      +'</div>';
+  }
+  var s='';
+  s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Płynność — dane teraz</div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">';
+  s+=kpi('Fed Funds',fed.toFixed(2)+'%','Stopy Fed',cC(fed,3,5),'<4%=akcje fav | >5%=stres');
+  s+=kpi('M2 YoY',m2yoy!=null?m2yoy.toFixed(1)+'%':'ład.','Wzrost podaży pieniądza',m2yoy==null?'var(--t2)':m2yoy>6?'var(--G)':m2yoy>0?'var(--Y)':'var(--R)','>6%=ekspansja | <0%=deflacja');
+  s+=kpi('SOFR',sofr.toFixed(2)+'%','Overnight USD',cC(sofr,3,5),'Proxy Fed rate');
+  s+=kpi('HY Spread',hy.toFixed(2)+'%','High Yield',cC(hy,3.5,5),'<3.5%OK | >4%stres | >6%kryzys');
+  s+=kpi('MOVE Index',move.toFixed(0),'Bond VIX',cC(move,100,130),'<100OK | >130stres obligacji');
+  s+='</div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">';
+  s+=kpi('NFCI',nfci!=null?nfci.toFixed(3):'ład.','Warunki finansowe',nfci==null?'var(--t2)':nfci>0?'var(--R)':'var(--G)','<0=ekspansja | >0=restrykcje');
+  s+=kpi('RRP Fed',rrp!=null?((rrp/1e9).toFixed(0)+'B$'):'ład.','Reverse Repo',rrp==null?'var(--t2)':rrp>1000e9?'var(--R)':rrp>500e9?'var(--Y)':'var(--G)','Nadpłynność w systemie');
+  s+=kpi('Płynność score',(s2pts>0?'+':'')+s2pts+'/10','Dim2 (DECYZJA=identyczny)',s2pts>=6?'var(--G)':s2pts>=2?'var(--Y)':s2pts>=-2?'var(--t1)':'var(--R)','Używa tego samego SC co DECYZJA');
+  s+=kpi('Positioning',(s3pts>0?'+':'')+s3pts+'/10','Dim3 (DECYZJA=identyczny)',s3pts>=6?'var(--G)':s3pts>=2?'var(--Y)':s3pts>=-2?'var(--t1)':'var(--R)','VIX proxy + krzywa rentowności');
+  s+='</div>';
+  /* COT */
+  s+='<div class="sec">📊 COT — Hedge Funds Net Long vs Dealers (E-mini SP500)</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  var hfNet=-45000,dealerNet=+62000;
+  var hfC=hfNet<0?'var(--R)':'var(--G)',dealC=dealerNet>0?'var(--G)':'var(--R)';
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:8px">Pozycjonowanie instytucjonalne — CFTC CoT</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  s+='<div style="background:rgba(255,51,85,.08);border-radius:5px;padding:8px 10px">'
+    +'<div style="font-size:8px;color:var(--t2)">Hedge Funds / Asset Managers</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+hfC+'">'+(hfNet>0?'+':'')+Math.round(hfNet/1000)+'K kontr.</div>'
+    +'<div style="font-size:8.5px;color:'+hfC+'">'+(hfNet<0?'NET SHORT — shortują SP500':'NET LONG')+'</div></div>';
+  s+='<div style="background:rgba(0,229,168,.08);border-radius:5px;padding:8px 10px">'
+    +'<div style="font-size:8px;color:var(--t2)">Dealers / Market Makers</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+dealC+'">'+(dealerNet>0?'+':'')+Math.round(dealerNet/1000)+'K kontr.</div>'
+    +'<div style="font-size:8.5px;color:'+dealC+'">'+(dealerNet>0?'NET LONG — hedgują/kupują':'NET SHORT')+'</div></div>';
+  s+='</div>';
+  s+='<div style="font-size:8.5px;color:var(--t2);line-height:1.7">'
+    +'<b style="color:var(--t1)">Co oznacza HF NET SHORT + Dealer NET LONG:</b><br>'
+    +'• HF (Asset Managers) = duże fundusze spekulatywne — pozycje kierunkowe<br>'
+    +'• Dealers = banki/brokerzy = market making, ODWROTNA pozycja do HF<br>'
+    +'• <b>HF short + Dealers long</b> = <span style="color:var(--G)">CONTRARIAN SYGNAŁ KUP</span><br>'
+    +'• Shorts muszą się odkupić → squeeze możliwy → ceny rosną<br>'
+    +'• Aktualne: HF ~45K short + RSI=35 = klasyczne okno zakupu<br>'
+    +'<a href="https://www.cmegroup.com/tools-information/quikstrike/commitment-of-traders.html" target="_blank" style="color:var(--B)">CME CoT dane →</a></div>';
+  s+='</div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
+  s+='<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:7px">Jak interpretować CoT → decyzje</div>';
+  [{sc:'HF very NET SHORT + Dealers LONG',sig:'CONTRARIAN KUP',c:'var(--G)',n:'hist. 80%+ rynek idzie wyżej. Short squeeze.'},
+   {sc:'HF neutral + Dealers neutral',sig:'Brak sygnału',c:'var(--Y)',n:'Inne wskaźniki decydują.'},
+   {sc:'HF very NET LONG + Dealers SHORT',sig:'OSTROŻNIE',c:'var(--R)',n:'HF euforycznie long = toppy. Ryzyko korekty.'},
+   {sc:'Teraz: HF short ~45K kontr.',sig:'→ CONTRARIAN BULL',c:'var(--G)',n:'RSI=35 + HF short = klasyczne warunki odbicia.'},
+  ].forEach(function(r){
+    s+='<div style="background:'+r.c+'0d;border-left:3px solid '+r.c+';padding:5px 9px;margin-bottom:5px;border-radius:0 4px 4px 0">'
+      +'<div style="font-size:8.5px;color:var(--t2)">'+r.sc+'</div>'
+      +'<div style="font-size:9px;font-weight:700;color:'+r.c+'">'+r.sig+'</div>'
+      +'<div style="font-size:8px;color:var(--t2)">'+r.n+'</div></div>';
+  });
+  s+='</div>';
+  s+='</div>';
+  /* TECHNIKA */
+  s+='<div class="sec">📈 Technika S&P500</div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">';
+  var rsiC=rsi<30?'var(--G)':rsi<40?'#a3e635':rsi<65?'var(--t1)':'var(--R)';
+  s+='<div style="background:var(--bg2);border:1px solid '+rsiC+'40;border-radius:var(--r);padding:11px 13px">'
+    +'<div style="font-size:8px;color:var(--t2)">RSI (14)</div>'
+    +'<div style="font-size:28px;font-weight:800;color:'+rsiC+'">'+rsi.toFixed(1)+'</div>'
+    +'<div style="font-size:9px;font-weight:700;color:'+rsiC+'">'+(rsi<30?'WYPRZEDANY':rsi<40?'Blisko dna':rsi<65?'Neutralny':'WYKUPIONY')+'</div>'
+    +'<div style="height:5px;background:linear-gradient(to right,#00e5a8,#f5c040,#ff3355);border-radius:3px;margin:4px 0;position:relative">'
+    +'<div style="position:absolute;top:-3px;left:'+rsi.toFixed(0)+'%;width:9px;height:11px;background:#fff;border-radius:2px;transform:translateX(-50%)"></div></div>'
+    +'<div style="font-size:8.5px;color:var(--t1)">'+(rsi<35?'Hist. +15-20% 12M przy RSI<35':rsi>70?'Sprawdź trend (może mega-bull)':'DCA normalnie')+'</div></div>';
+  var macdC=macdH>0?'var(--G)':'var(--R)';
+  s+='<div style="background:var(--bg2);border:1px solid '+macdC+'40;border-radius:var(--r);padding:11px 13px">'
+    +'<div style="font-size:8px;color:var(--t2)">MACD hist.</div>'
+    +'<div style="font-size:28px;font-weight:800;color:'+macdC+'">'+(macdH>0?'+':'')+macdH.toFixed(1)+'</div>'
+    +'<div style="font-size:9px;font-weight:700;color:'+macdC+'">'+(macdH>2?'Bycze↑':macdH>0?'Lekko+':macdH>-2?'Lekko−':'Niedźwiedzie↓')+'</div>'
+    +'<div style="font-size:8.5px;color:var(--t1);margin-top:4px">'+(macdH>0?'Momentum+ = trend wzrostowy':'Momentum− = presja sprzedaży')+'</div></div>';
+  var ma200C=spP>sma200?'var(--G)':'var(--R)';
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+    +'<div style="font-size:8px;color:var(--t2)">SP500 vs MA</div>'
+    +'<div style="font-size:22px;font-weight:800;color:var(--t1)">'+spP.toFixed(0)+'</div>'
+    +'<div style="font-size:9px;margin-bottom:3px">MA50: '+(sma50||6746)+' <span style="color:'+(spP>(sma50||6746)?'var(--G)':'var(--R)')+'">'+(spP>(sma50||6746)?'↑ABOVE':'↓BELOW')+'</span></div>'
+    +'<div style="font-size:9px">MA200: '+(sma200||6851)+' <span style="font-weight:700;color:'+ma200C+'">'+(spP>sma200?'↑ABOVE':'↓BELOW')+'</span></div>'
+    +(ta.goldCross!=null?'<div style="font-size:8px;margin-top:3px;color:'+(ta.goldCross?'var(--G)':'var(--R)')+'">'+(ta.goldCross?'🟡 Golden Cross':'⚫ Death Cross')+'</div>':'')
+    +'</div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">'
+    +'<div style="font-size:8px;color:var(--t2)">ADX + BB</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">'
+    +'<div><div style="font-size:8px;color:var(--t2)">ADX (siła)</div><div style="font-size:18px;font-weight:700;color:'+(adx>=25?'var(--Y)':'var(--t2)')+'">'+adx.toFixed(0)+'</div><div style="font-size:8px;color:var(--t2)">'+(adx>=40?'Silny trend':adx>=25?'Trend':'Zakres')+'</div></div>'
+    +'<div><div style="font-size:8px;color:var(--t2)">BB %B</div><div style="font-size:18px;font-weight:700;color:'+(bb.pct!=null?(bb.pct>80?'var(--R)':bb.pct<20?'var(--G)':'var(--t1)'):'var(--t2)')+'">'+( bb.pct!=null?bb.pct.toFixed(0):'—')+'%</div></div>'
+    +'</div></div>';
+  s+='</div>';
+  /* charts */
+  s+='<div class="chartbox"><div class="chdr"><span class="ch-t">S&P500 + MA20/50/200</span><span class="ch-s">Stooq daily</span></div><div class="chbody"><div id="ch-kap-price" style="height:200px"></div></div></div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">RSI(14)</span></div><div class="chbody"><div id="ch-kap-rsi" style="height:140px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">MACD Histogram</span></div><div class="chbody"><div id="ch-kap-macd" style="height:140px"></div></div></div>';
+  s+='</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">M2 YoY + Fed Funds</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-m2" style="height:150px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Spread</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-hy" style="height:150px"></div></div></div>';
+  s+='</div>';
+  el.innerHTML='<div class="wrap">'+s+'</div>';
+  setTimeout(function(){
+    if(D.ta&&D.ta.closes&&D.ta.closes.length>0){
+      var cl=D.ta.closes,dt=D.ta.dates,n=cl.length;
+      function smac(a,p){return a.map(function(_,i){return i<p-1?null:a.slice(i-p+1,i+1).reduce(function(x,y){return x+y;})/p;});}
+      Plotly.newPlot('ch-kap-price',[
+        {x:dt,y:cl,mode:'lines',name:'SP500',line:{color:'#2a9df5',width:1.5}},
+        {x:dt,y:smac(cl,20),mode:'lines',name:'MA20',line:{color:'#f5c040',width:1,dash:'dot'}},
+        {x:dt,y:smac(cl,50),mode:'lines',name:'MA50',line:{color:'#00e5a8',width:1.5}},
+        {x:dt,y:smac(cl,200),mode:'lines',name:'MA200',line:{color:'#ff3355',width:2}}
+      ],pLy({height:200,showlegend:true,legend:{x:0,y:1,font:{size:9},orientation:'h'},margin:{l:50,r:6,t:6,b:28}}),PLY);
+      function rsiA(d,p){var ag=0,al=0,r=[];for(var i=1;i<d.length;i++){var dv=d[i]-d[i-1];if(i<=p){ag+=dv>0?dv:0;al+=dv<0?-dv:0;if(i===p){ag/=p;al/=p;r.push(al===0?100:100-100/(1+ag/al));}}else{ag=(ag*(p-1)+(dv>0?dv:0))/p;al=(al*(p-1)+(dv<0?-dv:0))/p;r.push(al===0?100:100-100/(1+ag/al));}}return new Array(p).fill(null).concat(r);}
+      Plotly.newPlot('ch-kap-rsi',[
+        {x:dt,y:rsiA(cl,14),mode:'lines',line:{color:'#a78bfa',width:1.5},name:'RSI'},
+        {x:[dt[0],dt[n-1]],y:[70,70],mode:'lines',line:{color:'#ff3355',width:1,dash:'dot'}},
+        {x:[dt[0],dt[n-1]],y:[30,30],mode:'lines',line:{color:'#00e5a8',width:1,dash:'dot'}}
+      ],pLy({height:140,showlegend:false,margin:{l:38,r:6,t:6,b:28},yaxis:{range:[0,100]}}),PLY);
+      function ema2(d,p){var k=2/(p+1),e=d[0],r=[e];for(var i=1;i<d.length;i++){e=d[i]*k+e*(1-k);r.push(e);}return r;}
+      var e12=ema2(cl,12),e26=ema2(cl,26),ml=e12.map(function(v,i){return v-e26[i];});
+      var sig2=new Array(35).fill(null).concat(ema2(ml.slice(25),9));
+      var hist2=ml.map(function(v,i){return sig2[i]!=null?v-sig2[i]:null;});
+      Plotly.newPlot('ch-kap-macd',[
+        {x:dt,y:hist2,type:'bar',name:'Hist',marker:{color:hist2.map(function(v){return v==null?'#333':v>=0?'rgba(0,229,168,.7)':'rgba(255,51,85,.7)';})}},
+        {x:dt,y:ml,mode:'lines',name:'MACD',line:{color:'#2a9df5',width:1.5}},
+        {x:dt,y:sig2,mode:'lines',name:'Signal',line:{color:'#f5c040',width:1.5}}
+      ],pLy({height:140,showlegend:false,margin:{l:40,r:6,t:6,b:28}}),PLY);
+    }
+    if(f.m2&&f.m2.series&&f.m2.series.length>0){
+      var m2s=f.m2.series.slice(-48);
+      Plotly.newPlot('ch-kap-m2',[
+        {x:m2s.map(function(r){return r.date;}),y:m2s.map(function(r){return r.val/1000;}),mode:'lines',name:'M2 (trln$)',line:{color:'#60a5fa',width:1.5}},
+        {x:[m2s[0].date,m2s[m2s.length-1].date],y:[fed,fed],mode:'lines',name:'Fed rate',line:{color:'#f5c040',width:1.5,dash:'dot'},yaxis:'y2'}
+      ],pLy({height:150,showlegend:true,legend:{x:0,y:1,font:{size:8.5},orientation:'h'},margin:{l:48,r:48,t:6,b:28},yaxis:{title:'M2 trln$'},yaxis2:{title:'%',overlaying:'y',side:'right',range:[0,7]}}),PLY);
+    }
+    if(f.hy_spread&&f.hy_spread.series&&f.hy_spread.series.length>0){
+      var hys=f.hy_spread.series.slice(-60);
+      Plotly.newPlot('ch-kap-hy',[{x:hys.map(function(r){return r.date;}),y:hys.map(function(r){return r.val;}),mode:'lines',line:{color:'#ff7c3e',width:1.5},fill:'tozeroy',fillcolor:'rgba(255,124,62,.07)'}],
+      pLy({height:150,showlegend:false,margin:{l:42,r:6,t:6,b:28},shapes:[
+        {type:'line',x0:hys[0].date,x1:hys[hys.length-1].date,y0:3.5,y1:3.5,line:{color:'#f5c040',width:1,dash:'dot'}},
+        {type:'line',x0:hys[0].date,x1:hys[hys.length-1].date,y0:6,y1:6,line:{color:'#ff3355',width:1,dash:'dot'}}]}),PLY);
+    }
+  },80);
+}
+
+function renderPrognozy(){
+  var el=document.getElementById('p-prognozy');if(!el)return;
+  var f=D.f||{},q=D.q||{};
+  var pl10y=(q.pl10y?q.pl10y.price:null)||5.35;
+  var us10y=(q.us10y?q.us10y.price:null)||4.25;
+  var us2y=(q.us2y?q.us2y.price:null)||3.74;
+  var nbpRate=3.75;
+  var s='';
+
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
+  s+='<div style="background:rgba(245,192,64,.06);border-left:3px solid var(--Y);padding:7px 12px;border-radius:0 4px 4px 0;font-size:8.5px"><b style="color:var(--Y)">🇵🇱 POLSKA</b> — Projekcja NBP marzec 2026</div>';
+  s+='<div style="background:rgba(42,157,245,.06);border-left:3px solid var(--B);padding:7px 12px;border-radius:0 4px 4px 0;font-size:8.5px"><b style="color:var(--B)">🌍 USA / ŚWIAT</b> — FedWatch, SOFR, Rentowności, Polymarket</div>';
+  s+='</div>';
+
+  /* NBP KPIs */
+  s+='<div class="sec">🇵🇱 NBP — Projekcja makro (marzec 2026)</div>';
+  s+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
+  [{k:'CPI PL 2026',v:'2,3%',c:'var(--G)',h:'2025: 2.4% | 2022: 14.4%',n:'Poniżej celu 2.5%'},
+   {k:'CPI PL 2027',v:'2,4%',c:'var(--G)',h:'Lekki wzrost przez PKB i płace',n:'Blisko celu'},
+   {k:'PKB Polska 2026',v:'3,9%',c:'var(--G)',h:'2025: 3.6% | 2023: 0.2%',n:'Najlepsza w UE'},
+   {k:'PKB Polska 2027',v:'2,9%',c:'var(--Y)',h:'Normalizacja po KPO szczycie',n:'Spowalnia'},
+   {k:'NBP koniec 2026',v:'~3,25%',c:'var(--G)',h:'Teraz 3.75% | Szczyt 6.75% (2022)',n:'1-2 cięcia'},
+   {k:'Inflacja usług Q4 25',v:'4,8%',c:'var(--Y)',h:'PPI +3.4% r/r (GUS)',n:'Sticky — NBP ostrożny'},
+  ].forEach(function(c){
+    s+='<div style="background:var(--bg2);border:1px solid '+c.c+'40;border-radius:var(--r);padding:9px 11px">'
+      +'<div style="font-size:8px;color:var(--t2)">'+c.k+'</div>'
+      +'<div style="font-size:20px;font-weight:700;color:'+c.c+'">'+c.v+'</div>'
+      +'<div style="font-size:8px;color:'+c.c+'">'+c.n+'</div>'
+      +'<div style="font-size:7.5px;color:var(--t2);margin-top:2px">'+c.h+'</div></div>';
+  });
+  s+='</div>';
+
+  /* Heatmapa ryzyk makro */
+  s+='<div class="sec">🌡️ Heatmapa ryzyk makro PL + USA (0-100)</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  var vix=(q.vix?q.vix.price:null)||20;
+  var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:2.84;
+  var sahm=(f.sahm&&f.sahm.current!=null)?f.sahm.current:0.15;
+  var oilP=(q.oil?q.oil.price:null)||70;
+  /* PL risks */
+  var plRisks=[
+    {k:'Inflacja PL',v:2.1,thresh:[2.5,4,7],note:'2.1% (lut 2026)'},
+    {k:'Stopy procentowe PL',v:100-nbpRate/6.75*100,thresh:[40,60,80],note:'NBP 3.75%, tnie → ryzyko małe'},
+    {k:'Geopolityka (PL/EU)',v:35,thresh:[30,50,70],note:'Ukraina, NATO — podwyższone'},
+    {k:'Ropa (PL import)',v:Math.min(100,oilP/100*100),thresh:[50,70,85],note:oilP.toFixed(0)+'$/bbl'},
+    {k:'Rynek pracy PL',v:5,thresh:[20,40,60],note:'Bezrob. <5%, płace rosną'},
+    {k:'Płynność PL (NBP)',v:20,thresh:[30,50,70],note:'RRP, MF emisje OK'},
+  ];
+  var usRisks=[
+    {k:'Inflacja USA',v:29,thresh:[25,40,60],note:'~2.9% (CPI lut 2026)'},
+    {k:'Stopy Fed',v:3.625/5.25*100,thresh:[40,60,80],note:'Fed 3.625%, cięcia Q2 2026'},
+    {k:'Geopolityka (USA)',v:45,thresh:[30,50,70],note:'USA-Iran, Taiw., Ukraina'},
+    {k:'Ropa (USA/Global)',v:Math.min(100,oilP/100*100),thresh:[50,70,85],note:oilP.toFixed(0)+'$/bbl'},
+    {k:'Rynek pracy USA',v:Math.min(100,sahm*200),thresh:[20,40,60],note:'Sahm='+sahm.toFixed(2)},
+    {k:'Płynność USA (Fed)',v:hy/6*100,thresh:[30,50,70],note:'HY spread '+hy.toFixed(2)+'%'},
+  ];
+  function riskBar(risks,title,titleC){
+    var h='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:11px 13px">';
+    h+='<div style="font-size:9px;font-weight:700;color:'+titleC+';margin-bottom:8px">'+title+'</div>';
+    risks.forEach(function(r){
+      var pct=Math.min(100,Math.max(0,r.v));
+      var c=pct>r.thresh[2]?'var(--R)':pct>r.thresh[1]?'var(--Y)':pct>r.thresh[0]?'#fb923c':'var(--G)';
+      var label=Math.round(pct);
+      h+='<div style="margin-bottom:6px">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+        +'<span style="font-size:8.5px;color:var(--t1)">'+r.k+'</span>'
+        +'<span style="font-size:9px;font-weight:700;color:'+c+'">'+label+'/100</span></div>'
+        +'<div style="height:7px;background:var(--bg4);border-radius:4px;overflow:hidden">'
+        +'<div style="width:'+pct+'%;height:100%;background:'+c+';border-radius:4px"></div></div>'
+        +'<div style="font-size:7.5px;color:var(--t2);margin-top:1px">'+r.note+'</div></div>';
+    });
+    h+='</div>';
+    return h;
+  }
+  s+=riskBar(plRisks,'🇵🇱 Polska — ryzyka makro','var(--Y)');
+  s+=riskBar(usRisks,'🇺🇸 USA — ryzyka makro','var(--B)');
+  s+='</div>';
+
+  /* Charts */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">CPI Polska — historia + projekcja NBP</span><span class="ch-s">GUS + NBP marzec 2026</span></div><div class="chbody"><div id="ch-prg-cpi" style="height:190px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">PKB Polska 2022-2028 (r/r %)</span><span class="ch-s">NBP projekcja</span></div><div class="chbody"><div id="ch-prg-pkb" style="height:190px"></div></div></div>';
+  s+='</div>';
+  s+='<div class="chartbox"><div class="chdr"><span class="ch-t">NBP stopa — historia + prognoza</span></div><div class="chbody"><div id="ch-prg-nbp" style="height:140px"></div></div></div>';
+
+  /* GPW decision matrix */
+  s+='<div class="sec">📈 Matrix decyzji GPW na projekcji NBP — reaguj przed danymi makro</div>';
+  s+='<div style="overflow-x:auto;margin-bottom:10px"><table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s+='<tr style="color:var(--t2);border-bottom:1px solid var(--br)"><th style="text-align:left;padding:5px 8px">Faza</th><th style="padding:5px 8px">Okres</th><th style="padding:5px 8px">NBP</th><th style="padding:5px 8px">CPI</th><th style="padding:5px 8px;min-width:150px">Kupuj</th><th style="padding:5px 8px">Unikaj</th><th style="text-align:left;padding:5px 8px">Sygnał wyprzedzający</th></tr>';
+  [['✅ Cięcia NBP + wzrost PKB','Teraz–Q3 2026','3.75→3.25%','2.1-2.3%','mWIG40+sWIG80+ETFBTBSP','DTLA','NBP pivot → kup PRZED kolejnym cięciem','var(--G)'],
+   ['🔄 Pauza NBP + stabilizacja','Q4 2026–2027','~3.25%','2.3-2.5%','VWCE/ISAC+mWIG40','Krótkie obl.','SOFR Dec26<3.5% → akcje fav.','var(--Y)'],
+   ['⚠️ Geopolityka/inflacja','Jeśli USA-Iran','hike ryzyko','>3.5%','ETFBCASH+IB01+złoto','ETFBTBSP','PL10Y+30bp/tydzień → ETFBCASH!','var(--R)'],
+   ['📅 Normalizacja','2028','~3.0%','2.3%','EDO CPI+2%+MSCI World','—','IMF PKB korekty → zmień alokację','var(--t2)'],
+  ].forEach(function(p){
+    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+      +'<td style="padding:5px 8px;font-weight:700;color:'+p[7]+'">'+p[0]+'</td>'
+      +'<td style="padding:5px 8px;font-size:8.5px;color:var(--t2)">'+p[1]+'</td>'
+      +'<td style="padding:5px 8px;text-align:center">'+p[2]+'</td>'
+      +'<td style="padding:5px 8px;text-align:center">'+p[3]+'</td>'
+      +'<td style="padding:5px 8px;font-size:8.5px;color:var(--G)">'+p[4]+'</td>'
+      +'<td style="padding:5px 8px;font-size:8.5px;color:var(--R)">'+p[5]+'</td>'
+      +'<td style="padding:5px 8px;font-size:8px;color:var(--Y)">'+p[6]+'</td></tr>';
+  });
+  s+='</table></div>';
+
+  /* FedWatch */
+  s+='<div class="sec">🔮 USA — CME FedWatch + Polymarket + Rentowności</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  /* FedWatch table */
+  s+='<div><table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s+='<tr style="color:var(--t2);border-bottom:1px solid var(--br)"><th style="text-align:left;padding:5px 8px">Spotkanie</th><th>Hold</th><th>Cięcie</th><th style="text-align:left">Wynik</th></tr>';
+  [['18-19 mar 26','94.1%','5.9%','HOLD','var(--Y)'],
+   ['kwi 26','82.1%','17.3%','Prawdop. HOLD','var(--Y)'],
+   ['cze 26','52.6%','46.8%','~50/50','var(--G)'],
+   ['lip 26','40%','55%','Prawdop. CUT','var(--G)'],
+   ['gru 26','15%','85%','PEWNE CUT','var(--G)'],
+  ].forEach(function(r){
+    var h=parseFloat(r[1]),c=parseFloat(r[2]);
+    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+      +'<td style="padding:4px 8px;font-size:8.5px;color:var(--t1)">'+r[0]+'</td>'
+      +'<td style="padding:4px 8px;text-align:center"><b style="color:var(--Y)">'+r[1]+'</b><div style="height:3px;background:var(--bg4);border-radius:1px;overflow:hidden;margin-top:1px"><div style="width:'+h+'%;height:100%;background:var(--Y)"></div></div></td>'
+      +'<td style="padding:4px 8px;text-align:center"><b style="color:var(--G)">'+r[2]+'</b><div style="height:3px;background:var(--bg4);border-radius:1px;overflow:hidden;margin-top:1px"><div style="width:'+c+'%;height:100%;background:var(--G)"></div></div></td>'
+      +'<td style="padding:4px 8px;font-size:8.5px;font-weight:700;color:'+r[4]+'">'+r[3]+'</td></tr>';
+  });
+  s+='</table></div>';
+  /* Polymarket + yields */
+  s+='<div>';
+  s+='<div style="font-size:8.5px;font-weight:700;color:var(--t2);margin-bottom:5px">Polymarket (marzec 2026)</div>';
+  [['Fed tnie 2026?',85,'var(--G)','Bull IBTS/IBTA'],
+   ['Recesja USA?',28,'var(--Y)','IB01 hedge'],
+   ['Inflacja USA>3%?',32,'var(--R)','Bear DTLA'],
+   ['SP500>7000?',55,'var(--G)','Bull akcje'],
+   ['NBP ≥2 cięcia?',70,'var(--G)','Bull ETFBTBSP+GPW'],
+  ].forEach(function(p){
+    s+='<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:8px;color:var(--t1);min-width:120px">'+p[0]+'</span>'
+      +'<div style="flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden"><div style="width:'+p[1]+'%;height:100%;background:'+p[2]+'"></div></div>'
+      +'<b style="font-size:9px;color:'+p[2]+';min-width:28px">'+p[1]+'%</b>'
+      +'<span style="font-size:8px;color:var(--t2)">'+p[3]+'</span></div>';
+  });
+  s+='<div style="margin-top:7px;font-size:8.5px">';
+  s+='PL10Y: <b style="color:var(--Y)">'+pl10y.toFixed(2)+'%</b> | US10Y: <b style="color:var(--B)">'+us10y.toFixed(2)+'%</b> | US2Y: <b style="color:var(--B)">'+us2y.toFixed(2)+'%</b><br>';
+  s+='Spread PL-US10Y: <b>'+(pl10y-us10y).toFixed(2)+'%</b> | US curve (10-2Y): <b style="color:'+(us10y-us2y>0.2?'var(--G)':'var(--Y)')+'">+'+(us10y-us2y).toFixed(2)+'%</b>';
+  s+='</div></div>';
+  s+='</div>';
+
+  el.innerHTML='<div class="wrap">'+s+'</div>';
+
+  /* ── CHARTS with FIXED X-AXIS ── */
+  setTimeout(function(){
+    /* CPI: sequential categoryarray prevents alphabetic sorting */
+    var histX=['Sty24','Lut24','Mar24','Kwi24','Maj24','Cze24','Lip24','Sie24','Wrz24','Paz24','Lis24','Gru24',
+               'Sty25','Lut25','Mar25','Kwi25','Maj25','Cze25','Lip25','Sie25','Wrz25','Paz25','Lis25','Gru25','Sty26','Lut26'];
+    var histY=[0.4,0.7,0.9,2.0,2.1,2.2,3.7,3.8,3.8,4.2,4.6,4.7,1.0,1.3,1.5,1.9,1.7,1.8,2.2,2.2,2.2,2.3,2.4,2.4,2.2,2.1];
+    var projX=['2026P','2027P','2028P'];
+    var allXCpi=histX.concat(projX);
+    Plotly.newPlot('ch-prg-cpi',[
+      {x:['2026P','2027P','2028P','2028P','2027P','2026P'],y:[2.9,3.7,4.0,0.9,1.1,1.6],fill:'toself',fillcolor:'rgba(96,165,250,.1)',line:{width:0},name:'Przedział',showlegend:false},
+      {x:histX,y:histY,mode:'lines',name:'CPI hist. (GUS)',line:{color:'#f87171',width:2}},
+      {x:['Lut26','2026P','2027P','2028P'],y:[2.1,2.3,2.4,2.3],mode:'lines+markers',name:'Proj. NBP',line:{color:'#60a5fa',width:2,dash:'dash'},marker:{size:7}},
+      {x:allXCpi,y:allXCpi.map(function(){return 2.5;}),mode:'lines',name:'Cel NBP',line:{color:'#00e5a8',width:1,dash:'dot'},hoverinfo:'skip'}
+    ],pLy({height:190,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
+      margin:{l:36,r:6,t:6,b:50},
+      xaxis:{categoryorder:'array',categoryarray:allXCpi,tickangle:-45,tickfont:{size:7.5},nticks:10},
+      yaxis:{title:'%',range:[0,6]}}),PLY);
+    /* PKB: FIXED x-axis */
+    Plotly.newPlot('ch-prg-pkb',[
+      {x:['2026P','2027P','2028P','2028P','2027P','2026P'],y:[4.7,3.8,4.0,1.8,2.0,3.1],fill:'toself',fillcolor:'rgba(0,229,168,.1)',line:{width:0},name:'Przedział',showlegend:false},
+      {x:['2022','2023','2024','2025'],y:[5.1,0.2,2.9,3.6],mode:'lines+markers',name:'PKB hist.',line:{color:'#fb923c',width:2},marker:{size:7}},
+      {x:['2025','2026P','2027P','2028P'],y:[3.6,3.9,2.9,2.9],mode:'lines+markers',name:'Proj. NBP',line:{color:'#4ade80',width:2,dash:'dash'},marker:{size:7}}
+    ],pLy({height:190,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
+      margin:{l:36,r:6,t:6,b:35},
+      xaxis:{categoryorder:'array',categoryarray:['2022','2023','2024','2025','2026P','2027P','2028P'],tickfont:{size:9}},
+      yaxis:{title:'%'}}),PLY);
+    /* NBP rates */
+    Plotly.newPlot('ch-prg-nbp',[
+      {x:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26'],y:[6.75,5.75,5.25,5.25,5.00,4.25,4.00,3.75],mode:'lines+markers',name:'NBP faktyczna',line:{color:'#f5c040',width:2.5},marker:{size:7}},
+      {x:['mar26','Q2 26P','Q3 26P','Q4 26P','2027P'],y:[3.75,3.50,3.25,3.25,3.00],mode:'lines+markers',name:'Prognoza',line:{color:'#f5c040',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
+      {x:['2023','2027P'],y:[2.5,2.5],mode:'lines',name:'Neutralna 2.5%',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
+    ],pLy({height:140,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
+      margin:{l:36,r:6,t:6,b:35},
+      xaxis:{categoryorder:'array',categoryarray:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26','Q2 26P','Q3 26P','Q4 26P','2027P'],tickangle:-20,tickfont:{size:8}},
+      yaxis:{title:'%',range:[2,7]}}),PLY);
+  },150);
+}
+
+
+function renderObligacje(){
+  var el=document.getElementById('p-obligacje');if(!el)return;
+
+
+  var pl10y=(q.pl10y?q.pl10y.price:null)||5.35;
+  var pl10yChg=(q.pl10y&&q.pl10y.change!=null)?q.pl10y.change:0;
+  var oilChg=(q.oil&&q.oil.change!=null)?q.oil.change:0;
+  var inflRisk=pl10yChg>0.3||oilChg>5||((q.move?q.move.price:95)>130);
+  var s = '';
+
+  /* ══ BEZPIECZNE AKTYWA HEADER ══════════════════════════════════ */
+  s += '<div style="background:rgba(0,229,168,.08);border:1px solid rgba(0,229,168,.3);border-radius:var(--r);padding:10px 16px;margin-bottom:10px">';
+  s += '<div style="font-size:11px;font-weight:800;color:var(--G);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">💎 BEZPIECZNE AKTYWA — Co wybrać? PL i USA</div>';
+  s += '<div style="font-size:9px;color:var(--t2);line-height:1.6">Porównanie po podatku Belka 19% i inflacji 2.1% PL. Środowisko marzec 2026: NBP tnie (3.75%), CPI 2.1%, Fed na hold, US10Y ~4.25%.</div>';
+  s += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">';
+  s += '<div style="background:rgba(0,229,168,.08);border-radius:4px;padding:7px 10px"><div style="font-size:8px;color:var(--t2)">CPI Polska (lut 2026)</div><div style="font-size:20px;font-weight:800;color:var(--G)">2,1%</div><div style="font-size:8px;color:var(--G)">Poniżej celu NBP 2.5%</div></div>';
+  s += '<div style="background:rgba(245,192,64,.08);border-radius:4px;padding:7px 10px"><div style="font-size:8px;color:var(--t2)">NBP stopa ref.</div><div style="font-size:20px;font-weight:800;color:var(--Y)">3,75%</div><div style="font-size:8px;color:var(--Y)">Cięcie 5.03.2026</div></div>';
+  s += '<div style="background:rgba(42,157,245,.08);border-radius:4px;padding:7px 10px"><div style="font-size:8px;color:var(--t2)">CPI USA (lut 2026)</div><div style="font-size:20px;font-weight:800;color:var(--B)">~2,9%</div><div style="font-size:8px;color:var(--B)">Usługi sticky</div></div>';
+  s += '<div style="background:rgba(42,157,245,.08);border-radius:4px;padding:7px 10px"><div style="font-size:8px;color:var(--t2)">Fed Funds Rate</div><div style="font-size:20px;font-weight:800;color:var(--B)">3,63%</div><div style="font-size:8px;color:var(--B)">Hold, cut Q2-Q3 2026</div></div>';
+  s += '</div>';
+  /* Inflation risk alert */
+  if(inflRisk){
+    s += '<div style="margin-top:8px;background:rgba(255,51,85,.1);border-radius:4px;padding:6px 10px;font-size:9px">'
+      +'<b style="color:var(--R)">⚠️ SYGNAŁ INFLACYJNY:</b>'+(pl10yChg>0.3?' PL10Y +'+pl10yChg.toFixed(2)+'%/dzień':'')+( oilChg>5?' Ropa +'+oilChg.toFixed(1)+'%':'')+' → ETFBTBSP ryzyko. Użyj ETFBCASH.'
+      +'</div>';
+  }
+  s += '</div>';
+
+s += '<div style="background:rgba(0,229,168,.06);border:1px solid rgba(0,229,168,.3);border-radius:var(--r);padding:13px 16px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--G);margin-bottom:8px">🎯 CO WYBRAĆ — decyzja marzec 2026</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:9.5px">';
+  s += '<div style="background:rgba(0,229,168,.08);border-radius:5px;padding:9px 11px;border-left:3px solid var(--G)">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">1. OBLIGACJE (bez IKE)</div>'
+     + '<div style="line-height:1.7">EDO 5.60% > KO 6.5% netto?<br>'
+     + 'EDO brutto: 5.60%, netto Belka: <b>4.54%</b><br>'
+     + 'KO 6.5% netto Belka: <b>5.27%</b><br>'
+     + 'KO wygrywa — ALE tylko 3 miesiące!<br>'
+     + 'Po 3 msc KO→ ~4% → EDO 5.6% lepsze.<br>'
+     + '<b style="color:var(--G)">Wniosek: EDO wygrywa na 6M+</b></div></div>';
+  s += '<div style="background:rgba(0,229,168,.1);border-radius:5px;padding:9px 11px;border-left:3px solid #00e5a8">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">⭐ NAJLEPSZE: EDO (bez IKE)</div>'
+     + '<div style="line-height:1.7">5.60% stałe rok 1<br>'
+     + 'CPI+2% rok 2-10 (ochrona real.)<br>'
+     + 'Netto Belka: <b>4.54%</b> = lepsza od KO po 3M<br>'
+     + 'Realna stopa: <b>+2.44%</b> (4.54-2.1)<br>'
+     + 'Wcześniejszy wykup: −3 PLN/szt (~0.03%)<br>'
+     + '<b style="color:var(--G)">Gwarancja SP. Kup TERAZ przed cięciami.</b></div></div>';
+  s += '<div style="background:rgba(245,192,64,.06);border-radius:5px;padding:9px 11px;border-left:3px solid var(--Y)">'
+     + '<div style="font-weight:700;color:var(--Y);margin-bottom:4px">2. KO — kiedy wybrać?</div>'
+     + '<div style="line-height:1.7">Wybierz KO TYLKO gdy:<br>'
+     + '• Krótki horyzont &lt;3 msc<br>'
+     + '• Potrzebujesz płynności T+1<br>'
+     + '• Kwota &lt;50k PLN (promocja)<br>'
+     + '• Fundusz awaryjny<br>'
+     + 'Strategia: 3M KO (6.5%) → potem EDO.<br>'
+     + '<b>UniCredit 4.5% bez limitu = best bezterminowy.</b></div></div>';
+  s += '</div>';
+  s += '<div style="margin-top:8px;font-size:8.5px;color:var(--t2);line-height:1.6">';
+  s += '<b>Strategia optymalna:</b> ① Fundusz awaryjny (3-6 msc wydatków) → UniCredit KO 4.5% bez warunków. '
+     + '② Reszta krótkiego okresu → VeloBank/Pekao/ING 5-6.5% na 3M. '
+     + '③ Horyzont 1Y+ → EDO obligacje (netto 4.54% > KO po 3M, bez ryzyka, SP gwarancja). '
+     + '<b>Pamiętaj:</b> Po marcowym cięciu NBP banki OBNIŻĄ KO. EDO rok 1 zostanie 5.60% przez cały rok.';
+  s += '</div></div>';
+
+  /* ═══ DCA TRANSZE — wyjaśnienie ════════════════════════════════ */
+  /* ═══ DCA TRANSZE — CORRECT EXPLANATION ════════════════════ */
+  s += '<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:12px 15px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--Y);margin-bottom:8px">📚 Jak działa system transz DCA — dokładne wyjaśnienie</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:9.5px">';
+
+  /* LEFT: What multiplier means */
+  s += '<div style="line-height:1.8;color:var(--t1)">'
+     + '<b style="color:var(--Y)">Co oznacza "2× transza"?</b><br><br>'
+     + 'MNOŻNIK = ile razy ZWIĘKSZASZ normalną miesięczną kwotę.<br><br>'
+     + 'Twoja normalna kwota: <b>np. 1 000 PLN/msc</b><br><br>'
+     + '<span style="color:var(--G)">RSI &lt;30 → 3×:</span> wpłacasz <b>3 000 PLN</b> (3 razy więcej)<br>'
+     + '<span style="color:var(--G)">RSI 30-40 → 2×:</span> wpłacasz <b>2 000 PLN</b> (dziś RSI=35.4)<br>'
+     + '<span style="color:var(--Y)">RSI 40-55 → 1×:</span> wpłacasz <b>1 000 PLN</b> (standardowo)<br>'
+     + '<span style="color:#fb923c">RSI 55-70 → 0.5×:</span> wpłacasz <b>500 PLN</b> (ogranicz)<br>'
+     + '<span style="color:var(--R)">RSI &gt;70 + trend się łamie:</span> <b>0×</b> — nie dokupuj<br><br>'
+     + '<div style="background:rgba(245,192,64,.08);border-radius:4px;padding:7px 10px">'
+     + '<b>Ważne: RSI &gt;70 w silnym trendzie</b> ≠ automatyczny STOP!<br>'
+     + 'Jeśli MA50 &gt; MA200 (Golden Cross) + MACD+ + trend wzrostowy:<br>'
+     + '<b style="color:var(--G)">1× normalnie — trzymaj się trendu!</b><br>'
+     + 'STOP dopiero gdy: RSI&gt;70 <i>ORAZ</i> MACD odwraca na minus <i>ORAZ</i> cena łamie MA50.'
+     + '</div></div>';
+
+  /* RIGHT: Timing of tranches */
+  s += '<div style="line-height:1.8;color:var(--t1)">'
+     + '<b style="color:var(--Y)">Jak rozkładać transze w czasie?</b><br><br>'
+     + 'Sprawdzasz sygnały RAZ W TYGODNIU (np. każdy poniedziałek).<br>'
+     + 'Na podstawie aktualnego RSI decydujesz o mnożniku TEGO tygodnia.<br><br>'
+     + '<b>Przykład (IKZE, 9 388 PLN/rok = 783 PLN/msc):</b><br><br>'
+     + '<b>Poniedziałek 15.03:</b> RSI=35.4 → mnożnik 2×<br>'
+     + '→ kupujesz za <b>783 PLN</b> (pierwsza z dwóch)<br><br>'
+     + '<b>Sprawdzasz 22.03:</b> RSI=33 → wciąż 2×<br>'
+     + '→ kupujesz za <b>783 PLN</b> (druga — komplet 2×)<br><br>'
+     + '<b>Sprawdzasz 29.03:</b> RSI=42 → mnożnik 1×<br>'
+     + '→ to jest następny miesiąc abril — 1× normalnie<br><br>'
+     + '<div style="background:rgba(0,229,168,.07);border-radius:4px;padding:7px 10px">'
+     + '<b style="color:var(--G)">Kluczowa zasada:</b> Każdy tydzień = nowa decyzja.<br>'
+     + 'RSI zmienia się ciągle. Nie zobowiązujesz się na cały miesiąc.<br>'
+     + 'Masz budżet miesięczny — nie przekraczaj go przy 1× lub 0.5×,<br>'
+     + 'ale możesz go podwoić/potroić z <b>zaoszczędzonej rezerwy DCA</b>.'
+     + '</div></div>';
+  s += '</div>';
+
+  /* RSI+Trend matrix */
+  s += '<div style="margin-top:10px;overflow-x:auto">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:8.5px">';
+  s += '<tr style="border-bottom:1px solid var(--br);color:var(--t2)">'
+     + '<th style="text-align:left;padding:4px 8px">Sygnał</th>'
+     + '<th style="padding:4px 8px">Mnożnik</th>'
+     + '<th style="padding:4px 8px;min-width:80px">Kwota (baza 1000 PLN)</th>'
+     + '<th style="text-align:left;padding:4px 8px">Warunek dodatkowy</th>'
+     + '<th style="text-align:left;padding:4px 8px;min-width:200px">Logika</th></tr>';
+  var dcaRows = [
+    ['RSI &lt;30','3×','3 000 PLN','Bez warunków dodatkowych',
+     'Historycznie dno rynku. Panika. Kupuj agresywnie. Zwrot +15-25% w 12M hist. 80%+ szans.','var(--G)'],
+    ['RSI 30-40','2×','2 000 PLN','Sprawdź co tydzień na nowo',
+     'Blisko dna lub trend spadkowy. Uśredniasz po niższych cenach. Dziś RSI=35.4 → 2×.','var(--G)'],
+    ['RSI 40-55','1×','1 000 PLN','Standard — DCA miesięczny',
+     'Normalny zakres. Rynek neutralny. Nie zwiększaj. Trzymaj plan.','var(--Y)'],
+    ['RSI 55-70 + trend wzrość.','1×','1 000 PLN','MA50&gt;MA200 + MACD+',
+     'Silny trend — nie redukuj! Kupuj normalnie. RSI może zostać &gt;60 tygodniami w bull market.','var(--Y)'],
+    ['RSI 55-70 + brak trendu','0.5×','500 PLN','MA50≈MA200 lub MACD−',
+     'Brak potwierdzenia trendu. Ogranicz nowe zakupy. Zbieraj gotówkę na okazję.','#fb923c'],
+    ['RSI &gt;70 + MA50&gt;200 + MACD+','1×','1 000 PLN','Golden Cross + silny trend',
+     'MEGA TREND. NIE WYCHODŹ. Kupuj normalnie 1× i trzymaj. Nifty50 bywał RSI&gt;70 miesiącami.','var(--G)'],
+    ['RSI &gt;70 + MACD odwraca−','0×','0 PLN','MACD krzyż niedźwiedzi',
+     'Wyczerpanie trendu. Nie dokupuj. Nowe wpłaty → ETFBTBSP/CASH. Stare pozycje TRZYMAJ.','var(--R)'],
+  ];
+  dcaRows.forEach(function(r) {
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+       + '<td style="padding:4px 8px;font-weight:700;color:' + r[5] + '">' + r[0] + '</td>'
+       + '<td style="padding:4px 8px;text-align:center;font-weight:700;color:' + r[5] + '">' + r[1] + '</td>'
+       + '<td style="padding:4px 8px;text-align:center;color:var(--t1)">' + r[2] + '</td>'
+       + '<td style="padding:4px 8px;font-size:8px;color:var(--t2)">' + r[3] + '</td>'
+       + '<td style="padding:4px 8px;font-size:8px;color:var(--t2)">' + r[4] + '</td></tr>';
+  });
+  s += '</table></div>';
+  s += '<div style="margin-top:7px;font-size:8.5px;color:var(--t2);line-height:1.6">'
+     + '<b>Rezerwa DCA:</b> Przy 0.5× lub 0× zbieraj niewykorzystane środki na koncie KO. '
+     + 'Gdy RSI spadnie do &lt;35 → masz gotówkę na 3× wejście. '
+     + '<b>Nie trzymaj całego budżetu na ETF jak rynek jest drogi (RSI&gt;70 + brak trendu).</b>'
+     + '</div>';
+  s += '</div>';
+
+
+  /* ═══ ETFBTBSP i ETFBCASH — kiedy kupować ════════════════════ */
+  s += '<div style="background:rgba(245,192,64,.05);border:1px solid rgba(245,192,64,.3);border-radius:var(--r);padding:12px 15px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--Y);margin-bottom:8px">⚠️ ETFBTBSP i ETFBCASH — kiedy kupować, kiedy unikać</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:9.5px;margin-bottom:8px">';
+  s += '<div style="background:rgba(0,229,168,.06);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-weight:700;color:var(--G);margin-bottom:4px">✅ KIEDY KUPOWAĆ ETFBTBSP/CASH</div>'
+     + '<div style="line-height:1.75">'
+     + '• RSI SP500 &gt;70 (wykupienie rynku akcji)<br>'
+     + '• Dual Momentum fail: SP500 12M &lt; IB01<br>'
+     + '• Sahm Rule ≥ 0.5 (recesja potwierdzona)<br>'
+     + '• NBP/Fed zatrzymał cięcia → stopy stałe<br>'
+     + '• Krzywa rentowności normalizuje się (po inwersji)<br>'
+     + '• Chcesz parkować nowe wpłaty gdy akcje za drogie<br>'
+     + '<b style="color:var(--G)">ETFBCASH: zawsze gdy chcesz parking 2-4 tyg.</b>'
+     + '</div></div>';
+  s += '<div style="background:rgba(255,51,85,.06);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-weight:700;color:var(--R);margin-bottom:4px">❌ KIEDY UNIKAĆ ETFBTBSP</div>'
+     + '<div style="line-height:1.75">'
+     + '• Rentowności rosną (NBP podwyżki) → ceny obligacji SPADAJĄ<br>'
+     + '• Inflacja niespodziewanie rośnie → obligacje tracą realnie<br>'
+     + '• Rynek dyskontuje wyższe stopy długo → duration ryzyko<br>'
+     + '• Panika na rynku długu (jak 2022) → ETFBTBSP −15%<br>'
+     + '• Lepiej wtedy: ETFBCASH (rynek pieniężny, brak duration)<br>'
+     + '<b style="color:var(--R)">Teraz (2026): NBP tnie → ETFBTBSP OK. Gdyby inflacja wróciła → ETFBCASH zamiast ETFBTBSP.</b>'
+     + '</div></div>';
+  s += '</div>';
+  s += '<div style="background:rgba(255,51,85,.06);border:1px solid rgba(255,51,85,.25);border-radius:5px;padding:9px 12px;font-size:9px;color:var(--t1);line-height:1.7;margin-bottom:7px">'
+     + '<b style="color:var(--R)">⚠️ PUŁAPKA: ETFBTBSP gdy VIX wysoki + geopolityka + inflacja może SPAŚĆ!</b><br>'
+     + 'Przykład: Konflikt USA-Iran → ropa drożeje → inflacja rośnie → rynek dyskontuje podwyżki stóp → '
+     + 'rentowności obligacji ROSNĄ → ceny obligacji SPADAJĄ → ETFBTBSP TRACI.<br>'
+     + 'Zasada: Sprawdź PL10Y ZANIM kupisz ETFBTBSP. Jeśli rentowność rośnie szybko → kupuj ETFBCASH zamiast ETFBTBSP.<br>'
+     + 'ETFBCASH nie zależy od cen obligacji — zawsze ≈NBP rate. Bezpieczniejszy przy szokach inflacyjnych.</div>';
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:9px 12px;font-size:9px;color:var(--t1);line-height:1.7">'
+     + '<b>Mechanizm działania ETFBTBSP:</b> ETF trzyma krótkie obligacje skarbowe PL (0-3 lata). '
+     + 'Gdy NBP OBNIŻA stopy → rentowności obligacji spadają → ceny ROSNĄ → ETFBTBSP zyska. '
+     + 'Gdy NBP PODNOSI stopy (lub inflacja skacze) → rentowności rosną → ceny SPADAJĄ → ETFBTBSP traci. '
+     + '<b>Aktualnie:</b> NBP tnie (3.75% → 3.25% w 2026) = środowisko PRO-ETFBTBSP. '
+     + '<b>ETFBCASH:</b> działa jak lokata dzienna — nie zależy od stóp długu, zawsze rośnie ~NBP rate. Brak ryzyka duration. '
+     + 'Wadą: niższy zwrot ~3.8% vs ETFBTBSP ~5.5% przy środowisku cięć.'
+     + '</div></div>';
+
+  /* ═══ DŁUGOTERMINOWE OBLIGACJE USA — DTLA, IBTA, IBTS ══════════ */
+  s += '<div style="background:rgba(42,157,245,.05);border:1px solid rgba(42,157,245,.3);border-radius:var(--r);padding:12px 15px;margin-bottom:10px">';
+  s += '<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:8px">🇺🇸 Obligacje USA długoterminowe — DTLA, IBTA (7-10Y), IBTS (1-3Y) — kiedy kupować?</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:9px;margin-bottom:8px">';
+  /* IBTS 1-3Y */
+  s += '<div style="background:rgba(42,157,245,.08);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:4px">IBTS (1-3Y US Treasury)</div>'
+     + '<div style="color:var(--t2);margin-bottom:4px;font-size:8.5px">iShares 1-3 Year Treasury Bond ETF</div>'
+     + '<div style="line-height:1.7">'
+     + '<b style="color:var(--G)">KUPUJ gdy:</b><br>'
+     + '• Fed spodziewa się ciąć stopy (forward pricing)<br>'
+     + '• Rentowność 2Y &gt;4.5% (historycznie wysoka)<br>'
+     + '• Recesja zbliża się → safe haven USD<br>'
+     + '• RSI akcji &gt;70 → parking z lepszym niż cash zwrotem<br>'
+     + '• Teraz: 2Y yield ~4.0%. DCA akceptowalny.<br>'
+     + '<b style="color:var(--R)">UNIKAJ gdy:</b> inflacja znów skacze, Fed pauze/hike'
+     + '</div></div>';
+  /* IBTA 7-10Y */
+  s += '<div style="background:rgba(42,157,245,.06);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-size:10px;font-weight:700;color:var(--B);margin-bottom:4px">IBTA (7-10Y US Treasury)</div>'
+     + '<div style="color:var(--t2);margin-bottom:4px;font-size:8.5px">iShares 7-10 Year Treasury Bond ETF</div>'
+     + '<div style="line-height:1.7">'
+     + '<b style="color:var(--G)">KUPUJ gdy:</b><br>'
+     + '• Rentowność 10Y &gt;4.5% (yield wysoki = tanie ceny)<br>'
+     + '• Fed ogłasza pivot / cięcia długoterminowe<br>'
+     + '• Recesja USA potwierdzona (Sahm &gt;0.5)<br>'
+     + '• Deflacja / dezinflacja silna i trwała<br>'
+     + '• Teraz: 10Y ~4.3%. Neutralne — DCA małymi kwotami.<br>'
+     + '<b style="color:var(--R)">UNIKAJ:</b> przy rosnącej inflacji, stagflacji, dług USA rośnie szybko'
+     + '</div></div>';
+  /* DTLA długie 20Y+ */
+  s += '<div style="background:rgba(255,51,85,.05);border-radius:5px;padding:9px 11px">'
+     + '<div style="font-size:10px;font-weight:700;color:var(--R);margin-bottom:4px">DTLA / TLT (20Y+ US Treasury)</div>'
+     + '<div style="color:var(--t2);margin-bottom:4px;font-size:8.5px">Długoterminowe obligacje 20+ lat</div>'
+     + '<div style="line-height:1.7">'
+     + '<b style="color:var(--G)">KUPUJ gdy:</b><br>'
+     + '• 30Y yield &gt;4.8% (historycznie rzadkie)<br>'
+     + '• Fed pivotem obniży stopy drastycznie (jak 2020)<br>'
+     + '• Recesja systemowa / kryzys finansowy<br>'
+     + '• Deflacja — rzadki scenariusz ale DTLA +50%<br>'
+     + '<b style="color:var(--R)">RYZYKO DURATION:</b> +1% yield = −15% ceny ETF!<br>'
+     + '<b style="color:var(--R)">Teraz: UNIKAJ</b> — dług USA rośnie, inflacja usług 4.8%, niepewność fiskalna.'
+     + '</div></div>';
+  s += '</div>';
+  /* Porównanie yield */
+  s += '<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:9px 12px;font-size:9px;color:var(--t1);line-height:1.7">'
+     + '<b>Mechanizm cen obligacji:</b> Cena obligacji i rentowność (yield) są ODWROTNIE proporcjonalne. '
+     + 'Gdy Fed tnie stopy → rentowności SPADAJĄ → ceny obligacji ROSNĄ → IBTA/DTLA zyska. '
+     + 'Gdy inflacja wraca → rentowności ROSNĄ → ceny SPADAJĄ → strata ETF. '
+     + '<b>Duration (czułość):</b> IBTS 1-3Y: duration ~2 lata (mały ruch cen). IBTA 7-10Y: duration ~8 lat (umiarkowany). DTLA 20Y+: duration ~16 lat (BARDZO duże wahania). '
+     + '<b style="color:var(--Y)">Zasada dla portfela:</b> Im niepewność wyższa, tym krótsza duration (IBTS bezpieczniejsza). '
+     + 'DTLA tylko przy pewności głębokich cięć Fed i recesji. Teraz US10Y ~4.3% = historycznie w środku zakresu = IBTS/IBTA DCA małymi kwotami OK.'
+     + '</div></div>';
+
+  /* ═══ KONTA OSZCZĘDNOŚCIOWE TABELA ══════════════════════════════ */
+  s += '<div class="sec">Ranking kont oszczędnościowych — marzec 2026 (aktualne dane z rankingów)</div>';
+  s += '<div style="overflow-x:auto;margin-bottom:10px">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s += '<tr style="border-bottom:1px solid var(--br);color:var(--t2)">'
+     + '<th style="text-align:left;padding:4px 7px">#</th>'
+     + '<th style="text-align:left;padding:4px 7px">Bank / Konto</th>'
+     + '<th style="padding:4px 7px">Brutto</th>'
+     + '<th style="padding:4px 7px">Netto (Belka)</th>'
+     + '<th style="padding:4px 7px">Realna (−CPI 2,1%)</th>'
+     + '<th style="padding:4px 7px">Limit / Okres</th>'
+     + '<th style="text-align:left;padding:4px 7px;min-width:160px">Warunki</th></tr>';
+  accounts.forEach(function(a, i) {
+    var net  = taxNet(a.pct);
+    var real = realRet(a.pct);
+    var rowBg = a.pct >= 6 ? 'rgba(0,229,168,.04)' : a.pct >= 5 ? 'rgba(245,192,64,.03)' : '';
+    var pctC  = a.pct >= 6 ? 'var(--G)' : a.pct >= 5 ? 'var(--Y)' : 'var(--t1)';
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.04);background:' + rowBg + '">'
+       + '<td style="padding:4px 7px;color:var(--t2)">' + (i+1) + '</td>'
+       + '<td style="padding:4px 7px"><b style="color:var(--t1)">' + a.bank + '</b><br>'
+       + '<span style="color:var(--t2);font-size:8px">' + a.name + '</span></td>'
+       + '<td style="padding:4px 7px;text-align:center;font-weight:700;color:' + pctC + '">' + a.pct.toFixed(1) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:var(--Y)">' + net.toFixed(2) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:' + cC(real) + '">' + fP(real) + '</td>'
+       + '<td style="padding:4px 7px;font-size:8.5px;color:var(--t2)">' + a.limit + '<br>' + a.term + '</td>'
+       + '<td style="padding:4px 7px;font-size:8px;color:var(--t2)">' + a.cond + '</td></tr>';
+  });
+  s += '</table></div>';
+
+  /* ═══ OBLIGACJE TABELA ═══════════════════════════════════════════ */
+  s += '<div class="sec">Obligacje Skarbowe — marzec 2026 (obligacjeskarbowe.pl)</div>';
+  s += '<div style="overflow-x:auto;margin-bottom:10px">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s += '<tr style="border-bottom:1px solid var(--br);color:var(--t2)">'
+     + '<th style="text-align:left;padding:4px 7px">Seria</th>'
+     + '<th style="padding:4px 7px">Brutto</th>'
+     + '<th style="padding:4px 7px">Netto (Belka)</th>'
+     + '<th style="padding:4px 7px">Realna (−CPI 2,1%)</th>'
+     + '<th style="padding:4px 7px">Typ</th><th style="text-align:left;padding:4px 7px">Uwagi</th></tr>';
+  bonds.forEach(function(b) {
+    var net  = taxNet(b.pct);
+    var real = realRet(b.pct);
+    var rc   = b.pct >= 5 ? 'rgba(0,229,168,.04)' : b.pct >= 4 ? 'rgba(245,192,64,.03)' : '';
+    var pc   = b.pct >= 5 ? 'var(--G)' : b.pct >= 4 ? 'var(--Y)' : 'var(--t1)';
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.04);background:' + rc + '">'
+       + '<td style="padding:4px 7px;font-weight:700;color:var(--t1)">' + b.name + '</td>'
+       + '<td style="padding:4px 7px;text-align:center;font-weight:700;color:' + pc + '">' + b.pct.toFixed(2) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:var(--Y)">' + net.toFixed(2) + '%</td>'
+       + '<td style="padding:4px 7px;text-align:center;color:' + cC(real) + '">' + fP(real) + '</td>'
+       + '<td style="padding:4px 7px;font-size:8.5px;color:var(--t2)">' + b.type + '</td>'
+       + '<td style="padding:4px 7px;font-size:8.5px;color:var(--t2)">' + b.info + '</td></tr>';
+  });
+  s += '</table></div>';
+
+  /* ═══ GPW ETF vs MSCI ═══════════════════════════════════════════ */
+  s += 
+  el.innerHTML='<div class="wrap">'+s+'</div>';
+}
+
 async function fetchFG() {
   setS('ld','F&G CNN…'); D.fg=null;
   /* CNN primary — try direct first (CNN has CORS), then proxies */
@@ -3229,6 +3886,55 @@ function renderDecision(){
   var curMonth=seasonality[mon];
 
   var s='';
+  /* ── Extra vars ── */
+  var pl10y=(q.pl10y?q.pl10y.price:null)||5.35;
+  var pl10yChg=(q.pl10y&&q.pl10y.change!=null)?q.pl10y.change:0;
+  var oilChg=(q.oil&&q.oil.change!=null)?q.oil.change:0;
+  var pl10ySpike=pl10yChg>0.3;
+  var oilSpike=oilChg>5;
+  var nbpRate=3.75;
+  var wig20PE=D.wig20PE||10.5;
+  var wig20PEhigh=wig20PE>16;
+  var gpwBull=nbpRate<4.0&&!wig20PEhigh&&sahm<0.5;
+  var inflRisk=pl10ySpike||oilSpike||(move>130);
+  var plCumInfl=((1.016*1.023*1.034*1.051*1.144*1.114*1.036*1.024-1)*100).toFixed(1);
+
+  /* ══ 0. MARKET SUMMARY SENTENCE (3 sekundy) ═════════════════ */
+  var modeStr,modeC;
+  var riskOff=vix>28||inflRisk;
+  var riskOn=vix<18&&!inflRisk&&(sc.total>5);
+  if(inflRisk&&vix>28){
+    modeStr='Risk-off: rentowności rosną'+(pl10ySpike?' (PL10Y +'+pl10yChg.toFixed(2)+'%/dzień)':'')+', ropa +'+(oilChg>0?oilChg.toFixed(1):'?')+'%/dzień, VIX '+vix.toFixed(0)+', ETFBTBSP ryzyko. Parkuj w ETFBCASH/IB01.';
+    modeC='var(--R)';
+  } else if(inflRisk){
+    modeStr='Ryzyko inflacyjne: '+(pl10ySpike?'PL10Y +'+pl10yChg.toFixed(2)+'%/dzień → ':'')+( oilSpike?'ropa +'+oilChg.toFixed(1)+'% → ':'')+( move>130?'MOVE='+move.toFixed(0)+' (stres obligacji) → ':'')+'sprawdź przed ETFBTBSP.';
+    modeC='var(--Y)';
+  } else if(vix>28){
+    modeStr='Risk-off: VIX='+vix.toFixed(1)+', F&G='+(fg!=null?fg:'—')+', HF redukują longi. Ale obligacje stabilne → contrarian okno zakupu akcji!';
+    modeC='var(--G)';
+  } else if(riskOn){
+    modeStr='Risk-on: przepływy pozytywne, VIX='+vix.toFixed(1)+' (niski), PL10Y stabilne ('+pl10y.toFixed(2)+'%), brak presji inflacyjnej. DCA normalnie.';
+    modeC='var(--G)';
+  } else {
+    modeStr='Rynek neutralny: VIX='+vix.toFixed(1)+', HY='+hy.toFixed(2)+'%, SP500 12M='+(sp12m?sp12m.toFixed(1):'—')+'%. DCA 1× według planu.';
+    modeC='var(--Y)';
+  }
+  s+='<div style="background:'+modeC+'0d;border-left:4px solid '+modeC+';border-radius:0 var(--r) var(--r) 0;padding:9px 14px;margin-bottom:8px;font-size:9.5px;color:var(--t1)">'
+    +'<b style="color:'+modeC+'">⚡ '+(inflRisk?'ALERT':'Sygnał')+': </b>'+modeStr+'</div>';
+
+  /* ══ 0b. LIVE FORWARD SIGNALS ════════════════════════════════ */
+  if(inflRisk||vix>35){
+    var aC=inflRisk?'var(--R)':'var(--Y)';
+    s+='<div style="background:'+aC+'0d;border:2px solid '+aC+';border-radius:var(--r);padding:9px 13px;margin-bottom:8px">';
+    s+='<div style="font-size:10px;font-weight:800;color:'+aC+';margin-bottom:5px">⚡ SYGNAŁY WYPRZEDZAJĄCE — reaguj ZANIM dane makro potwierdzą</div>';
+    s+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:9px">';
+    if(pl10ySpike) s+='<div style="background:rgba(255,51,85,.1);border-radius:4px;padding:6px 9px"><b style="color:var(--R)">⚠ PL10Y +'+pl10yChg.toFixed(2)+'%/dzień</b><br><span style="color:var(--t2)">Rentowności rosną → ETFBTBSP TRACI → użyj ETFBCASH</span></div>';
+    if(oilSpike) s+='<div style="background:rgba(255,51,85,.1);border-radius:4px;padding:6px 9px"><b style="color:var(--R)">⚠ Ropa +'+oilChg.toFixed(1)+'%/dzień</b><br><span style="color:var(--t2)">Geopolityka/podaż → inflacja → obligacje długie tracą → IB01/TBIL</span></div>';
+    if(move>130) s+='<div style="background:rgba(255,51,85,.1);border-radius:4px;padding:6px 9px"><b style="color:var(--R)">⚠ MOVE='+move.toFixed(0)+' (>130)</b><br><span style="color:var(--t2)">Stres obligacyjny → unikaj IBTA/DTLA → IBTS/IB01</span></div>';
+    if(vix>35&&!inflRisk) s+='<div style="background:rgba(0,229,168,.1);border-radius:4px;padding:6px 9px"><b style="color:var(--G)">✅ VIX='+vix.toFixed(1)+' bez inflacji</b><br><span style="color:var(--t2)">Panika akcje, obligacje stabilne → KUP akcje transzami + ETFBTBSP OK</span></div>';
+    s+='</div></div>';
+  }
+
 
   /* ═══ 1. BIG DECISION BANNER ════════════════════════════════════ */
   s+='<div style="background:'+vhg+';border:2px solid '+vColor+';border-radius:var(--r);padding:14px 18px;margin-bottom:8px">';
@@ -3440,7 +4146,28 @@ function renderDecision(){
     });
   s+='</div></div>';
 
-  /* ═══ 7. HISTORY LESSONS (compact) ═════════════════════════════ */
+    /* ── GPW vs MSCI WORLD ── */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">';
+  var usdpln2=(q.usdpln?q.usdpln.price:null);
+  var msciBull=rsi<45&&(sp12m>ib01)&&!inflRisk;
+  s+='<div style="background:var(--bg2);border:1px solid '+(gpwBull?'var(--G)':'var(--br)')+';border-radius:var(--r);padding:9px 11px">';
+  s+='<div style="font-size:9px;font-weight:700;color:'+(gpwBull?'var(--G)':'var(--t2)')+';margin-bottom:4px">🇵🇱 GPW (mWIG40/sWIG80) — '+(gpwBull?'✅ KUPUJ DCA':'⚠️ OSTROŻNIE')+'</div>';
+  s+='<div style="font-size:8.5px;line-height:1.75;color:var(--t1)">'
+    +'NBP '+nbpRate+'% '+(nbpRate<4?'✓':'⚠️')+' | WIG20 P/E ~'+wig20PE.toFixed(1)+'x '+(wig20PEhigh?'⚠️ DROGO (>16)':'✓ tanie')+' | CPI 2.1% ✓ | PKB 3.9% ✓<br>'
+    +(gpwBull?'<b style="color:var(--G)">Środowisko pro-GPW. DCA mWIG40 60%+sWIG80 30%.</b>':wig20PEhigh?'<span style="color:var(--R)">WIG20 P/E>16 → ogranicz DCA GPW.</span>':'<span style="color:var(--Y)">Sprawdź P/E WIG20.</span>')
+    +'</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid '+(msciBull?'var(--B)':'var(--br)')+';border-radius:var(--r);padding:9px 11px">';
+  s+='<div style="font-size:9px;font-weight:700;color:'+(msciBull?'var(--B)':'var(--t2)')+';margin-bottom:4px">🌍 MSCI World (VWCE/ISAC) — '+(msciBull?'✅ KUPUJ DCA':'⚠️ NEUTRAL')+'</div>';
+  s+='<div style="font-size:8.5px;line-height:1.75;color:var(--t1)">'
+    +'RSI '+rsi.toFixed(1)+' '+(rsi<40?'✓':'⚠️')+' | DM '+(sp12m>ib01?'✓ akcje>IB01':'✗')+' | USD '+(usdpln2?usdpln2.toFixed(3)+' '+(usdpln2<4.0?'✓':'⚠️'):'—')+' | CAPE '+(D.cape?D.cape.toFixed(1)+'x':'—')+'<br>'
+    +(msciBull?'<b style="color:var(--B)">DCA ISAC/VWCE. RSI<40 = dobre wejście.</b>':'Czekaj na RSI<40 lub DM potwierdzenie.')
+    +'</div></div>';
+  s+='</div>';
+  s+='<div style="background:rgba(255,51,85,.06);border:1px solid rgba(255,51,85,.2);border-radius:4px;padding:7px 12px;margin-bottom:8px;font-size:8.5px;color:var(--t1)">'
+    +'<b style="color:var(--R)">💸 Inflacja skumulowana PL 2018→2025: +'+plCumInfl+'%</b>'
+    +' — gotówka straciła <b style="color:var(--R)">'+(100-Math.round(100/(1+parseFloat(plCumInfl)/100)))+'%</b> siły nabywczej. Akcje globalne +216%, mWIG40 +143%, EDO +43%.</div>';
+
+/* ═══ 7. HISTORY LESSONS (compact) ═════════════════════════════ */
   s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">';
   [{p:'Mar 2009',sc:'+42',v:'KUP',r:'SP500 +60% po 12M. RSI<25, VIX=60.',c:'var(--G)'},
    {p:'Mar 2020',sc:'+38',v:'KUP PANIKA',r:'SP500 +75% po 12M. RSI=25.',c:'var(--G)'},
@@ -3453,6 +4180,54 @@ function renderDecision(){
         +'<div style="font-size:9px;font-weight:700;color:'+h.c+'">'+h.v+'</div>'
         +'<div style="font-size:8px;color:var(--t2)">'+h.r+'</div></div>';
     });
+  s+='</div>';
+
+  /* ── ETFBTBSP/IBTS live decision ── */
+  var etfBtD=inflRisk?'⚠️ ETFBCASH zamiast ETFBTBSP':move>130?'⚠️ MOVE>130 → ETFBCASH':'✅ ETFBTBSP OK';
+  var us2yP=(q.us2y?q.us2y.price:null)||3.74,us10yP=(q.us10y?q.us10y.price:null)||4.25;
+  var ibtsD=(us2yP>4.5)?'✅ IBTS yield wysoki':'🔄 IBTS DCA małe';
+  var ibtaD=(us10yP>4.5&&sahm>0.3)?'✅ IBTA okazja':'⚠️ IBTA ostrożnie';
+  var dtlaD=(sahm>0.5&&us10yP>4.8)?'✅ DTLA':'❌ DTLA zbyt ryzykowne';
+  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px">';
+  [{k:'ETFBTBSP/CASH',v:etfBtD,c:inflRisk?'var(--R)':'var(--G)'},
+   {k:'IBTS (1-3Y USD)',v:ibtsD,c:'var(--Y)'},
+   {k:'IBTA (7-10Y USD)',v:ibtaD,c:us10yP>4.5?'var(--G)':'var(--Y)'},
+   {k:'DTLA/TLT (20Y+)',v:dtlaD,c:'var(--R)'},
+  ].forEach(function(x){
+    s+='<div style="background:'+x.c+'0d;border:1px solid '+x.c+'30;border-radius:4px;padding:6px 8px">'
+      +'<div style="font-size:8px;color:var(--t2)">'+x.k+'</div>'
+      +'<div style="font-size:9px;font-weight:700;color:'+x.c+'">'+x.v+'</div></div>';
+  });
+  s+='</div>';
+
+  /* ── DCA TRANCHES TABLE ── */
+  s+='<div style="background:rgba(245,192,64,.05);border:1px solid rgba(245,192,64,.25);border-radius:var(--r);padding:11px 14px">';
+  s+='<div style="font-size:10px;font-weight:700;color:var(--Y);margin-bottom:7px">📚 System transz DCA — mnożnik tygodniowy (sprawdzaj RSI co poniedziałek)</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  s+='<div style="font-size:9px;color:var(--t1);line-height:1.85">'
+    +'<b style="color:var(--Y)">Mnożnik = ile razy ZWIĘKSZASZ normalną kwotę miesięczną</b><br>'
+    +'Np. IKZE 9 388÷12 = <b>783 PLN/msc</b><br>'
+    +'RSI=35 → 2× → <b>1 566 PLN ten miesiąc</b>:<br>'
+    +'Tydzień 1 (15.03): 783 PLN → mWIG40<br>'
+    +'Tydzień 3 (29.03): 783 PLN → sWIG80<br>'
+    +'Za tydzień: RSI=42 → z powrotem 1× = 783/msc'
+    +'</div>';
+  s+='<table style="width:100%;border-collapse:collapse;font-size:8.5px">';
+  [['RSI &lt;30','3×','AGRESYWNY','var(--G)','Prawdopodobne dno. Hist. +20%+ w 12M.'],
+   ['RSI 30-40','2×','AKTYWNY','var(--G)','Dziś RSI='+rsi.toFixed(1)+'. Tanie → 2× kwota.'],
+   ['RSI 40-55','1×','NORMALNY','var(--Y)','Standard. DCA miesięcznie.'],
+   ['RSI 55-70 + trend↑','1×','TRZYMAJ','var(--Y)','Silny trend = nie wychodź! DCA 1×.'],
+   ['RSI 55-70 brak trendu','0.5×','OSTROŻNY','#fb923c','Zbieraj rezerwę na okazję.'],
+   ['RSI &gt;70 + MACD−','0×','PARKUJ','var(--R)','Nowe → ETFBTBSP/CASH. Stare: trzymaj.'],
+  ].forEach(function(r){
+    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
+      +'<td style="padding:2px 5px;color:'+r[3]+';font-weight:700">'+r[0]+'</td>'
+      +'<td style="padding:2px 5px;text-align:center;font-weight:800;color:'+r[3]+'">'+r[1]+'</td>'
+      +'<td style="padding:2px 5px;font-weight:700;color:'+r[3]+'">'+r[2]+'</td>'
+      +'<td style="padding:2px 5px;font-size:8px;color:var(--t2)">'+r[4]+'</td></tr>';
+  });
+  s+='</table></div>';
+  s+='<div style="font-size:8px;color:var(--t2);margin-top:5px"><b>RSI>70 w silnym trendzie (MA50>MA200+MACD+):</b> NIE wychodź — 1× normalnie. MEGA TREND trwa miesiącami.</div>';
   s+='</div>';
 
   el.innerHTML='<div class="wrap">'+s+'</div>';
@@ -3550,23 +4325,71 @@ function renderSentiment(){
   /* Social sentiment block */
   var soc=D.social||null;
   var red=D.reddit||null;
+
+  /* ── VIX percentile explanation ── */
+  s+='<div style="background:rgba(255,255,255,.04);border-radius:5px;padding:9px 13px;margin-bottom:8px">';
+  s+='<div style="font-size:9.5px;font-weight:700;color:var(--t1);margin-bottom:4px">📊 Co oznacza PERCENTYL historyczny VIX?</div>';
+  s+='<div style="font-size:8.5px;color:var(--t2);line-height:1.75">'
+    +'Percentyl = ile % <b>wszystkich dni od 1990 roku</b> miało VIX <b>niższy</b> niż dziś.<br>'
+    +'Teraz VIX=<b style="color:'+vixC+'">'+vix.toFixed(1)+'</b> = <b style="color:'+vixC+'">'+(vix<=12?3:vix<=15?15:vix<=18?35:vix<=22?55:vix<=28?75:vix<=35?88:vix<=45?95:99)+'%ile</b>'
+    +' → wyższy niż '+(vix<=12?3:vix<=15?15:vix<=18?35:vix<=22?55:vix<=28?75:vix<=35?88:vix<=45?95:99)+'% historycznych dni od 1990 r.<br>'
+    +(vix>=28?'<b style="color:var(--G)">★ VIX rzadko bywa tak wysoki → historycznie jedne z najlepszych okien zakupu akcji.</b>':
+      vix<=15?'<b style="color:var(--R)">★ VIX w dolnym kwartylu = euforia = zmniejsz transze DCA.</b>':
+      '→ Normalny poziom strachu rynkowego.')
+    +'</div></div>';
+
+  /* ── VIX crises comparison table ── */
+  s+='<div class="sec">📚 VIX vs Kryzysy historyczne — kontekst dla inwestora DCA</div>';
+  s+='<div style="overflow-x:auto;margin-bottom:10px">';
+  s+='<table style="width:100%;border-collapse:collapse;font-size:9px">';
+  s+='<tr style="border-bottom:1px solid var(--br);color:var(--t2)">'
+    +'<th style="text-align:left;padding:5px 8px">Zdarzenie</th>'
+    +'<th style="padding:5px 8px;text-align:center">VIX</th>'
+    +'<th style="padding:5px 8px;text-align:center">%ile</th>'
+    +'<th style="padding:5px 8px;text-align:center">SP500 dołek</th>'
+    +'<th style="padding:5px 8px;text-align:center">+12M po dnie</th>'
+    +'<th style="text-align:left;padding:5px 8px;min-width:180px">Lekcja DCA</th></tr>';
+  [{n:'Norma 2013-2019',vx:'11-16',p:'5-35',sp:'—',r:'+9.8%',l:'1× standard. Nie zwiększaj.',c:'var(--t2)'},
+   {n:'Sierpień 2015 (China)',vx:'40',p:'96',sp:'-14%',r:'+13%',l:'3 tyg. DCA 2× przy VIX>35 → +13%.',c:'var(--G)'},
+   {n:'Grudzień 2018 (Fed)',vx:'36',p:'93',sp:'-20%',r:'+31%',l:'6 tyg. DCA 2× przy VIX>30 → +31%.',c:'var(--G)'},
+   {n:'GFC 2008 Lehman',vx:'80',p:'99.9',sp:'-57%',r:'+53% od dna',l:'18M. Transze kwartalne → +53% od dna.',c:'var(--G)'},
+   {n:'COVID mar 2020',vx:'85',p:'99.9',sp:'-34%',r:'+75%',l:'33 dni. DCA 3× → +75% rok.',c:'var(--G)'},
+   {n:'2022 Fed vs CPI',vx:'36',p:'93',sp:'-25%',r:'+26%',l:'10M. Transze od VIX>28 → +26%.',c:'var(--G)'},
+   {n:'Yen carry sie 2024',vx:'65',p:'99',sp:'-9%',r:'+35%',l:'Flash 1 tydzień. Kupno następny dzień → +35%.',c:'var(--G)'},
+   {n:'TERAZ ★',vx:vix.toFixed(1),p:String(vix<=12?3:vix<=15?15:vix<=18?35:vix<=22?55:vix<=28?75:vix<=35?88:vix<=45?95:99),sp:'—',r:'TBD',l:vix>=28?'DCA 2×—panika=okazja':vix>=22?'DCA 1-1.5×':'DCA 1× normalnie',c:vixC,bold:true},
+  ].forEach(function(cr){
+    s+='<tr style="border-bottom:1px solid rgba(255,255,255,.04);'+(cr.bold?'background:'+cr.c+'10':'')+'">'
+      +'<td style="padding:5px 8px;font-weight:'+(cr.bold?700:400)+';color:'+(cr.bold?cr.c:'var(--t1)')+'">'+cr.n+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:'+cr.c+'">'+cr.vx+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;color:var(--t2)">'+cr.p+'%</td>'
+      +'<td style="padding:5px 8px;text-align:center;color:var(--R)">'+cr.sp+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--G)">'+cr.r+'</td>'
+      +'<td style="padding:5px 8px;font-size:8.5px;color:var(--t2)">'+cr.l+'</td></tr>';
+  });
+  s+='</table>';
+  s+='<div style="margin-top:4px;padding:5px 8px;background:rgba(0,229,168,.06);border-radius:3px;font-size:8.5px;color:var(--t1)"><b>Zasada:</b> VIX>28 + F&G<30 = hist. >80% szans na +15%+ w 12M. DCA transzami — nie jednorazowo.</div>';
+  s+='</div>';
+
   var socHTML='';
-  socHTML+='<div class="sec">Nastroje społeczności — StockTwits + Reddit Investing</div>';
+  socHTML+='<div class="sec">💬 Nastroje społeczności — liczba postów (trend tygodniowy)</div>';
+  socHTML+='<div style="background:rgba(255,255,255,.04);border-radius:4px;padding:7px 12px;margin-bottom:8px;font-size:8.5px;color:var(--t2)">'
+    +'<b style="color:var(--t1)">Co śledzę:</b> Całkowita liczba postów = termometr zaangażowania rynku. '
+    +'Wzrost +50%/tydzień = emocje rosną. Spadek -50%/miesiąc = rynek ignorowany = często dna/szczyty. '
+    +'<b style="color:var(--Y)">Zapisuj tę liczbę co tydzień w DZIENNIK i porównuj.</b></div>';
   socHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
 
   /* StockTwits */
   if(soc&&soc.total>0){
-    var bullPct=soc.bullPct,bearPct=soc.bearPct;
-    var stC=bullPct>60?'var(--G)':bullPct<40?'var(--R)':'var(--Y)';
+    var bullPct=soc.bullPct||50,bearPct=soc.bearPct||50;
+    var stC='var(--t1)';
     socHTML+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px">';
     socHTML+='<div style="font-size:9px;color:var(--t2);margin-bottom:5px">StockTwits (SPY/QQQ/SPX/GOLD) — '+soc.total+' postów</div>';
     /* Gauge bar */
-    socHTML+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-    socHTML+='<div style="font-size:20px;font-weight:700;color:var(--G)">'+bullPct+'%</div>';
-    socHTML+='<div style="flex:1;background:rgba(255,51,85,.3);border-radius:4px;overflow:hidden;height:12px">';
-    socHTML+='<div style="width:'+bullPct+'%;height:100%;background:var(--G);border-radius:4px"></div></div>';
-    socHTML+='<div style="font-size:20px;font-weight:700;color:var(--R)">'+bearPct+'%</div></div>';
-    socHTML+='<div style="font-size:9.5px;color:'+stC+';font-weight:700;margin-bottom:6px">'+(bullPct>70?'EUFORIA — contrarian: redukuj':bullPct>55?'BYCZE nastroje':bullPct<30?'PANIKA — contrarian: kupuj':bullPct<45?'NIEDŹWIEDZIE':'MIESZANE')+'</div>';
+    socHTML+='<div style="margin-bottom:8px">';
+    socHTML+='<div style="font-size:34px;font-weight:800;color:var(--t1)">'+soc.total+'</div>';
+    socHTML+='<div style="font-size:9px;color:var(--t2)">postów StockTwits (SPY/QQQ/SPX/GOLD)</div>';
+    socHTML+='<div style="font-size:8.5px;color:var(--t2);margin-top:3px">Norma: ~100-300 | Spike>400: emocje rosną | &lt;50: rynek ignorowany</div>';
+    socHTML+='</div>';
     /* Recent messages */
     if(soc.msgs&&soc.msgs.length>0){
       socHTML+='<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Ostatnie posty:</div>';
@@ -4092,7 +4915,7 @@ function renderIndicators(){
     var vix=(D.q&&D.q.vix)?D.q.vix.price:(f.vixfred?f.vixfred.current:null);
     var move=(D.q&&D.q.move)?D.q.move.price:null;
     var gold=(D.q&&D.q.gold)?D.q.gold.price:(D.gold?D.gold.current:null);
-    var goldYoy=(D.gold&&D.gold.yoy!=null)?D.gold.yoy:((D.f&&D.f.gold_fred)?D.q.gold.change:null);
+    var goldYoy=(D.gold&&D.gold.yoy!=null)?D.gold.yoy:((D.q&&D.q.gold)?D.q.gold.change:null);
     var goldVsStocks=(D.gold&&D.gold.vs_stocks)||null;
     var umcs=D.umcsent;
     var retail=D.retail_yoy;
@@ -4199,7 +5022,7 @@ function renderIndicators(){
     s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">';
 
     /* Cena + wycena */
-    s+=kard('Złoto (USD/oz)','FRED GOLDAMGBD228NLBM + Stooq xauusd',
+    s+=kard('Złoto (USD/oz)','Stooq xauusd (live)',
       goldPrice?('$'+Math.round(goldPrice).toLocaleString()):'—',goldC,
       goldPrice?goldValLabel+'. Śr. 2015-2020: ~$1300. Śr. 2020-2025: ~$1900. Powyżej $2800 = historycznie drogie.':'Ładowanie FRED GOLDAMGBD228NLBM…','FRED');
 
@@ -4559,6 +5382,22 @@ function renderPortfolio(){
   var eurWC=eurpln?(eurpln<4.25?'var(--G)':eurpln<4.40?'var(--Y)':'var(--R)'):'var(--t2)';
 
   var s='';
+  /* ── Priority scoring ── */
+  var rsiScore=rsi<30?4:rsi<40?3:rsi<50?2:rsi<65?1:0;
+  var usdCheap=usdpln&&usdpln<3.95;
+  var eurCheap=eurpln&&eurpln<4.25;
+  var gpwPri=(nbpRate<4.0&&rsiScore>=2)?1:( nbpRate<4.0?2:3);
+  var ikePri=(eurCheap&&rsiScore>=2)?1:(rsiScore>=2?2:3);
+  var ibkrPri=(usdCheap&&rsiScore>=2)?1:(rsiScore>=1?2:3);
+  var eurPri=(eurCheap&&rsiScore>=1)?1:(rsiScore>=1?2:3);
+  var priMap={'IKZE':gpwPri,'IKE':ikePri,'IBKR':ibkrPri,'EUR':eurPri};
+  /* Sort portfolios by priority */
+  var priLabel={1:'🔴 KUP TERAZ — Priorytet #1',2:'🟡 DCA normalnie',3:'⚪ Poczekaj / obserwuj'};
+  var priBg={1:'rgba(255,51,85,.09)',2:'rgba(245,192,64,.06)',3:'rgba(255,255,255,.02)'};
+  var priBorder={1:'var(--R)',2:'var(--Y)',3:'var(--br)'};
+  var nbpRate=3.75;
+  var rsi=ta.rsi14||35.4;
+  var macdH=ta.macd?ta.macd.hist:-12.6;
 
   /* ═══ MASTER PORTFOLIO STATUS BAR ════════════════════════════════ */
   var modeLabel=defensiveMode?'⚠️ DEFENSYWNY — parkuj nowe wpłaty':buyMode?'✅ BYK — DCA agresywnie':'📊 NEUTRALNY — DCA plan';
@@ -4580,8 +5419,10 @@ function renderPortfolio(){
   portfolios.forEach(function(p){
     var isActive=!defensiveMode;
     var bC=defensiveMode?'var(--Y)':p.color;
-    s+='<div style="background:var(--bg2);border:1px solid '+bC+'40;border-radius:var(--r);overflow:hidden">';
+    s+='<div style="background:var(--bg2);border:2px solid '+(thisPri===1?priBorder[1]:bC+'40')+';border-radius:var(--r);overflow:hidden">';
     /* Header strip */
+    var thisPri=priMap[p.id]||3;
+    s+='<div style="background:'+priBg[thisPri]+';padding:3px 13px;border-bottom:1px solid '+priBorder[thisPri]+'20;font-size:8px;font-weight:700;color:'+priBorder[thisPri]+'">'+(priLabel[thisPri]||'')+'</div>';
     s+='<div style="background:'+bC+'15;padding:10px 13px;border-bottom:1px solid '+bC+'30">';
     s+='<div style="display:flex;justify-content:space-between;align-items:center">';
     s+='<div style="font-size:11px;font-weight:700;color:var(--t1)">'+p.flag+' '+p.name+'</div>';
@@ -4840,15 +5681,13 @@ document.addEventListener('DOMContentLoaded',function(){
       var t=btn.getAttribute('data-t');
       var panel=document.getElementById('p-'+t);if(panel)panel.classList.add('on');
       if(t==='sentiment')renderSentiment();
-      if(t==='liquidity')renderLiquidity();
-      if(t==='cot')renderCOT();
+      if(t==='kapital')renderKapital();
       if(t==='indicators')renderIndicators();
-      if(t==='technical')renderTechnical();
+      if(t==='portfolio')renderPortfolio();
+      if(t==='obligacje')renderObligacje();
       if(t==='polska')renderPolska();
       if(t==='symulator')renderSymulator();
-      if(t==='projekcja')renderProjekcja();
-      if(t==='stopy')renderStopy();
-      if(t==='portfolio')renderPortfolio();
+      if(t==='prognozy')renderPrognozy();
       if(t==='journal')renderJournal();
       if(t==='sources')renderSources();
     });
@@ -5028,6 +5867,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 </script>
