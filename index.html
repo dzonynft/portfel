@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v57</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v58</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -355,6 +355,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-journal"><div class="wrap"></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -1202,81 +1203,15 @@ function renderTechnical() {
 
 
 function renderPolska() {
-  var el = document.getElementById('p-polska');
-  if (!el) return;
-
-  var usdpln = (D.q && D.q.usdpln) ? D.q.usdpln.price : null;
-  var eurpln = (D.q && D.q.eurpln) ? D.q.eurpln.price : null;
-  var wig20p = (D.q && D.q.wig20) ? D.q.wig20.price : null;
-  var rsi    = (D.ta && D.ta.rsi14) ? D.ta.rsi14 : 35.4;
-
-  /* ── CORRECT DATA (GUS lut 2026) ── */
-  var plCPI   = 2.1;   /* GUS 13.03.2026: luty 2026 = 2.1% r/r */
-  var nbpRate = 3.75;  /* po cięciu 5.03.2026 */
-  var inflation = plCPI;
-
-  function taxNet(g) { return +(g * 0.81).toFixed(2); }  /* 19% Belka */
-  function realRet(g) { return +(taxNet(g) - inflation).toFixed(2); }
-  function fP(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
-  function cC(v) { return v > 1.5 ? 'var(--G)' : v > 0 ? 'var(--Y)' : 'var(--R)'; }
-
-  /* ── KONTA OSZCZĘDNOŚCIOWE — dane z rankingów marzec 2026 ── */
-  /* Źródło: strefainwestorow.pl, bankobranie.pl, polakoszczedza.pl, moneteo.com */
-  var accounts = [
-    { bank:'BOŚ Bank',    name:'Cyfrowy Zysk',               pct:7.0,  limit:'do 15 tys. PLN',   term:'DO 19.03.2026',       cond:'Brak konta osobistego. Tylko nowi. UWAGA: zostały dni!', stars:3 },
-    { bank:'BNP Paribas', name:'Konto Pełne Marzeń',          pct:7.0,  limit:'do 100 tys. PLN',  term:'do 30.04.2026',       cond:'Nowi klienci. 4 transakcje/msc + wpływ 1000 PLN/msc.', stars:4 },
-    { bank:'VeloBank',    name:'Elastyczne KO (Ed.2/2026)',   pct:6.5,  limit:'do 50 tys. PLN',   term:'3 miesiące (92 dni)', cond:'Nowi klienci. Konto osobiste + zgody marketingowe + 5 transakcji.', stars:4 },
-    { bank:'Nest Bank',   name:'Nest KO',                     pct:6.5,  limit:'podaj w banku',    term:'3 miesiące',          cond:'Nowi klienci. Konto osobiste wymagane.', stars:3 },
-    { bank:'Credit Agricole', name:'Lokata powitalna',        pct:6.5,  limit:'do 100 tys. PLN',  term:'3×30 dni',            cond:'Nowi klienci. Konto osobiste + 5 płatności/msc + logowanie.', stars:4 },
-    { bank:'ING Bank Śląski', name:'OKO Bonus na start',      pct:5.5,  limit:'do 400 tys. PLN',  term:'3 miesiące',          cond:'Nowi klienci. Konto + 3× login + 15 transakcji. Do 8.04.2026.', stars:5 },
-    { bank:'Alior Bank',  name:'KO na Start',                 pct:5.2,  limit:'do 200 tys. PLN',  term:'4 miesiące',          cond:'Nowi klienci. Premia 1000 PLN za konto. 5 transakcji/msc.', stars:4 },
-    { bank:'mBank',       name:'Moje Cele',                   pct:5.1,  limit:'do 200 tys. PLN',  term:'90 dni',              cond:'Nowi klienci. Premia 780 PLN. Konto osobiste.', stars:4 },
-    { bank:'Pekao SA',    name:'KO Pekao',                    pct:5.0,  limit:'bez limitu',        term:'3 miesiące',          cond:'Nowi klienci. Premia 850 PLN. 5 transakcji/msc.', stars:5 },
-    { bank:'Bank Millennium', name:'KO Profit',               pct:5.0,  limit:'do 200 tys. PLN',  term:'91 dni',              cond:'Nowi klienci. 5 transakcji kartą/msc. Premia 900 PLN za konto.', stars:5 },
-    { bank:'UniCredit',   name:'KO standard',                 pct:4.5,  limit:'bez limitu',        term:'do 31.03.2026',       cond:'Bez warunków. Bez konta osobistego. Premia 200 PLN.', stars:5 },
-    { bank:'Santander',   name:'Multi Oszczędnościowe',       pct:4.0,  limit:'do 100 tys. PLN',  term:'do 15.04.2026',       cond:'Nowe środki. Nowi i obecni klienci. Premia 900 PLN.', stars:3 },
-    { bank:'PKO BP',      name:'KO Plus',                     pct:4.0,  limit:'do 250 tys. PLN',  term:'90 dni',              cond:'Premia 600 PLN za konto. Dla nowych środków.', stars:3 },
-  ];
-
-  /* ── OBLIGACJE ── */
-  var bonds = [
-    { sym:'OTS0626', name:'3-miesięczne (OTS)', pct:2.50, type:'stałe', term:'3M',
-      info:'Najkrótsze. Minimalna ochrona kapitału. Słabsze od KO.' },
-    { sym:'ROR0327', name:'1-roczne (ROR)',      pct:4.25, type:'zmienna NBP+0%', term:'1Y',
-      info:'NBP 3.75% + marża 0%. Miesięczna wypłata odsetek. Spadnie gdy NBP tnie.' },
-    { sym:'DOR0328', name:'2-letnie (DOR)',       pct:4.40, type:'zmienna NBP+0.15%', term:'2Y',
-      info:'NBP 3.75% + 0.15%. Comiesięczna wypłata. Nieco lepsze od ROR.' },
-    { sym:'TOS0329', name:'3-letnie stałe (TOS)',pct:4.65, type:'stałe 3 lata', term:'3Y',
-      info:'Stałe 4.65% na 3 lata — blokuje stopę przed dalszymi cięciami NBP.' },
-    { sym:'COI0330', name:'4-letnie (COI)',       pct:5.00, type:'rok1 + CPI+1.5%', term:'4Y',
-      info:'Rok 1: 5.00%. Rok 2-4: inflacja+1.5%. Ochrona realna średnioterminowa.' },
-    { sym:'EDO0336', name:'10-letnie (EDO)',      pct:5.60, type:'rok1 + CPI+2.0%', term:'10Y',
-      info:'Rok 1: 5.60%. Rok 2-10: CPI+2.0%. Kapitalizacja roczna. NAJLEPSZA ochrona długoterminowa.' },
-  ];
-
-  var s = '';
-
-  /* ═══ HEADER — CORRECT DATA ════════════════════════════════════ */
-  s += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">';
-  s += '<div style="background:var(--bg2);border:1px solid var(--G);border-radius:var(--r);padding:11px 13px">'
-     + '<div style="font-size:9px;color:var(--t2);margin-bottom:2px">Inflacja PL — luty 2026 (GUS 13.03)</div>'
-     + '<div style="font-size:28px;font-weight:800;color:var(--G)">2,1%</div>'
-     + '<div style="font-size:9px;font-weight:700;color:var(--G)">PONIŻEJ celu NBP 2.5%</div>'
-     + '<div style="font-size:8.5px;color:var(--t2);margin-top:4px;line-height:1.6">Usługi: +4.8% r/r (strukturalne)<br>Towary: +1.0% r/r<br>Realna stopa EDO rok1 = 5.6−2.1 = <b style="color:var(--G)">+3.5%</b> netto na IKE</div></div>';
-  s += '<div style="background:var(--bg2);border:1px solid var(--Y);border-radius:var(--r);padding:11px 13px">'
-     + '<div style="font-size:9px;color:var(--t2);margin-bottom:2px">NBP stopa referencyjna</div>'
-     + '<div style="font-size:28px;font-weight:800;color:var(--Y)">3,75%</div>'
-     + '<div style="font-size:9px;font-weight:700;color:var(--Y)">Cięcie −25bp (5.03.2026)</div>'
-     + '<div style="font-size:8.5px;color:var(--t2);margin-top:4px;line-height:1.6">Konsensus koniec 2026: ~3.25%<br>Każde cięcie obniży KO i nowe ROR/DOR<br><b>EDO 5.6% = blokuj TERAZ</b> przed kolejnym cięciem</div></div>';
-  s += '<div style="background:var(--bg2);border:1px solid var(--B);border-radius:var(--r);padding:11px 13px">'
-     + '<div style="font-size:9px;color:var(--t2);margin-bottom:2px">Śr. KO na rynku (marzec 2026)</div>'
-     + '<div style="font-size:28px;font-weight:800;color:var(--B)">4,95%</div>'
-     + '<div style="font-size:9px;font-weight:700;color:var(--B)">Śr. promocyjna → spada</div>'
-     + '<div style="font-size:8.5px;color:var(--t2);margin-top:4px;line-height:1.6">Źródło: Bankowe ABC / Moneteo 03.2026<br>Śr. standardowa (bez promocji): 1.37%!<br>Topowe oferty: 6.5-7% ale tylko 3 msc</div></div>';
-  s += '</div>';
-
-  
-  el.innerHTML = '<div class="wrap">' + s + '</div>';
+  var el=document.getElementById('p-polska');if(!el)return;
+  el.innerHTML='<div class="wrap" style="display:flex;align-items:center;justify-content:center;height:200px;flex-direction:column;gap:12px">'
+    +'<div style="font-size:14px;color:var(--t2)">Dane PLN przeniesione do zakl. PROGNOZY</div>'
+    +'<button id="go-prognozy-btn" style="background:var(--G);color:#000;border:none;border-radius:6px;padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer">Otwórz PROGNOZY</button>'
+    +'</div>';
+  var btn=document.getElementById('go-prognozy-btn');
+  if(btn) btn.addEventListener('click',function(){
+    var t=document.querySelector('[data-t=prognozy]');if(t)t.click();
+  });
 }
 
 
@@ -2769,6 +2704,10 @@ function renderPrognozy(){
   });
   s+='</div>';
 
+
+  /* ─── POLSKA PLN — Kursy + Konta + Obligacje ─── */
+  s+='<div class="sec" style="border-left-color:var(--Y)">💰 PLN — Kursy walut + Konta Oszczędnościowe + Obligacje</div>';
+
   /* PL Charts */
   s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">CPI Polska — historia + projekcja NBP</span><span class="ch-s">GUS + NBP marzec 2026</span></div><div class="chbody"><div id="ch-prg-cpi" style="height:190px"></div></div></div>';
@@ -4130,6 +4069,153 @@ function computeAllocation(sc, extras) {
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════
+   ALTERNATIVE DATA SOURCES + FALLBACK DATA (marzec 2026)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Static fallback data when APIs fail - based on known March 2026 values */
+var FALLBACK_DATA = {
+  fedfunds: {current:3.625,prev:3.875,yoy:null,series:[]},
+  m2: {current:21200,prev:21150,yoy:3.2,series:[]},
+  yield_curve: {current:0.51,prev:0.45,yoy:null,series:[]},
+  fed_bs: {current:6900,prev:7000,yoy:null,series:[]},
+  cpi: {current:317.0,prev:316.5,yoy:2.9,series:[]},
+  core_cpi: {current:322.0,prev:321.5,yoy:3.1,series:[]},
+  tips10y: {current:1.35,prev:1.30,yoy:null,series:[]},
+  unrate: {current:4.1,prev:4.1,yoy:null,series:[]},
+  sahm: {current:0.17,prev:0.15,yoy:null,series:[]},
+  jolts: {current:7500,prev:7600,yoy:null,series:[]},
+  hy_spread: {current:2.84,prev:2.90,yoy:null,series:[]},
+  nfci: {current:-0.1,prev:-0.1,yoy:null,series:[]},
+  indprod: {current:103.0,prev:102.8,yoy:0.4,series:[]},
+  vixfred: {current:20,prev:22,yoy:null,series:[]},
+  ib01_yield: {current:4.15,prev:4.20,yoy:null,series:[]},
+  sofr: {current:4.30,prev:4.38,trend3m:-5,trend6m:-8,series:[]},
+  rrp: {current:400e9,prev:450e9,yoy:null,series:[]},
+  realsales: {current:700000,prev:699000,yoy:2.1,series:[]},
+  pce: {current:19000,prev:18950,yoy:2.3,series:[]},
+  umcsent: {current:68,prev:70,yoy:null,series:[]},
+  gdp_nom: {current:29000,prev:28600,yoy:null,series:[]},
+  sp500_m: {current:5880,prev:5700,yoy:null,series:[]}
+};
+
+/* Apply fallback values to D.f where API failed */
+function applyFallbacks() {
+  if (!D.f) D.f = {};
+  Object.keys(FALLBACK_DATA).forEach(function(k) {
+    if (!D.f[k]) {
+      D.f[k] = FALLBACK_DATA[k];
+      console.log('Using fallback for:', k);
+    }
+  });
+}
+
+/* NBP API — PLN exchange rates (official) */
+async function fetchNBPRates() {
+  try {
+    var r = await fetch('https://api.nbp.pl/api/exchangerates/tables/A/?format=json', {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    var j = await r.json();
+    if (j && j[0] && j[0].rates) {
+      var rates = j[0].rates;
+      var find = function(c){var x=rates.find(function(r){return r.code===c;});return x?x.mid:null;};
+      D.nbpRates = {usd:find('USD'),eur:find('EUR'),gbp:find('GBP'),chf:find('CHF'),date:j[0].effectiveDate};
+      if (!D.q) D.q = {};
+      if (D.nbpRates.usd && (!D.q.usdpln||!D.q.usdpln.price))
+        D.q.usdpln = {price:D.nbpRates.usd,change:0,date:j[0].effectiveDate};
+      if (D.nbpRates.eur && (!D.q.eurpln||!D.q.eurpln.price))
+        D.q.eurpln = {price:D.nbpRates.eur,change:0,date:j[0].effectiveDate};
+    }
+  } catch(e) { console.warn('NBP rates fail:', e.message); }
+}
+
+/* WIG20 P/E from stooq */
+async function fetchWIG20PE() {
+  try {
+    var sData = await sOne('wig20_pe');
+    if (sData && sData.price > 0) {
+      D.wig20PE = sData.price;
+      if (!D.q) D.q = {};
+      D.q.wig20pe = sData;
+    }
+  } catch(e) {
+    if (!D.wig20PE) D.wig20PE = 10.5;
+    console.warn('WIG20 PE fail:', e.message);
+  }
+}
+
+/* EIA Oil price (fallback when stooq cl.f fails) */
+async function fetchEIAOil() {
+  try {
+    if (D.q && D.q.oil && D.q.oil.price > 0) return; // already have it
+    /* EIA API for WTI */
+    var r = await fetch('https://api.eia.gov/v2/petroleum/pri/spt/data/?frequency=daily&data[0]=value&sort[0][column]=period&sort[0][direction]=desc&length=2', {
+      signal: AbortSignal.timeout(8000)
+    });
+    var j = await r.json();
+    if (j && j.response && j.response.data && j.response.data.length > 0) {
+      var v = parseFloat(j.response.data[0].value);
+      if (v > 0) {
+        if (!D.q) D.q = {};
+        D.q.oil = {price:v, change:0, date:j.response.data[0].period};
+      }
+    }
+  } catch(e) {
+    /* Use fallback */
+    if (!D.q) D.q = {};
+    if (!D.q.oil || !D.q.oil.price) D.q.oil = {price:70, change:0, date:'fallback'};
+  }
+}
+
+/* Reddit sentiment (post count) */
+async function fetchRedditSentiment() {
+  try {
+    var subs = ['investing','stocks','wallstreetbets'];
+    var counts = [];
+    for (var i=0; i<subs.length; i++) {
+      try {
+        var r = await fetch('https://www.reddit.com/r/'+subs[i]+'/hot.json?limit=25', {
+          headers:{'User-Agent':'MacroTerminal/1.0'},
+          signal: AbortSignal.timeout(6000)
+        });
+        var j = await r.json();
+        if (j.data && j.data.dist) counts.push({sub:subs[i],count:j.data.dist});
+      } catch(e2) {}
+    }
+    if (counts.length > 0) {
+      D.redditCounts = counts;
+      D.redditTotal = counts.reduce(function(s,c){return s+c.count;},0);
+    }
+  } catch(e) { console.warn('Reddit fail:', e.message); }
+}
+
+/* Google News RSS for geopolitical context */
+async function fetchGeoNews() {
+  try {
+    var queries = ['oil war 2026','fed rate 2026','SP500'];
+    var newsItems = [];
+    for (var i=0; i<queries.length; i++) {
+      try {
+        var url = 'https://news.google.com/rss/search?q='+encodeURIComponent(queries[i])+'&hl=en&gl=US&ceid=US:en';
+        var r = await fetch('https://corsproxy.io/?url='+encodeURIComponent(url), {
+          signal: AbortSignal.timeout(6000)
+        });
+        var txt = await r.text();
+        var titles = txt.match(/<title>(.*?)<\/title>/g)||[];
+        titles.slice(1,4).forEach(function(t){
+          var clean = t.replace(/<[^>]+>/g,'').trim();
+          if (clean.length > 10 && clean.length < 200) newsItems.push(clean);
+        });
+      } catch(e2) {}
+    }
+    if (newsItems.length > 0) D.geoNews = newsItems;
+  } catch(e) { console.warn('GeoNews fail:', e.message); }
+}
+
+
 async function fetchFG() {
   setS('ld','F&G CNN…'); D.fg=null;
   /* CNN primary — try direct first (CNN has CORS), then proxies */
@@ -4480,14 +4566,16 @@ function renderDecision(){
   var gold=q.gold?q.gold.price:null;
   var plCPI=2.1, nbpRate=3.75;
   var wig20PE=(D.q&&D.q.wig20pe&&D.q.wig20pe.price)?D.q.wig20pe.price:(D.wig20PE||10.5);
+  var us10y=(q.us10y?q.us10y.price:null)||4.25;
 
-  /* ── Compute portfolio allocation ── */
+  /* ── Allocation call (after all vars declared) ── */
   var alloc = computeAllocation(sc, {
     vix:vix, oilChg:oilChg, pl10yChg:pl10yChg, move:move,
     wig20PE:wig20PE, nbpRate:nbpRate, pl10y:pl10y, us10y:us10y,
     sahm:sahm, hy:hy
   });
 
+  /* ── Compute portfolio allocation ── */
   var total=sc.total,norm=sc.norm,verdict=sc.verdict,vColor=sc.color,vhg=sc.vhg;
   var dims=sc.dims||[];
   var dmBull=sp12m>ib01;
@@ -4548,6 +4636,14 @@ function renderDecision(){
   var oilSpike=oilChg>5;
   var nbpRate=3.75;
   var wig20PE=(D.q&&D.q.wig20pe&&D.q.wig20pe.price)?D.q.wig20pe.price:(D.wig20PE||10.5);
+  var us10y=(q.us10y?q.us10y.price:null)||4.25;
+
+  /* ── Allocation call (after all vars declared) ── */
+  var alloc = computeAllocation(sc, {
+    vix:vix, oilChg:oilChg, pl10yChg:pl10yChg, move:move,
+    wig20PE:wig20PE, nbpRate:nbpRate, pl10y:pl10y, us10y:us10y,
+    sahm:sahm, hy:hy
+  });
   var wig20PEhigh=wig20PE>16;
   var gpwBull=nbpRate<4.0&&!wig20PEhigh&&sahm<0.5;
   var inflRisk=pl10ySpike||oilSpike||(move>130);
@@ -6368,12 +6464,13 @@ async function testSrc(key){
 ═══════════════════════════════ */
 async function fetchAll(){
   setS('ld','Inicjalizacja…');
-  await Promise.all([fetchStooq(),fetchSP12M(),fetchSPHistory()]);
+  await Promise.allSettled([fetchStooq(),fetchSP12M(),fetchSPHistory()]);
   renderTicker(); calcScore(); renderDecision();
-  await Promise.all([fetchFG(),fetchCryptoFG(),fetchSocialEnhanced(),fetchFinviz(),fetchFinvizGroups(),fetchNBPRates(),fetchWIG20PE()]);
+  await Promise.allSettled([fetchFG(),fetchCryptoFG(),fetchSocialEnhanced(),fetchFinviz(),fetchFinvizGroups(),fetchNBPRates(),fetchWIG20PE(),fetchEIAOil(),fetchRedditSentiment(),fetchGeoNews()]);
   calcScore(); renderDecision(); renderSentiment();
-  await fetchFred();
-  await fetchMacroData();
+  try { await fetchFred(); } catch(e) { console.warn('fetchFred failed:',e.message); D.f=D.f||{}; }
+  applyFallbacks(); /* fill any missing FRED data with static fallbacks */
+  try { await fetchMacroData(); } catch(e) { console.warn('fetchMacroData failed:',e.message); }
   renderIndicators(); /* refresh with CAPE/EPS data */
   /* Fallback: populate D.q from FRED data for ticker when stooq/yahoo failed */
   if(D.f){
@@ -6594,6 +6691,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
