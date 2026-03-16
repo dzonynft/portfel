@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v61</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v62</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -353,6 +353,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-journal"><div class="wrap"></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -2707,11 +2708,31 @@ function renderPrognozy(){
 
   /* PLN Section */
   s+='<div class="sec">💰 POLSKA PLN — Kursy + Konta Oszczędnościowe + Obligacje</div>';
+  /* USD/PLN and EUR/PLN valuation */
+  var usdAvg5y=3.98, eurAvg5y=4.28; /* 5-year avg 2021-2026 */
+  var usdAvg10y=3.88, eurAvg10y=4.21; /* 10-year avg */
+  var usdDiffPct=usdpln?(((usdpln-usdAvg5y)/usdAvg5y)*100).toFixed(1):null;
+  var eurDiffPct=eurpln?(((eurpln-eurAvg5y)/eurAvg5y)*100).toFixed(1):null;
+  var usdValLabel=usdpln?(usdpln>usdAvg5y+0.15?'DROGI USD (PLN tani)':usdpln<usdAvg5y-0.15?'TANI USD (PLN mocny)':'Okolice średniej'):'—';
+  var eurValLabel=eurpln?(eurpln>eurAvg5y+0.15?'DROGI EUR (PLN tani)':eurpln<eurAvg5y-0.15?'TANI EUR (PLN mocny)':'Okolice średniej'):'—';
+  var usdC=usdpln?(usdpln>usdAvg5y+0.15?'var(--R)':usdpln<usdAvg5y-0.15?'var(--G)':'var(--Y)'):'var(--t2)';
+  var eurC=eurpln?(eurpln>eurAvg5y+0.15?'var(--R)':eurpln<eurAvg5y-0.15?'var(--G)':'var(--Y)'):'var(--t2)';
+
   s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
-  s+='<div style="background:var(--bg2);border:1px solid var(--B)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">USD/PLN</div><div style="font-size:20px;font-weight:700;color:var(--B)">'+usdpln.toFixed(4)+'</div><div style="font-size:7.5px;color:var(--t2)">Live NBP API</div></div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--B)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">EUR/PLN</div><div style="font-size:20px;font-weight:700;color:var(--B)">'+eurpln.toFixed(4)+'</div><div style="font-size:7.5px;color:var(--t2)">Live NBP API</div></div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">CPI PL (lut 26)</div><div style="font-size:20px;font-weight:700;color:var(--G)">2,1%</div><div style="font-size:7.5px;color:var(--G)">Poniżej celu</div></div>';
-  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">NBP stopa ref.</div><div style="font-size:20px;font-weight:700;color:var(--Y)">3,75%</div><div style="font-size:7.5px;color:var(--Y)">Cięcie 5.03.26</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid '+usdC+'50;border-radius:var(--r);padding:8px 11px">'
+    +'<div style="font-size:8px;color:var(--t2)">USD/PLN (live)</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+usdC+'">'+(usdpln?usdpln.toFixed(4):'3.9500')+'</div>'
+    +'<div style="font-size:8px;font-weight:700;color:'+usdC+'">'+usdValLabel+'</div>'
+    +'<div style="font-size:7.5px;color:var(--t2)">Śr. 5Y: '+usdAvg5y.toFixed(2)+' | Śr. 10Y: '+usdAvg10y.toFixed(2)
+    +(usdDiffPct?' | '+(parseFloat(usdDiffPct)>0?'+':'')+usdDiffPct+'% vs śr.':'')+'</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid '+eurC+'50;border-radius:var(--r);padding:8px 11px">'
+    +'<div style="font-size:8px;color:var(--t2)">EUR/PLN (live)</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+eurC+'">'+(eurpln?eurpln.toFixed(4):'4.2600')+'</div>'
+    +'<div style="font-size:8px;font-weight:700;color:'+eurC+'">'+eurValLabel+'</div>'
+    +'<div style="font-size:7.5px;color:var(--t2)">Śr. 5Y: '+eurAvg5y.toFixed(2)+' | Śr. 10Y: '+eurAvg10y.toFixed(2)
+    +(eurDiffPct?' | '+(parseFloat(eurDiffPct)>0?'+':'')+eurDiffPct+'% vs śr.':'')+'</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">CPI PL (lut 26)</div><div style="font-size:20px;font-weight:700;color:var(--G)">2,1%</div><div style="font-size:7.5px;color:var(--G)">Poniżej celu NBP 2.5%</div></div>';
+  s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:8px 11px"><div style="font-size:8px;color:var(--t2)">NBP stopa ref.</div><div style="font-size:20px;font-weight:700;color:var(--Y)">3,75%</div><div style="font-size:7.5px;color:var(--Y)">Cięcie 5.03.2026</div></div>';
   s+='</div>';
 
 
@@ -2761,8 +2782,8 @@ function renderPrognozy(){
   s+='</div>';
   /* CPI Charts */
   s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">CPI Polska — historia + projekcja NBP</span><span class="ch-s">GUS + NBP marzec 2026</span></div><div class="chbody"><div id="ch-prg-cpi" style="height:160px"></div></div></div>';
-  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Inflacja CPI YoY + Stopy (PL i USA)</span><span class="ch-s">GUS + BLS + Fed</span></div><div class="chbody"><div id="ch-prg-cpirate" style="height:160px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">CPI + Stopy — POLSKA</span><span class="ch-s">GUS + NBP marzec 2026</span></div><div class="chbody"><div id="ch-prg-cpipl" style="height:160px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">CPI + Stopy — USA</span><span class="ch-s">BLS + FOMC marzec 2026</span></div><div class="chbody"><div id="ch-prg-cpius" style="height:160px"></div></div></div>';
   s+='</div>';
 
   /* ═══ PKB RAZEM ════════════════════════════════════════════════ */
@@ -2941,7 +2962,7 @@ function renderPrognozy(){
     var histY=[0.4,0.7,0.9,2.0,2.1,2.2,3.7,3.8,3.8,4.2,4.6,4.7,1.0,1.3,1.5,1.9,1.7,1.8,2.2,2.2,2.2,2.3,2.4,2.4,2.2,2.1];
     var projX=['2026P','2027P','2028P'];
     var allX=histX.concat(projX);
-    Plotly.newPlot('ch-prg-cpi',[
+    Plotly.newPlot('ch-prg-cpipl-hist',[
       {x:['2026P','2027P','2028P','2028P','2027P','2026P'],y:[2.9,3.7,4.0,0.9,1.1,1.6],fill:'toself',fillcolor:'rgba(96,165,250,.1)',line:{width:0},showlegend:false},
       {x:histX,y:histY,mode:'lines',name:'CPI PL hist.',line:{color:'#f87171',width:2}},
       {x:['Lut26','2026P','2027P','2028P'],y:[2.1,2.3,2.4,2.3],mode:'lines+markers',name:'Proj. NBP',line:{color:'#60a5fa',width:2,dash:'dash'},marker:{size:6}},
@@ -2950,14 +2971,27 @@ function renderPrognozy(){
       margin:{l:36,r:6,t:6,b:50},
       xaxis:{categoryorder:'array',categoryarray:allX,tickangle:-45,tickfont:{size:7.5},nticks:10},
       yaxis:{title:'%',range:[0,6]}}),PLY);
-    /* CPI vs Rates */
+    /* CPI PL + NBP */
     var rateYears=['2020','2021','2022','2023','2024','2025','2026P'];
-    Plotly.newPlot('ch-prg-cpirate',[
-      {x:rateYears,y:[3.4,5.1,14.4,11.4,3.6,2.4,2.3],mode:'lines+markers',name:'CPI PL',line:{color:'#f5c040',width:2},marker:{size:6}},
-      {x:rateYears,y:[0.1,0.1,6.75,6.75,5.25,3.75,3.25],mode:'lines+markers',name:'NBP rate',line:{color:'#00e5a8',width:1.5,dash:'dash'},marker:{size:5}},
-      {x:rateYears,y:[3.4,5.1,14.4,11.4,3.6,2.4,2.3].map(function(_,i){return [0.25,0.25,4.25,5.25,5.25,4.25,3.63][i];}),mode:'lines',name:'Fed rate',line:{color:'#60a5fa',width:1.5,dash:'dot'}},
+    var cpiPLdata=[3.4,5.1,14.4,11.4,3.6,2.4,2.3];
+    var nbpData=[0.1,0.1,6.75,6.75,5.25,3.75,3.25];
+    if(document.getElementById('ch-prg-cpipl'))Plotly.newPlot('ch-prg-cpipl',[
+      {x:rateYears,y:cpiPLdata,mode:'lines+markers',name:'CPI PL',line:{color:'#f87171',width:2.5},marker:{size:7},
+       fill:'tozeroy',fillcolor:'rgba(248,113,113,.07)'},
+      {x:rateYears,y:nbpData,mode:'lines+markers',name:'NBP stopa',line:{color:'#f5c040',width:2,dash:'dash'},marker:{size:6}},
+      {x:rateYears,y:rateYears.map(function(){return 2.5;}),mode:'lines',name:'Cel NBP 2.5%',line:{color:'#00e5a8',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
-      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%'}}),PLY);
+      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,16]}}),PLY);
+    /* CPI USA + Fed */
+    var cpiUSdata=[1.2,4.7,8.0,3.4,3.4,2.9,2.6];
+    var fedRateData=[0.25,0.25,4.25,5.25,5.25,4.25,3.63];
+    if(document.getElementById('ch-prg-cpius'))Plotly.newPlot('ch-prg-cpius',[
+      {x:rateYears,y:cpiUSdata,mode:'lines+markers',name:'CPI USA',line:{color:'#60a5fa',width:2.5},marker:{size:7},
+       fill:'tozeroy',fillcolor:'rgba(96,165,250,.07)'},
+      {x:rateYears,y:fedRateData,mode:'lines+markers',name:'Fed rate',line:{color:'#a78bfa',width:2,dash:'dash'},marker:{size:6}},
+      {x:rateYears,y:rateYears.map(function(){return 2.0;}),mode:'lines',name:'Cel Fed 2%',line:{color:'#00e5a8',width:1,dash:'dot'},hoverinfo:'skip'}
+    ],pLy({height:160,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
+      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,10]}}),PLY);
     /* PKB */
     Plotly.newPlot('ch-prg-pkb',[
       {x:['2022','2023','2024','2025','2026P','2027P','2028P'],
@@ -2977,10 +3011,15 @@ function renderPrognozy(){
       margin:{l:36,r:6,t:6,b:35},
       xaxis:{categoryorder:'array',categoryarray:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],tickangle:-20,tickfont:{size:8}},
       yaxis:{title:'%',range:[2,7]}}),PLY);
+    var fedHistX=['lut22','lip22','gru22','cze23','gru23','mar24','cze24','wrz24','gru24','mar25','cze25','wrz25','gru25','lut26','mar26'];
+    var fedHistY=[0.25,2.25,4.25,5.25,5.25,5.25,5.25,5.00,4.50,4.25,4.25,4.25,4.25,4.25,3.63];
+    var fedProjX=['mar26','cze26P','wrz26P','gru26P','2027P'];
+    var fedProjY=[3.63,3.38,3.25,3.00,2.75];
+    var fedAllX=fedHistX.concat(fedProjX.slice(1));
     Plotly.newPlot('ch-prg-fed',[
-      {x:['2022','2023','sty24','lis24','lut25','gru25','lut26','mar26'],y:[4.25,5.25,5.25,5.00,4.75,4.50,4.25,3.63],mode:'lines+markers',name:'Fed faktyczna',line:{color:'#60a5fa',width:2.5},marker:{size:7}},
-      {x:['mar26','cze26P','wrz26P','gru26P','2027P'],y:[3.63,3.38,3.25,3.00,2.75],mode:'lines+markers',name:'Fed prognoza (FedWatch)',line:{color:'#60a5fa',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
-      {x:['2022','2027P'],y:[2.5,2.5],mode:'lines',name:'Neutralna Fed',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
+      {x:fedHistX,y:fedHistY,mode:'lines+markers',name:'Fed faktyczna',line:{color:'#60a5fa',width:2.5},marker:{size:6}},
+      {x:fedProjX,y:fedProjY,mode:'lines+markers',name:'Fed prognoza (FedWatch)',line:{color:'#60a5fa',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
+      {x:[fedHistX[0],fedProjX[fedProjX.length-1]],y:[2.5,2.5],mode:'lines',name:'Neutralna Fed',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:150,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
       margin:{l:36,r:6,t:6,b:35},
       xaxis:{categoryorder:'array',categoryarray:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],tickangle:-20,tickfont:{size:8}},
@@ -3750,7 +3789,9 @@ function renderIndicatorsExtra(el) {
       {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.pl10;}),mode:'lines+markers',name:'PL 10Y',line:{color:'#f5c040',width:2},marker:{size:6}},
       {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.pl2;}),mode:'lines+markers',name:'PL 2Y',line:{color:'#f5c040',width:1.5,dash:'dash'},marker:{size:5}},
       {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.us10;}),mode:'lines+markers',name:'US 10Y',line:{color:'#60a5fa',width:2},marker:{size:6}},
-      {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.us2;}),mode:'lines+markers',name:'US 2Y',line:{color:'#60a5fa',width:1.5,dash:'dash'},marker:{size:5}}
+      {x:plYields.map(function(r){return r.d;}),y:plYields.map(function(r){return r.us2;}),mode:'lines+markers',name:'US 2Y',line:{color:'#60a5fa',width:1.5,dash:'dash'},marker:{size:5}},
+      {x:['2026'],y:[curPL10y3],mode:'markers+text',text:['PL:'+curPL10y3.toFixed(2)+'%'],textposition:'top center',textfont:{size:8,color:'#f5c040'},marker:{size:10,color:'#f5c040',symbol:'star'},showlegend:false},
+      {x:['2026'],y:[curUS10y3],mode:'markers+text',text:['US:'+curUS10y3.toFixed(2)+'%'],textposition:'bottom center',textfont:{size:8,color:'#60a5fa'},marker:{size:10,color:'#60a5fa',symbol:'star'},showlegend:false}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:38,r:6,t:6,b:28},yaxis:{title:'%'}}),PLY);
 
   }, 200);
@@ -5104,6 +5145,7 @@ function renderDecision(){
 
 
   /* ── M2 YoY + Market Cycle ── */
+  var fed=(f.fedfunds&&f.fedfunds.current!=null)?f.fedfunds.current:3.625;
   var m2yoyD=(f.m2&&f.m2.yoy!=null)?f.m2.yoy:3.2;
   var cyclePhase, cycleColor, cycleDesc;
   if(m2yoyD>6&&fed<3){cyclePhase='EKSPANSJA MONETARNA';cycleColor='var(--G)';cycleDesc='M2 rośnie szybko + niskie stopy → idealne dla akcji i nieruchomości';}
@@ -5945,7 +5987,10 @@ function renderIndicators(){
 
     function kard(title,sub,val,valColor,note,src){
       return '<div style="background:var(--bg2);border:1px solid '+valColor+';border-radius:var(--r);padding:11px 13px">'
-        +'<div style="font-size:9px;color:var(--t2);margin-bottom:3px">'+title+'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">'
+        +'<div style="font-size:9px;color:var(--t2)">'+title+'</div>'
+        +(src?'<div style="font-size:7px;color:var(--t2);opacity:.7">'+src+'</div>':'')
+        +'</div>'
         +'<div style="font-size:23px;font-weight:700;color:'+valColor+'">'+val+'</div>'
         +(sub?'<div style="font-size:9px;color:var(--t2);margin-bottom:4px">'+sub+'</div>':'')
         +'<div style="font-size:9.5px;color:var(--t1);line-height:1.55;margin-top:3px">'+note+'</div>'
@@ -6911,6 +6956,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
