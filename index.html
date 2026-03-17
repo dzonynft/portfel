@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v71</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v72</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -357,6 +357,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -5139,7 +5140,7 @@ function renderDecision(){
     +'<b style="color:#f5f5f5">SP500 Earnings Yield (EY)</b> = 1/CAPE × 100 = ile % zysku spółki SP500 przypadają na każde zainwestowane 100 zł.<br>'
     +'<span style="color:#aaa">Zasada: gdy EY &gt; US10Y → akcje dają lepszy zwrot niż obligacje rządowe USA → </span>'
     +(alloc.spEYSpread>0
-      ?'<b style="color:var(--G)">✅ TERAZ EY='+alloc.spEY.toFixed(1)+'% &gt; US10Y='+us10y.toFixed(2)+'% → AKCJE KORZYSTNIEJSZE</b>'
+      ?'<b style="color:var(--G)">✅ TERAZ EY='+alloc.spEY.toFixed(1)+'% &gt; US10Y='+us10y.toFixed(2)+'%'+(alloc.spEY>3?' (EY&gt;3% ✓)':' (EY&lt;3% ⚠️)')+'→ AKCJE KORZYSTNIEJSZE</b>'
       :'<b style="color:var(--R)">❌ TERAZ EY='+alloc.spEY.toFixed(1)+'% &lt; US10Y='+us10y.toFixed(2)+'% → OBLIGACJE LEPIEJ WYCENIONE</b>')
     +'<br><span style="color:#aaa">GPW: WIG20 EY='+alloc.wigEY.toFixed(1)+'% vs PL10Y='+pl10y.toFixed(2)+'% → '
     +(alloc.wigEYSpread>0?'<b style="color:var(--G)">GPW atrakcyjne</b>':'<b style="color:var(--Y)">PL10Y konkurencyjne</b>')
@@ -5186,7 +5187,7 @@ function renderDecision(){
   s+='<div style="font-size:12px;font-weight:700;color:'+msciC+';margin-bottom:5px">VWCE.DE / ISAC.UK</div>';
   s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
   s+=mini3('CAPE',cape.toFixed(1)+'x',sC(cape<22,cape>35),'med. 17x | '+capeDate);
-  s+=mini3('EY',alloc.spEY.toFixed(1)+'%',sC(alloc.spEYSpread>0,alloc.spEYSpread<-1),'US10Y='+us10y.toFixed(2)+'%');
+  s+=mini3('EY',alloc.spEY.toFixed(1)+'%',sC(alloc.spEY>3&&alloc.spEYSpread>0,alloc.spEYSpread<-1),'US10Y='+us10y.toFixed(2)+'% '+(alloc.spEY>3?'✓>3%':'✗<3%'));
   s+=mini3('Kwadrant',alloc.msciQuad,{TK:'var(--G)',DK:'var(--Y)',TR:'var(--B)',DR:'var(--R)'}[alloc.msciQuad]||'var(--Y)',msciQLabel.replace(' 🟢','').replace(' 🟡','').replace(' 🔵','').replace(' 🔴',''));
   s+='</div></div>';
   s+='</div>';
@@ -5222,7 +5223,7 @@ function renderDecision(){
   }
 
   s+=indBox('VIX (zmienność SP500)',vix.toFixed(1),vix>28&&vix<50&&!alloc.geoRisk,vix>50,
-    'Panika=okazja zakupu','Ekstremalna panika','Spokojny rynek','CBOE via FRED/Stooq',vixDate,19,9,80,'');
+    'Panika=okazja zakupu','Ekstremalna panika','Spokojny rynek','CBOE via FRED/Stooq',vixDate,19,9,88,'');
   s+=indBox('Fear & Greed',fg!=null?fg.toFixed(0):'—',fg!=null&&fg<30,fg!=null&&fg>75,
     'Extreme Fear → KUP','Extreme Greed → sprzedaj','Neutralny','CNN',fgDate,50,0,100,'');
   s+=indBox('RSI SP500',rsi.toFixed(1),rsi<35,rsi>68,
@@ -5239,7 +5240,7 @@ function renderDecision(){
     'Ekspansja=akcje OK','Kontrakcja/hiperin.','Stabilne','FRED M2SL',m2Date,4.5,-4,27,'%');
   s+=indBox('CAPE Shiller',cape.toFixed(1),cape<22,cape>35,
     'Tanie=dobre 10Y ret.','Drogie=niskie 10Y ret.','Umiarkowane',capeSrc,capeDate,17,5,44,'x');
-  s+=indBox('EY-US10Y Spread',(alloc.spEYSpread>0?'+':'')+alloc.spEYSpread.toFixed(2),alloc.spEYSpread>0.5,alloc.spEYSpread<-1.5,
+  s+=indBox('EY-US10Y Spread',(alloc.spEYSpread>0?'+':'')+alloc.spEYSpread.toFixed(2),alloc.spEY>3&&alloc.spEYSpread>0,alloc.spEYSpread<-1.5,
     'Akcje>obligacje USA','Obligacje USA lepsze','Zbliżone','1/CAPE-US10Y','mies.',1.0,-3,5,'%');
   s+=indBox('WIG20 P/E',wig20PE.toFixed(1),wig20PE<12,wig20PE>18,
     'GPW tanie! Hist.okazja','GPW drogie','Umiarkowane','Stooq wig20_pe',wig20PEDate,12,4,25,'x');
@@ -5270,6 +5271,7 @@ function renderDecision(){
      ac:alloc.spEYSpread>0||alloc.panicBuy?'var(--G)':alloc.msciQuad==='DR'?'var(--R)':'var(--Y)',
      etf:'VWCE.DE / ISAC.UK',
      why:(alloc.spEYSpread>0?'EY='+alloc.spEY.toFixed(1)+'%>US10Y='+us10y.toFixed(2)+'% → akcje tańsze. Cykl: '+cyclePhase.replace(' 🟢','').replace(' 🟡',''):alloc.spEYSpread<-1?'EY='+alloc.spEY.toFixed(1)+'%<US10Y='+us10y.toFixed(2)+'% → obligacje lepiej wycenione':'Zbliżone wartości')
+       +(alloc.spEY<3?' | ⚠️ EY='+alloc.spEY.toFixed(1)+'%<3% (CAPE='+cape.toFixed(1)+'x=za drogie dla akcji)':' | ✓ EY='+alloc.spEY.toFixed(1)+'%>3%')
        +(bearFilter?' | ⛔ SP500<MA200: Clenow = NIE kupuj nowych':'')
        +' | CAPE='+cape.toFixed(1)+'x (med.17x) | Quad: '+alloc.msciQuad},
     {k:'GPW ETF',
@@ -5349,7 +5351,7 @@ function renderSentiment(){
   var el=document.getElementById('p-sentiment');if(!el)return;
   var sc=SC||calcScore();
   var vix=sc.vix,fg=sc.fg;
-  var vixW=Math.min(vix/80*100,100),fgW=fg!=null?fg:50;
+  var vixW=Math.min(vix/88*100,100),fgW=fg!=null?fg:50;
   var vixC=vix>=30?'var(--G)':vix>=25?'var(--Y)':vix<18?'var(--R)':'var(--t1)';
   var vixSt=vix>=30?'OKAZJA KONTRARIAŃSKA':vix>=25?'PODWYŻSZONY':vix<18?'EUFORIA — UWAGA':'NORMALNY';
   var h14=D.cfg?D.cfg.history:[];
@@ -5392,7 +5394,7 @@ function renderSentiment(){
   +'<div class="gc-st" style="color:'+vixC+'">'+vixSt+'</div>'
   +'<div class="gc-track"><div class="gc-fill" style="width:'+vixW+'%"></div><div class="gc-pin" style="left:'+vixW+'%"></div></div>'
   +'<div class="gc-ticks"><span>0</span><span>15</span><span>30</span><span>50</span><span>80</span></div>'
-  +'<div class="gc-ctx"><div class="gcc"><div class="gcc-l">10Y avg</div><div class="gcc-v" style="color:var(--t1)">17.5</div></div><div class="gcc"><div class="gcc-l">Percentyl hist.</div><div class="gcc-v" style="color:'+vixC+'">'+Math.round(vix/80*100)+'%</div></div><div class="gcc"><div class="gcc-l">Max 2020</div><div class="gcc-v" style="color:var(--R)">85</div></div></div>'
+  +'<div class="gc-ctx"><div class="gcc"><div class="gcc-l">10Y avg</div><div class="gcc-v" style="color:var(--t1)">17.5</div></div><div class="gcc"><div class="gcc-l">Percentyl hist.</div><div class="gcc-v" style="color:'+vixC+'">'+Math.round(vix/88*100)+'%</div></div><div class="gcc"><div class="gcc-l">Max 2020</div><div class="gcc-v" style="color:var(--R)">85</div></div></div>'
   +'<div class="gc-exp"><b>KONTRARIAŃSKI:</b> VIX&gt;30=panika=DCA | VIX&lt;15=euforia=nie zwiększaj.<br>Punkty: &gt;40=+10 | 30-40=+7 | 20-30=+3 | 15-20=0 | &lt;15=−5<br>2009: VIX=56→+300% | 2020: VIX=85→+100%</div>'
   +'</div></div>'
   +'<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">VIX vs kryzysy historyczne</span><span class="ch-s">dni od początku epizodu</span></div><div class="chbody"><div id="ch-vix" style="height:200px"></div></div></div>'
@@ -7016,226 +7018,240 @@ function showWTab(id) {
 
 
 async function fetchAnalizy() {
-  if(D.analizy && D.analizy.length > 0) return;
   D.analizy = [];
   var sources = [
-    {
-      name: 'Pekao Analizy',
-      url: 'https://www.pekao.com.pl/analizy-makroekonomiczne.html',
-      color: '#c0392b',
-      logo: '🏦',
-      desc: 'Analizy makroekonomiczne Banku Pekao SA'
-    },
-    {
-      name: 'XTB Wiadomości',
-      url: 'https://www.xtb.com/pl/analizy-rynkowe/wiadomosci-rynkowe',
-      color: '#e67e22',
-      logo: '📊',
-      desc: 'Wiadomości rynkowe XTB Polska'
-    },
-    {
-      name: 'Alior BM Analizy',
-      url: 'https://www.aliorbank.pl/biuro-maklerskie/analizy-rynkowe.html',
-      color: '#8e44ad',
-      logo: '📈',
-      desc: 'Analizy rynkowe Biura Maklerskiego Alior Banku'
-    },
-    {
-      name: 'BIK Analizy',
-      url: 'https://media.bik.pl/analizy-rynkowe',
-      color: '#1abc9c',
-      logo: '💳',
-      desc: 'Analizy rynkowe Biura Informacji Kredytowej'
-    },
-    {
-      name: 'qnews.pl',
-      url: 'https://qnews.pl',
-      color: '#f59e0b',
-      logo: '⚡',
-      desc: 'Szybkie wiadomości finansowe i rynkowe'
-    }
+    { name:'Pekao Analizy', url:'https://www.pekao.com.pl/analizy-makroekonomiczne.html', color:'#c0392b', logo:'🏦', tag:'macro' },
+    { name:'XTB Wiadomości', url:'https://www.xtb.com/pl/analizy-rynkowe/wiadomosci-rynkowe', color:'#e67e22', logo:'📊', tag:'rynki' },
+    { name:'Alior BM', url:'https://www.aliorbank.pl/biuro-maklerskie/analizy-rynkowe.html', color:'#8e44ad', logo:'📈', tag:'analizy' },
+    { name:'BIK', url:'https://media.bik.pl/analizy-rynkowe', color:'#1abc9c', logo:'💳', tag:'kredyt' },
+    { name:'qnews.pl', url:'https://qnews.pl', color:'#f59e0b', logo:'⚡', tag:'news' },
   ];
 
-  for(var i=0; i<sources.length; i++){
-    var src = sources[i];
-    try {
-      var html = await pGetHTML(src.url);
-      var articles = [];
+  /* ── Sentiment keywords for auto-tagging ── */
+  var bullKW = ['wzrost','rośnie','hossa','zysk','odbicie','rekord','dobry','poprawa','optymizm','kupno','bycz'];
+  var bearKW = ['spadek','spada','bessa','strata','korekta','recesja','ryzyko','obawa','pesymizm','sprzedaż','niedźwiedz'];
 
-      /* ── Generic article parser ── */
-      /* Try multiple patterns: article tags, h2/h3 links, news items */
-      var patterns = [
+  for(var i=0;i<sources.length;i++){
+    var src=sources[i];
+    try{
+      var html=await pGetHTML(src.url);
+      var articles=[];
+
+      /* ── Step 1: try structured tags ── */
+      var raw=[];
+      var tagRe=[
         /<article[^>]*>([\s\S]*?)<\/article>/gi,
-        /<div[^>]*class="[^"]*(?:news|article|post|item|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-        /<li[^>]*class="[^"]*(?:news|article|post|item)[^"]*"[^>]*>([\s\S]*?)<\/li>/gi,
+        /<div[^>]*class="[^"]*(?:news|article|post|item|entry|tile|card)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
+        /<li[^>]*class="[^"]*(?:news|item|post)[^"]*"[^>]*>([\s\S]*?)<\/li>/gi,
       ];
-
-      var raw_items = [];
-      for(var pi=0; pi<patterns.length; pi++){
-        var m;
-        var re_p = patterns[pi];
-        re_p.lastIndex = 0;
-        while((m=re_p.exec(html))!==null && raw_items.length < 15){
-          raw_items.push(m[0]);
-        }
-        if(raw_items.length >= 5) break;
+      for(var ri=0;ri<tagRe.length;ri++){
+        var mm; tagRe[ri].lastIndex=0;
+        while((mm=tagRe[ri].exec(html))!==null&&raw.length<20) raw.push(mm[0]);
+        if(raw.length>=5) break;
       }
 
-      /* If no structured items, extract h2/h3 links */
-      if(raw_items.length < 3){
-        var heading_re = /<h[23][^>]*>[\s\S]*?<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h[23]>/gi;
-        while((m=heading_re.exec(html))!==null && raw_items.length < 15){
-          raw_items.push(m[0]);
-        }
+      /* ── Step 2: fallback to heading+link combos ── */
+      if(raw.length<3){
+        var hRe=/<h[23][^>]*>[\s\S]*?<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h[23]>/gi;
+        while((mm=hRe.exec(html))!==null&&raw.length<20) raw.push(mm[0]);
       }
 
-      /* Parse each item */
-      for(var j=0; j<Math.min(raw_items.length, 8); j++){
-        var item = raw_items[j];
-        /* Extract title */
-        var titleM = item.match(/<h[1-4][^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/) ||
-                     item.match(/<a[^>]*class="[^"]*(?:title|headline)[^"]*"[^>]*>([\s\S]*?)<\/a>/) ||
-                     item.match(/<a[^>]+>([\s\S]{10,150}?)<\/a>/);
-        var title = titleM ? titleM[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim() : '';
-        if(title.length < 10) continue;
-
-        /* Extract URL */
-        var urlM = item.match(/href="([^"]{10,200})"/);
-        var url_rel = urlM ? urlM[1] : '';
-        if(url_rel && !url_rel.startsWith('http')){
-          var base = src.url.match(/^https?:\/\/[^\/]+/);
-          url_rel = base ? base[0] + (url_rel.startsWith('/') ? '' : '/') + url_rel : src.url;
+      /* ── Step 3: parse each raw item ── */
+      for(var j=0;j<Math.min(raw.length,10);j++){
+        var item=raw[j];
+        /* title */
+        var tM=item.match(/<h[1-4][^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/)||
+               item.match(/<a[^>]*class="[^"]*(?:title|headline|name)[^"]*"[^>]*>([\s\S]*?)<\/a>/)||
+               item.match(/<a[^>]+>([\s\S]{15,200}?)<\/a>/);
+        var title=tM?tM[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim():'';
+        if(title.length<12) continue;
+        /* url */
+        var uM=item.match(/href="([^"]{8,250})"/);
+        var url=uM?uM[1]:'';
+        if(url&&!url.startsWith('http')){
+          var base=src.url.match(/^https?:\/\/[^\/]+/);
+          url=base?base[0]+(url.startsWith('/')?'':'/')+url:src.url;
         }
+        /* date */
+        var dM=item.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\.\d{2}\.\d{4})|(\d{1,2}\s+(?:sty|lut|mar|kwi|maj|cze|lip|sie|wrz|paź|lis|gru)[a-z]*\.?\s*\d{4})/i);
+        var date=dM?dM[0]:'';
+        /* summary */
+        var sM=item.match(/<p[^>]*>([\s\S]{20,400}?)<\/p>/)||
+               item.match(/class="[^"]*(?:desc|lead|summary|excerpt|intro)[^"]*"[^>]*>([\s\S]{20,250}?)</);
+        var summary=sM?sM[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim():'';
+        /* img */
+        var imgM=item.match(/<img[^>]+src="([^"]+\.(jpg|jpeg|png|webp|gif)[^"]*)"/)|| 
+                 item.match(/data-src="([^"]+\.(jpg|jpeg|png|webp)[^"]*)"/);
+        var img=imgM?imgM[1]:'';
+        /* auto-sentiment */
+        var combined=(title+' '+summary).toLowerCase();
+        var bScore=bullKW.filter(function(k){return combined.indexOf(k)>=0;}).length;
+        var dScore=bearKW.filter(function(k){return combined.indexOf(k)>=0;}).length;
+        var sent=bScore>dScore?'bull':dScore>bScore?'bear':'neutral';
 
-        /* Extract date */
-        var dateM = item.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\.\d{2}\.\d{4})|(\d{1,2}\s+(?:sty|lut|mar|kwi|maj|cze|lip|sie|wrz|paź|lis|gru)[a-z]*\.?\s+\d{4})/i);
-        var date = dateM ? dateM[0] : '';
-
-        /* Extract summary */
-        var sumM = item.match(/<p[^>]*>([\s\S]{20,300}?)<\/p>/) ||
-                   item.match(/class="[^"]*(?:desc|lead|summary|excerpt)[^"]*"[^>]*>([\s\S]{20,200}?)<[\/]/);
-        var summary = sumM ? sumM[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim() : '';
-
-        if(title.length > 10) {
-          articles.push({ title: title.slice(0,150), url: url_rel, date: date, summary: summary.slice(0,200) });
-        }
+        articles.push({title:title.slice(0,160),url:url,date:date,summary:summary.slice(0,250),img:img,sent:sent});
       }
 
-      D.analizy.push({
-        source: src.name,
-        color: src.color,
-        logo: src.logo,
-        desc: src.desc,
-        url: src.url,
-        articles: articles,
-        loaded: articles.length > 0,
-        ts: new Date().toLocaleTimeString('pl-PL')
-      });
-
-      console.log('Analizy:', src.name, articles.length, 'artykułów');
-    } catch(e) {
-      console.warn('fetchAnalizy failed for', src.name, e.message);
-      D.analizy.push({
-        source: src.name, color: src.color, logo: src.logo,
-        desc: src.desc, url: src.url, articles: [], loaded: false,
-        error: e.message, ts: new Date().toLocaleTimeString('pl-PL')
-      });
+      D.analizy.push({source:src.name,color:src.color,logo:src.logo,tag:src.tag,
+        url:src.url,articles:articles,loaded:articles.length>0,
+        ts:new Date().toLocaleTimeString('pl-PL')});
+      console.log('Analizy:',src.name,articles.length,'art.');
+    }catch(e){
+      console.warn('fetchAnalizy:',src.name,e.message);
+      D.analizy.push({source:src.name,color:src.color,logo:src.logo,tag:src.tag,
+        url:src.url,articles:[],loaded:false,error:e.message,
+        ts:new Date().toLocaleTimeString('pl-PL')});
     }
   }
+
+  /* ── Step 4: extract key macro numbers from all text ── */
+  var allText='';
+  D.analizy.forEach(function(s){s.articles.forEach(function(a){allText+=a.title+' '+a.summary+' ';});});
+  D.analityInsights={
+    cpiMentions:(allText.match(/\bCPI\b|\binflacja\b|\binflacji\b/gi)||[]).length,
+    gdpMentions:(allText.match(/\bPKB\b|\bGDP\b|\bwzrost\s+gosp/gi)||[]).length,
+    rateMentions:(allText.match(/\bstop[ay]\b|\bstopy\b|\bNBP\b|\bFed\b/gi)||[]).length,
+    bullCount:D.analizy.reduce(function(n,s){return n+s.articles.filter(function(a){return a.sent==='bull';}).length;},0),
+    bearCount:D.analizy.reduce(function(n,s){return n+s.articles.filter(function(a){return a.sent==='bear';}).length;},0),
+    total:D.analizy.reduce(function(n,s){return n+s.articles.length;},0),
+  };
 }
 
-function renderAnalizy() {
-  var el = document.getElementById('p-analizy'); if(!el) return;
-  var sources = D.analizy || [];
+function renderAnalizy(){
+  var el=document.getElementById('p-analizy');if(!el)return;
+  var srcs=D.analizy||[];
+  var ins=D.analityInsights||{};
 
-  var s = '';
+  var s='';
 
-  /* Header */
-  s += '<div style="background:linear-gradient(135deg,rgba(42,157,245,.1),rgba(0,229,168,.05));border:1px solid rgba(42,157,245,.3);border-radius:var(--r);padding:12px 16px;margin-bottom:10px">';
-  s += '<div style="display:flex;justify-content:space-between;align-items:center">';
-  s += '<div>';
-  s += '<div style="font-size:13px;font-weight:900;color:var(--t1);margin-bottom:3px">📰 Analizy Rynkowe — Polskie Źródła</div>';
-  s += '<div style="font-size:9px;color:var(--t2)">Pekao SA · XTB Polska · Alior Bank BM · BIK · Dane pobierane przez proxy</div>';
-  s += '</div>';
-  s += '<button onclick="D.analizy=[];fetchAnalizy().then(renderAnalizy)" style="background:rgba(42,157,245,.15);border:1px solid rgba(42,157,245,.4);color:var(--B);border-radius:6px;padding:5px 12px;font-size:9px;cursor:pointer;font-weight:700">🔄 Odśwież</button>';
-  s += '</div></div>';
+  /* ══ HEADER ═══════════════════════════════════════════════ */
+  s+='<div style="display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px;margin-bottom:10px">';
+  s+='<div>';
+  s+='<div style="font-size:13px;font-weight:900;color:var(--t1);margin-bottom:2px">📰 Analizy Rynkowe — 5 polskich źródeł</div>';
+  s+='<div style="font-size:8.5px;color:var(--t2)">Pekao SA · XTB Polska · Alior Bank BM · BIK · qnews.pl — scraping przez proxy</div>';
+  s+='</div>';
+  s+='<button onclick="D.analizy=[];D.analityInsights={};fetchAnalizy().then(renderAnalizy)" '
+    +'style="background:rgba(42,157,245,.15);border:1px solid rgba(42,157,245,.4);color:var(--B);'
+    +'border-radius:6px;padding:6px 14px;font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">🔄 Odśwież</button>';
+  s+='</div>';
 
-  if(sources.length === 0) {
-    s += '<div style="text-align:center;padding:40px;color:var(--t2)">';
-    s += '<div style="font-size:24px;margin-bottom:8px">⏳</div>';
-    s += '<div style="font-size:10px">Ładowanie analiz...</div>';
-    s += '<div style="font-size:8.5px;margin-top:5px;color:#606060">Pekao · XTB · Alior · BIK</div>';
-    s += '</div>';
-    el.innerHTML = '<div class="wrap">' + s + '</div>';
+  /* ══ LOADING STATE ═════════════════════════════════════════ */
+  if(srcs.length===0){
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:40px;text-align:center">';
+    s+='<div style="font-size:28px;margin-bottom:10px">⏳</div>';
+    s+='<div style="font-size:11px;color:var(--t1);margin-bottom:5px">Ładowanie analiz...</div>';
+    s+='<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">';
+    ['🏦 Pekao','📊 XTB','📈 Alior','💳 BIK','⚡ qnews'].forEach(function(n){
+      s+='<span style="background:rgba(255,255,255,.06);border-radius:20px;padding:3px 10px;font-size:8.5px;color:var(--t2)">'+n+'</span>';
+    });
+    s+='</div></div>';
+    el.innerHTML='<div class="wrap">'+s+'</div>';
     fetchAnalizy().then(renderAnalizy);
     return;
   }
 
-  /* Source cards grid */
-  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  /* ══ INSIGHTS SUMMARY BAR ═════════════════════════════════ */
+  if(ins.total>0){
+    var sentScore=ins.total>0?Math.round((ins.bullCount/(ins.bullCount+ins.bearCount+0.01))*100):50;
+    var sentC=sentScore>60?'var(--G)':sentScore<40?'var(--R)':'var(--Y)';
+    var sentLabel=sentScore>65?'BYCZE 🟢':sentScore>55?'Lekko bycze':sentScore<35?'NIEDŹWIEDZIE 🔴':sentScore<45?'Lekko niedźwiedzie':'Neutralne 🟡';
+    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 14px;margin-bottom:10px">';
+    s+='<div style="font-size:9px;font-weight:700;color:var(--t2);margin-bottom:6px">🔍 Analiza sentymentu — '+ins.total+' artykułów ze wszystkich źródeł</div>';
+    s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">';
+    /* Sentiment gauge */
+    s+='<div style="background:'+sentC+'0d;border:1px solid '+sentC+'30;border-radius:5px;padding:7px 9px;text-align:center">';
+    s+='<div style="font-size:7.5px;color:var(--t2)">Sentyment mediów</div>';
+    s+='<div style="font-size:15px;font-weight:900;color:'+sentC+'">'+sentLabel+'</div>';
+    s+='<div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:4px">';
+    s+='<div style="width:'+sentScore+'%;height:100%;background:'+sentC+';border-radius:2px"></div></div>';
+    s+='<div style="font-size:7.5px;color:var(--t2);margin-top:2px">'+ins.bullCount+' bycze / '+ins.bearCount+' niedźwiedzie</div>';
+    s+='</div>';
+    /* Topic counts */
+    [
+      {l:'Inflacja/CPI',v:ins.cpiMentions,c:'var(--R)',ico:'🔥'},
+      {l:'PKB/Wzrost',v:ins.gdpMentions,c:'var(--G)',ico:'📈'},
+      {l:'Stopy/NBP/Fed',v:ins.rateMentions,c:'var(--B)',ico:'🏦'},
+      {l:'Artykułów łącznie',v:ins.total,c:'var(--Y)',ico:'📰'},
+    ].forEach(function(t){
+      s+='<div style="background:'+t.c+'0a;border:1px solid '+t.c+'20;border-radius:5px;padding:7px 9px;text-align:center">';
+      s+='<div style="font-size:11px">'+t.ico+'</div>';
+      s+='<div style="font-size:20px;font-weight:900;color:'+t.c+'">'+t.v+'</div>';
+      s+='<div style="font-size:7.5px;color:var(--t2)">'+t.l+'</div>';
+      s+='</div>';
+    });
+    s+='</div></div>';
+  }
 
-  sources.forEach(function(src) {
-    s += '<div style="background:var(--bg2);border:1px solid ' + src.color + '30;border-radius:var(--r);overflow:hidden">';
+  /* ══ SOURCE CARDS ══════════════════════════════════════════ */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+
+  srcs.forEach(function(src){
+    var c=src.color;
+    s+='<div style="background:var(--bg2);border:1px solid '+c+'25;border-radius:var(--r);overflow:hidden">';
 
     /* Card header */
-    s += '<div style="background:' + src.color + '15;border-bottom:1px solid ' + src.color + '30;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">';
-    s += '<div>';
-    s += '<span style="font-size:11px">' + src.logo + '</span> ';
-    s += '<span style="font-size:9.5px;font-weight:800;color:' + src.color + '">' + src.source + '</span>';
-    s += '<div style="font-size:7.5px;color:var(--t2);margin-top:1px">' + src.desc + '</div>';
-    s += '</div>';
-    s += '<div style="text-align:right">';
-    if(src.loaded) {
-      s += '<span style="font-size:7.5px;color:var(--G)">✓ ' + src.articles.length + ' art.</span>';
+    s+='<div style="background:'+c+'12;border-bottom:1px solid '+c+'25;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">';
+    s+='<div style="display:flex;align-items:center;gap:7px">';
+    s+='<span style="font-size:16px">'+src.logo+'</span>';
+    s+='<div>';
+    s+='<div style="font-size:10px;font-weight:800;color:'+c+'">'+src.source+'</div>';
+    s+='<a href="'+src.url+'" target="_blank" style="font-size:7.5px;color:var(--t2);text-decoration:none">'+src.url.replace('https://','')+'</a>';
+    s+='</div></div>';
+    s+='<div style="text-align:right">';
+    if(src.loaded){
+      var srcBull=src.articles.filter(function(a){return a.sent==='bull';}).length;
+      var srcBear=src.articles.filter(function(a){return a.sent==='bear';}).length;
+      var srcC=srcBull>srcBear?'var(--G)':srcBear>srcBull?'var(--R)':'var(--Y)';
+      s+='<div style="font-size:8px;color:'+srcC+'">'+src.articles.length+' art. | '+(srcBull>srcBear?'🟢 bycze':srcBear>srcBull?'🔴 niedźwiedzie':'🟡 mieszane')+'</div>';
     } else {
-      s += '<span style="font-size:7.5px;color:' + (src.error ? 'var(--R)':'var(--Y)') + '">' + (src.error ? '✗ błąd':'⏳') + '</span>';
+      s+='<div style="font-size:8px;color:'+(src.error?'var(--R)':'var(--Y)')+'">'+(src.error?'✗ błąd CORS':'⏳ ładowanie')+'</div>';
     }
-    s += '<div style="font-size:7px;color:#606060">' + (src.ts||'') + '</div>';
-    s += '</div></div>';
+    s+='<div style="font-size:7px;color:#555">'+( src.ts||'')+'</div>';
+    s+='</div></div>';
 
-    /* Articles */
-    s += '<div style="padding:8px 12px">';
-    if(src.articles && src.articles.length > 0) {
-      src.articles.forEach(function(a, idx) {
-        s += '<div style="padding:6px 0;' + (idx < src.articles.length-1 ? 'border-bottom:1px solid rgba(255,255,255,.05)' : '') + '">';
-        s += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">';
-        /* Title as link */
-        var href = a.url || src.url;
-        s += '<a href="' + href + '" target="_blank" style="font-size:9px;color:var(--t1);text-decoration:none;font-weight:600;line-height:1.4;flex:1;cursor:pointer" '
-          + 'onmouseover="this.style.color=\'' + src.color + '\'" onmouseout="this.style.color=\'var(--t1)\'">'
-          + a.title + '</a>';
-        if(a.date) {
-          s += '<span style="font-size:7.5px;color:var(--t2);white-space:nowrap;flex-shrink:0">' + a.date + '</span>';
-        }
-        s += '</div>';
-        if(a.summary) {
-          s += '<div style="font-size:8px;color:var(--t2);margin-top:3px;line-height:1.5">' + a.summary + '</div>';
-        }
-        s += '</div>';
+    /* Articles list */
+    s+='<div style="padding:8px 10px;max-height:320px;overflow-y:auto">';
+    if(src.articles&&src.articles.length>0){
+      src.articles.forEach(function(a,idx){
+        var sColor=a.sent==='bull'?'var(--G)':a.sent==='bear'?'var(--R)':'var(--t2)';
+        var sIcon=a.sent==='bull'?'▲':a.sent==='bear'?'▼':'●';
+        var href=a.url||src.url;
+        s+='<div style="padding:6px 0;'+(idx<src.articles.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':'')+'">';
+        s+='<div style="display:flex;gap:5px;align-items:flex-start">';
+        /* Sentiment dot */
+        s+='<span style="color:'+sColor+';font-size:9px;flex-shrink:0;margin-top:2px">'+sIcon+'</span>';
+        s+='<div style="flex:1">';
+        /* Title */
+        s+='<a href="'+href+'" target="_blank" rel="noopener" '
+          +'style="font-size:9px;color:var(--t1);text-decoration:none;font-weight:600;line-height:1.4;display:block" '
+          +'onmouseover="this.style.color=\''+c+'\'" onmouseout="this.style.color=\'var(--t1)\'">'+a.title+'</a>';
+        /* Date */
+        if(a.date) s+='<span style="font-size:7.5px;color:var(--t2)">'+a.date+'</span>';
+        /* Summary */
+        if(a.summary) s+='<div style="font-size:8px;color:#a0a0a0;margin-top:2px;line-height:1.5">'+a.summary+'</div>';
+        s+='</div></div></div>';
       });
     } else {
-      /* Fallback: show link to source */
-      s += '<div style="padding:8px 0;font-size:9px;color:var(--t2)">';
-      if(src.error) {
-        s += '<div style="color:var(--R);margin-bottom:5px">Błąd ładowania: proxy zablokowany lub CORS</div>';
+      s+='<div style="padding:10px 0;font-size:9px;color:var(--t2)">';
+      if(src.error){
+        s+='<div style="color:var(--R);margin-bottom:6px;font-size:8.5px">CORS zablokowany — proxy nie może pobrać tej strony.</div>';
       } else {
-        s += '<div style="color:var(--Y);margin-bottom:5px">Brak artykułów (możliwy CORS)</div>';
+        s+='<div style="color:var(--Y);margin-bottom:6px;font-size:8.5px">Brak artykułów (próba parsowania nieudana).</div>';
       }
-      s += '<a href="' + src.url + '" target="_blank" style="color:' + src.color + ';font-size:9px;font-weight:700">→ Otwórz ' + src.source + ' bezpośrednio</a>';
-      s += '</div>';
+      s+='<a href="'+src.url+'" target="_blank" style="background:'+c+'15;border:1px solid '+c+'30;color:'+c+';border-radius:5px;padding:4px 12px;font-size:8.5px;font-weight:700;text-decoration:none">→ Otwórz '+src.source+' bezpośrednio ↗</a>';
+      s+='</div>';
     }
-    s += '</div></div>';
+    s+='</div></div>';
   });
+  s+='</div>';
 
-  s += '</div>';
+  /* Footer */
+  s+='<div style="margin-top:8px;font-size:7.5px;color:#555;text-align:center">Dane przez proxy | Odśwież raz dziennie | Kliknij tytuł aby otworzyć artykuł</div>';
 
-  /* Info note */
-  s += '<div style="margin-top:8px;font-size:7.5px;color:#606060;text-align:center;padding:6px">';
-  s += 'Dane przez proxy (CORS). Jeśli artykuły nie ładują się — kliknij link bezpośredni. Odświeżaj raz dziennie.';
-  s += '</div>';
-
-  el.innerHTML = '<div class="wrap">' + s + '</div>';
+  el.innerHTML='<div class="wrap">'+s+'</div>';
 }
+
+
 
 
 function renderSources(){
@@ -7569,6 +7585,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
