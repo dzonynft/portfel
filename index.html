@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v70b</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v70</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -352,6 +352,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-wiedza"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -1014,7 +1015,7 @@ function renderTechnical() {
   /* Live data from search (fallback if TA not computed yet) */
   var liveFallback={
     rsi14:35.4, macd:{val:-32.6,signal:-20,hist:-12.6},
-    sma:{s20:6720,s50:6710,s100:6700,s200:6686},
+    sma:{s20:6823,s50:6878,s100:6837,s200:6612},
     adx:24.75,verdict:'SILNA WYPRZEDAŻ',color:'#ff3355',
     buy:6,sell:4,price:6740,src:'Stooq ^SPX dzienny 17.03.2026'
   };
@@ -4968,8 +4969,8 @@ function renderDecision(){
   var rsi    = ta.rsi14!=null?ta.rsi14:35.4;
   var rsiDate= ta.date||'Stooq/Yahoo live';
   var macdH  = (ta.macd&&ta.macd.hist!=null)?ta.macd.hist:-12.6;
-  var sma50  = ta.sma&&ta.sma.s50?ta.sma.s50:null;
-  var sma200 = ta.sma&&ta.sma.s200?ta.sma.s200:null;
+  var sma50  = (ta.sma&&ta.sma.s50)?ta.sma.s50:6878;
+  var sma200 = (ta.sma&&ta.sma.s200)?ta.sma.s200:6612;
   var spP    = (q.sp500&&q.sp500.price)?q.sp500.price:6740;
   var sp12m  = D.sp12m!=null?D.sp12m:17.7;
   var ib01   = (f.ib01_yield&&f.ib01_yield.current!=null)?f.ib01_yield.current:4.15;
@@ -7324,6 +7325,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
