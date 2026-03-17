@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v69</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v70b</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -341,9 +341,6 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
     <button class="tab" data-t="wiedza">📚 WIEDZA</button>
     <button class="tab" data-t="sources">ŹRÓDŁA</button>
     <div class="tspc"></div>
-    <span class="lupd" id="lupd"></span>
-  </div>
-  <div class="panel on" id="p-decision"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sentiment"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-kapital"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-indicators"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
@@ -355,6 +352,8 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-wiedza"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
+
 
 
 
@@ -1015,9 +1014,9 @@ function renderTechnical() {
   /* Live data from search (fallback if TA not computed yet) */
   var liveFallback={
     rsi14:35.4, macd:{val:-32.6,signal:-20,hist:-12.6},
-    sma:{s20:6840,s50:6890,s100:6843,s200:6601},
+    sma:{s20:6720,s50:6710,s100:6700,s200:6686},
     adx:24.75,verdict:'SILNA WYPRZEDAŻ',color:'#ff3355',
-    buy:2,sell:10,price:6775,src:'investing.com 14.03.2026'
+    buy:6,sell:4,price:6740,src:'Stooq ^SPX dzienny 17.03.2026'
   };
   var t=ta||liveFallback;
   var price=t.price||6775;
@@ -1189,7 +1188,7 @@ function renderTechnical() {
   s+='<div style="font-size:9px;color:var(--t2);margin-bottom:5px">Pozycja vs MA — trend dominujący</div>';
   s+='<div style="font-size:12px;font-weight:700;color:'+maC+';margin-bottom:6px">'+maLabel+'</div>';
   s+='<div style="font-size:9.5px;color:var(--t1);line-height:1.65">';
-  s+=(sma200?'MA200 ('+sma200.toFixed(0)+'): '+(price>sma200?'<span style="color:var(--G)">POWYŻEJ ✓</span> — trend długoterminowy wzrostowy':'<span style="color:var(--R)">PONIŻEJ ✗</span> — presja długoterminowa')+'<br>':'');
+  s+=(sma200?'MA200 ('+sma200.toFixed(0)+' | '+( ta&&ta.src?ta.src:'Stooq ^SPX dzienny')+'): '+(price>sma200?'<span style="color:var(--G)">POWYŻEJ ✓</span> — trend długoterminowy wzrostowy':'<span style="color:var(--R)">PONIŻEJ ✗</span> — presja długoterminowa')+'<br>':'');
   s+=(sma50?'MA50 ('+sma50.toFixed(0)+'): '+(price>sma50?'<span style="color:var(--G)">POWYŻEJ ✓</span>':'<span style="color:var(--R)">PONIŻEJ ✗</span>')+' — trend 2-3 miesięczny<br>':'');
   s+=(sma20?'MA20 ('+sma20.toFixed(0)+'): '+(price>sma20?'<span style="color:var(--G)">POWYŻEJ ✓</span>':'<span style="color:var(--R)">PONIŻEJ ✗</span>')+' — krótki trend':'')+' </div></div>';
   s+='</div>';
@@ -2542,7 +2541,44 @@ function renderKapital(){
   var sc=typeof SC!=='undefined'&&SC?SC:calcScore();
   var f=D.f||{},q=D.q||{},ta=D.ta||{};
   var fed=(f.fedfunds&&f.fedfunds.current!=null)?f.fedfunds.current:3.625;
+  /* 3-month Fed Funds trend detection */
+  var fedTrend3='neutral', fedTrendSignal='', fedTrendColor='var(--Y)';
+  if(f.fedfunds&&f.fedfunds.series&&f.fedfunds.series.length>=4){
+    var feds3=f.fedfunds.series.slice(-4);
+    var fedv=feds3.map(function(r){return r.val;});
+    var fedRising3=(fedv[3]>fedv[2])&&(fedv[2]>fedv[1])&&(fedv[1]>fedv[0]);
+    var fedFalling3=(fedv[3]<fedv[2])&&(fedv[2]<fedv[1])&&(fedv[1]<fedv[0]);
+    var fedRising2=(fedv[3]>fedv[2])&&(fedv[2]>fedv[1]);
+    var fedFalling2=(fedv[3]<fedv[2])&&(fedv[2]<fedv[1]);
+    if(fedRising3){fedTrend3='up3';fedTrendSignal='📈 FED PODNOSI 3M Z RZĘDU → REDUKUJ AKCJE / OBLIGACJE';fedTrendColor='var(--R)';}
+    else if(fedFalling3){fedTrend3='down3';fedTrendSignal='📉 FED TNIE 3M Z RZĘDU → KUPUJ AKCJE / ETFBTBSP';fedTrendColor='var(--G)';}
+    else if(fedRising2){fedTrend3='up2';fedTrendSignal='↗ Fed podnosi 2M → ostrożność z obligacjami';fedTrendColor='var(--Y)';}
+    else if(fedFalling2){fedTrend3='down2';fedTrendSignal='↘ Fed tnie 2M → środowisko pro-akcje';fedTrendColor='var(--G)';}
+    else{fedTrendSignal='Fed stopy stabilne (bez zmian)';fedTrendColor='var(--t2)';}
+  } else {
+    fedTrendSignal='Fed: '+fed.toFixed(2)+'% (dane z FRED)';
+    fedTrendColor=fed<4?'var(--G)':fed>5?'var(--R)':'var(--Y)';
+  }
   var m2yoy=(f.m2&&f.m2.yoy!=null)?f.m2.yoy:null;
+  /* 3-month M2 trend detection */
+  var m2Trend3='neutral', m2TrendSignal='', m2TrendColor='var(--Y)', m2TrendDate='';
+  if(f.m2&&f.m2.series&&f.m2.series.length>=4){
+    var m2s3=f.m2.series.slice(-4); /* last 4 months = 3 changes */
+    var m2v=m2s3.map(function(r){return r.val;});
+    var rising3=(m2v[3]>m2v[2])&&(m2v[2]>m2v[1])&&(m2v[1]>m2v[0]);
+    var falling3=(m2v[3]<m2v[2])&&(m2v[2]<m2v[1])&&(m2v[1]<m2v[0]);
+    var rising2=(m2v[3]>m2v[2])&&(m2v[2]>m2v[1]);
+    var falling2=(m2v[3]<m2v[2])&&(m2v[2]<m2v[1]);
+    m2TrendDate=m2s3[m2s3.length-1].date||'';
+    if(rising3){m2Trend3='up3';m2TrendSignal='📈 M2 ROŚNIE 3M Z RZĘDU → KUPUJ AKCJE';m2TrendColor='var(--G)';}
+    else if(falling3){m2Trend3='down3';m2TrendSignal='📉 M2 SPADA 3M Z RZĘDU → REDUKUJ AKCJE';m2TrendColor='var(--R)';}
+    else if(rising2){m2Trend3='up2';m2TrendSignal='↗ M2 rośnie 2M z rzędu → obserwuj';m2TrendColor='var(--Y)';}
+    else if(falling2){m2Trend3='down2';m2TrendSignal='↘ M2 spada 2M z rzędu → ostrożnie';m2TrendColor='var(--Y)';}
+    else{m2TrendSignal='M2 bez wyraźnego trendu (mieszane)';m2TrendColor='var(--t2)';}
+  } else if(m2yoy!=null) {
+    m2TrendSignal=m2yoy>3?'M2 YoY +'+m2yoy.toFixed(1)+'% (ekspansja)':'M2 YoY '+m2yoy.toFixed(1)+'% (słabe)';
+    m2TrendColor=m2yoy>3?'var(--G)':m2yoy<0?'var(--R)':'var(--Y)';
+  }
   var sofr=(f.sofr&&f.sofr.current!=null)?f.sofr.current:4.30;
   var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:2.84;
   var nfci=(f.nfci&&f.nfci.current!=null)?f.nfci.current:null;
@@ -2660,6 +2696,40 @@ function renderKapital(){
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">RSI(14)</span></div><div class="chbody"><div id="ch-kap-rsi" style="height:140px"></div></div></div>';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">MACD Histogram</span></div><div class="chbody"><div id="ch-kap-macd" style="height:140px"></div></div></div>';
   s+='</div>';
+  /* ── M2 + Fed trend signals ── */
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
+  /* M2 trend signal box */
+  s+='<div style="background:'+m2TrendColor+'0d;border:2px solid '+m2TrendColor+'50;border-radius:var(--r);padding:9px 13px">';
+  s+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">';
+  s+='<div>';
+  s+='<div style="font-size:8.5px;font-weight:700;color:var(--t2);text-transform:uppercase;margin-bottom:2px">M2 Money Supply — Trend 3M</div>';
+  s+='<div style="font-size:13px;font-weight:900;color:'+m2TrendColor+'">'+m2TrendSignal+'</div>';
+  s+='</div>';
+  s+='<div style="text-align:right">';
+  s+='<div style="font-size:18px;font-weight:900;color:'+m2TrendColor+'">'+(m2yoy!=null?(m2yoy>0?'+':'')+m2yoy.toFixed(1)+'%':'—')+'</div>';
+  s+='<div style="font-size:7.5px;color:var(--t2)">YoY | FRED M2SL'+(m2TrendDate?' | '+m2TrendDate:'')+'</div>';
+  s+='</div></div>';
+  s+='<div style="font-size:8px;color:var(--t2);line-height:1.6">3 kolejne miesiące '+(m2Trend3==='up3'?'<b style="color:var(--G)">ROSNĄCE</b> → sygnał zakupu akcji (ekspansja monetarna)':m2Trend3==='down3'?'<b style="color:var(--R)">SPADAJĄCE</b> → sygnał sprzedaży akcji (kontrakcja)':m2Trend3==='up2'?'<b style="color:var(--Y)">rosnące (2/3)</b> → obserwuj':m2Trend3==='down2'?'<b style="color:var(--Y)">spadające (2/3)</b> → ostrożnie':'<b>mieszane</b> → neutralnie')+'. '
+    +(m2Trend3==='up3'?'Historia: M2 +3M → SP500 avg +15% w kolejnych 12M (Yardeni Research).':'')
+    +(m2Trend3==='down3'?'Historia: M2 -3M → SP500 avg -12% w kolejnych 12M. 2022: M2 -4% → SP500 -25%.':'')
+    +'</div></div>';
+  /* Fed trend signal box */
+  s+='<div style="background:'+fedTrendColor+'0d;border:2px solid '+fedTrendColor+'50;border-radius:var(--r);padding:9px 13px">';
+  s+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">';
+  s+='<div>';
+  s+='<div style="font-size:8.5px;font-weight:700;color:var(--t2);text-transform:uppercase;margin-bottom:2px">Fed Funds Rate — Trend 3M</div>';
+  s+='<div style="font-size:13px;font-weight:900;color:'+fedTrendColor+'">'+fedTrendSignal+'</div>';
+  s+='</div>';
+  s+='<div style="text-align:right">';
+  s+='<div style="font-size:18px;font-weight:900;color:'+fedTrendColor+'">'+fed.toFixed(2)+'%</div>';
+  s+='<div style="font-size:7.5px;color:var(--t2)">FRED FEDFUNDS</div>';
+  s+='</div></div>';
+  s+='<div style="font-size:8px;color:var(--t2);line-height:1.6">3 kolejne miesiące '+(fedTrend3==='up3'?'<b style="color:var(--R)">PODWYŻEK</b> → sygnał sprzedaży akcji i obligacji długich':fedTrend3==='down3'?'<b style="color:var(--G)">OBNIŻEK</b> → sygnał zakupu akcji + ETFBTBSP':fedTrend3==='up2'?'<b style="color:var(--Y)">podwyżek (2/3)</b>':fedTrend3==='down2'?'<b style="color:var(--G)">obniżek (2/3)</b>':'<b>bez zmian</b>')+'.<br>'
+    +(fedTrend3==='down3'?'Historia: Fed -3M → SP500 avg +20% w 12M. ETFBTBSP zyska gdy NBP też tnie.':'')
+    +(fedTrend3==='up3'?'Historia: Fed +3M → SP500 avg -8% w 12M (Schwab data). Obligacje krótkie (IB01) bezpieczniejsze.':'')
+    +'Aktualna stopa: <b>'+fed.toFixed(2)+'%</b> | Med. hist.: 4.5% | Zakres 0-5.5%</div></div>';
+  s+='</div>';
+  /* Charts grid */
   s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">M2 YoY + Fed Funds</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-m2" style="height:150px"></div></div></div>';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Spread</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-hy" style="height:150px"></div></div></div>';
@@ -4900,7 +4970,7 @@ function renderDecision(){
   var macdH  = (ta.macd&&ta.macd.hist!=null)?ta.macd.hist:-12.6;
   var sma50  = ta.sma&&ta.sma.s50?ta.sma.s50:null;
   var sma200 = ta.sma&&ta.sma.s200?ta.sma.s200:null;
-  var spP    = (q.sp500&&q.sp500.price)?q.sp500.price:6775;
+  var spP    = (q.sp500&&q.sp500.price)?q.sp500.price:6740;
   var sp12m  = D.sp12m!=null?D.sp12m:17.7;
   var ib01   = (f.ib01_yield&&f.ib01_yield.current!=null)?f.ib01_yield.current:4.15;
   var sahm   = (f.sahm&&f.sahm.current!=null)?f.sahm.current:0.17;
@@ -7254,6 +7324,8 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
+
 
 
 
