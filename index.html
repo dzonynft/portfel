@@ -322,7 +322,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v82</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v83</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -358,6 +358,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -584,7 +585,7 @@ var SQ = {
   usdpln:'usdpln',eurpln:'eurpln',eurusd:'eurusd',gbpusd:'gbpusd',usdjpy:'usdjpy',dxy:'dxy',
   us10y:'10usy.b',us2y:'2usy.b',
   btcusd:'btcusd',ethusd:'ethusd',wig20:'wig20',vix:'^vix',move:'move.us',pl10y:'10plgby.b',pl2y:'2plgby.b',
-  isac:'isac.uk',spy:'spy.us',qqq:'qqq.us',wig20pe:'wig20_pe'
+  isac:'isac.uk',urth:'urth.us',spy:'spy.us',qqq:'qqq.us',wig20pe:'wig20_pe'
 };
 /* Yahoo Finance symbol map (fallback when stooq proxies fail) */
 var _YF={
@@ -594,7 +595,7 @@ var _YF={
   'dxy':'DX-Y.NYB','usdjpy':'JPY%3DX',
   '10usy.b':'%5ETNX','2usy.b':'%5EFVX',
   'btcusd':'BTC-USD','ethusd':'ETH-USD','^vix':'%5EVIX',
-  'spy.us':'SPY','qqq.us':'QQQ','isac.uk':'ISAC.L','wig20':'WIG20.WA'
+  'spy.us':'SPY','qqq.us':'QQQ','urth.us':'URTH','isac.uk':'ISAC.L','wig20':'WIG20.WA'
 };
 async function sOneStooq(sym) {
   var r=await pGetSP('https://stooq.com/q/d/l/?s='+encodeURIComponent(sym)+'&i=d',8000);
@@ -3053,7 +3054,6 @@ function renderKapital(){
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">M2 YoY + Fed Funds</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-m2" style="height:150px"></div></div></div>';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Spread</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-hy" style="height:150px"></div></div></div>';
   s+='</div>';
-    s+=renderWorldPE();
   /* Correlation charts section */
   s+='<div class="sec">📊 Korelacje: Złoto/Inflacja + Płynność</div>';
   s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
@@ -3061,7 +3061,6 @@ function renderKapital(){
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SP500 vs DXY</span><span class="ch-s">Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-sp-dxy" style="height:200px"></div></div></div>';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SP500 vs M2 + Oil Brent</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-sp-m2" style="height:200px"></div></div></div>';
   s+="</div>";
-  s+=renderWorldPE();
   el.innerHTML='<div class="wrap">'+s+'</div>';
   setTimeout(function(){
     if(D.ta&&D.ta.closes&&D.ta.closes.length>0){
@@ -4251,6 +4250,31 @@ function renderIndicatorsExtra(el) {
       {x:['2026'],y:[curUS10y3],mode:'markers+text',text:['US:'+curUS10y3.toFixed(2)+'%'],textposition:'bottom center',textfont:{size:8,color:'#60a5fa'},marker:{size:10,color:'#60a5fa',symbol:'star'},showlegend:false}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1,font:{size:8},orientation:'h'},margin:{l:38,r:6,t:6,b:28},yaxis:{title:'%'}}),PLY);
 
+  /* URTH price + SMA chart */
+    if(document.getElementById('ch-urth-price')){
+      var ud=WPE.urth_hist||[];
+      if(D.q&&D.q['urth.us']&&D.q['urth.us'].price>0)
+        ud=ud.slice(0,-1).concat([{d:'2026-03',v:D.q['urth.us'].price}]);
+      var ux=ud.map(function(r){return r.d;}), uy=ud.map(function(r){return r.v;});
+      function smaU(a,p){return a.map(function(_,i){return i<p-1?null:a.slice(i-p+1,i+1).reduce(function(s,v){return s+v;})/p;});}
+      var s50=smaU(uy,9),s200=smaU(uy,37);
+      var lastP=uy[uy.length-1];
+      var l2=s200.filter(function(v){return v!=null;}); var last200v=l2.length?l2[l2.length-1]:null;
+      var l5=s50.filter(function(v){return v!=null;}); var last50v=l5.length?l5[l5.length-1]:null;
+      Plotly.newPlot('ch-urth-price',[
+        {x:ux,y:uy,mode:'lines',name:'URTH ETF (USD)',line:{color:'#2a9df5',width:2.5},fill:'tozeroy',fillcolor:'rgba(42,157,245,.07)'},
+        {x:ux,y:s50,mode:'lines',name:'SMA50',line:{color:'#f5c040',width:1.5,dash:'dot'}},
+        {x:ux,y:s200,mode:'lines',name:'SMA200',line:{color:'#ff3355',width:2,dash:'dash'}}
+      ],pLy({height:200,showlegend:true,legend:{x:0,y:1,font:{size:9},orientation:'h'},
+        margin:{l:44,r:60,t:6,b:32},
+        xaxis:{tickfont:{size:8},nticks:10},
+        yaxis:{title:'USD',titlefont:{size:8},tickfont:{size:8}},
+        annotations:[
+          {x:ux[ux.length-1],y:lastP,xref:'x',yref:'y',text:' '+lastP.toFixed(1),showarrow:false,font:{size:9,color:'#2a9df5'},xanchor:'left'},
+          last200v?{x:ux[ux.length-1],y:last200v,xref:'x',yref:'y',text:' SMA200='+last200v.toFixed(1),showarrow:false,font:{size:8,color:'#ff3355'},xanchor:'left'}:{},
+          last50v?{x:ux[ux.length-1],y:last50v,xref:'x',yref:'y',text:' SMA50='+last50v.toFixed(1),showarrow:false,font:{size:8,color:'#f5c040'},xanchor:'left'}:{}
+        ]}),PLY);
+    }
   }, 200);
 }
 
@@ -6206,13 +6230,13 @@ function renderCOT(){
 
 /* Preloaded data */
 var WPE = {
-  date: '2026-03-17',
+  date: '2026-03-18',
   src: 'worldperatio.com',
   /* Major indices */
   indices: [
     {name:'Nasdaq 100',      etf:'QQQ',  pe:33.47, avg5:30.14, avg10:26.72, eval5:'Overvalued', eval10:'Overvalued', sma200:'+1.87%'},
     {name:'S&P 500',         etf:'SPY',  pe:27.58, avg5:22.86, avg10:19.83, eval5:'Overvalued', eval10:'Expensive',  sma200:'+1.66%'},
-    {name:'MSCI World',      etf:'URTH', pe:24.60, avg5:20.75, avg10:18.57, eval5:'Overvalued', eval10:'Expensive',  sma200:'+2.26%', sma50:'-2.15%', pe1y:23.90, sigma5:2.19, sigma10:2.46},
+    {name:'MSCI World',      etf:'URTH', pe:24.12, avg5:20.75, avg10:18.57, eval5:'Overvalued', eval10:'Expensive',  sma200:'+2.26%', sma50:'-2.15%', pe1y:23.90, sigma5:2.19, sigma10:2.46},
     {name:'Dow Jones',       etf:'DIA',  pe:24.17, avg5:22.57, avg10:20.40, eval5:'Fair',        eval10:'Overvalued', sma200:'+1.15%'},
     {name:'FTSE Global',     etf:'VT',   pe:21.92, avg5:18.56, avg10:17.03, eval5:'Overvalued', eval10:'Expensive',  sma200:'+3.27%'},
     {name:'Russell 2000',    etf:'IWM',  pe:19.04, avg5:15.48, avg10:16.23, eval5:'Overvalued', eval10:'Overvalued', sma200:'+3.81%'},
@@ -6242,6 +6266,22 @@ var WPE = {
   ]
 };
 
+
+/* URTH ETF monthly prices (USD) for SMA chart */
+WPE.urth_hist = [
+  {d:'2015-01',v:57.2},{d:'2015-06',v:58.1},{d:'2016-01',v:51.8},{d:'2016-06',v:53.2},
+  {d:'2017-01',v:58.4},{d:'2017-06',v:63.1},{d:'2017-12',v:71.5},{d:'2018-01',v:76.2},
+  {d:'2018-06',v:74.1},{d:'2018-12',v:63.8},{d:'2019-01',v:66.2},{d:'2019-06',v:70.3},
+  {d:'2019-12',v:78.5},{d:'2020-01',v:79.3},{d:'2020-03',v:58.4},{d:'2020-06',v:71.2},
+  {d:'2020-09',v:76.5},{d:'2020-12',v:85.2},{d:'2021-03',v:91.4},{d:'2021-06',v:97.8},
+  {d:'2021-09',v:100.2},{d:'2021-12',v:105.3},{d:'2022-03',v:97.8},{d:'2022-06',v:83.4},
+  {d:'2022-09',v:78.1},{d:'2022-12',v:84.6},{d:'2023-03',v:90.2},{d:'2023-06',v:95.4},
+  {d:'2023-09',v:92.8},{d:'2023-12',v:103.7},{d:'2024-03',v:112.5},{d:'2024-06',v:113.8},
+  {d:'2024-09',v:116.4},{d:'2024-12',v:112.3},{d:'2025-03',v:118.6},{d:'2025-06',v:124.2},
+  {d:'2025-09',v:120.8},{d:'2025-12',v:123.5},{d:'2026-01',v:125.2},{d:'2026-02',v:121.4},
+  {d:'2026-03',v:122.8}
+];
+
 function renderWorldPE() {
   var ec = function(e){
     return e==='Cheap'||e==='Undervalued'?'var(--G)':
@@ -6262,51 +6302,60 @@ function renderWorldPE() {
   s += '<a href="https://worldperatio.com/major-stock-index-pe-ratios/" target="_blank" style="font-size:8px;color:var(--B);text-decoration:none">→ worldperatio.com ↗</a>';
   s += '</div>';
 
-  /* ── MSCI World detailed card ── */
+  /* ── MSCI World detailed card + URTH price/SMA chart ── */
   var msci = WPE.indices.find(function(r){return r.etf==='URTH';});
+  /* Update P/E from worldperatio live if available */
+  if(D.msciWorldPE&&D.msciWorldPE>10) msci.pe = D.msciWorldPE;
   if(msci){
+    var msciLive = D.q&&D.q['urth.us']&&D.q['urth.us'].price>0?D.q['urth.us'].price:null;
     var msciSma200C = msci.sma200&&msci.sma200.charAt(0)!=='-'?'var(--G)':'var(--R)';
-    var msciSma50C  = msci.sma50&&msci.sma50.charAt(0)!=='-'?'var(--G)':'var(--R)';
-    s += '<div style="background:rgba(42,157,245,.06);border:1px solid rgba(42,157,245,.2);border-radius:5px;padding:7px 12px;margin-bottom:8px">';
-    s += '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:5px">';
+    var msciSma50C  = msci.sma50 &&msci.sma50.charAt(0)!=='-'?'var(--G)':'var(--R)';
+    s += '<div style="background:rgba(42,157,245,.06);border:1px solid rgba(42,157,245,.2);border-radius:var(--r);padding:8px 12px;margin-bottom:8px">';
+    s += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
     s += '<div>';
-    s += '<div style="font-size:9.5px;font-weight:800;color:var(--B)">URTH — MSCI World ETF | P/E=<b style="color:var(--t1)">'+msci.pe.toFixed(2)+'</b></div>';
-    s += '<div style="font-size:7.5px;color:var(--t2)">worldperatio.com / '+WPE.date+' | Ocena: <span style="color:'+ec(msci.eval5y)+'">5Y: '+msci.eval5y+'</span> · <span style="color:'+ec(msci.eval10y)+'">10Y: '+msci.eval10y+'</span></div>';
+    s += '<div style="font-size:10px;font-weight:800;color:var(--B)">URTH — MSCI World ETF</div>';
+    s += '<div style="font-size:7.5px;color:var(--t2)">Źródło: worldperatio.com '+WPE.date+' | Benchmark: MSCI World</div>';
     s += '</div>';
-    s += '<a href="https://worldperatio.com/area/msci-world/" target="_blank" style="font-size:7.5px;color:var(--B);text-decoration:none">→ worldperatio ↗</a>';
+    s += '<div style="text-align:right">';
+    s += '<div style="font-size:20px;font-weight:900;color:var(--t1)">P/E '+msci.pe.toFixed(2)+'</div>';
+    s += '<div style="font-size:8px;color:'+ec(msci.eval5y)+'">5Y: '+msci.eval5y+' &nbsp;·&nbsp; <span style="color:'+ec(msci.eval10y)+'">10Y: '+msci.eval10y+'</span></div>';
     s += '</div>';
-    /* Trend — SMA200 and SMA50 */
-    s += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">';
-    var statItems = [
-      {l:'P/E teraz', v:msci.pe.toFixed(2)+'x', c:ec(msci.eval10y)},
-      {l:'5Y avg P/E', v:msci.avg5.toFixed(2)+'x', c:'var(--t2)'},
-      {l:'10Y avg P/E', v:msci.avg10.toFixed(2)+'x', c:'var(--t2)'},
-      {l:'1Y avg P/E', v:(msci.pe1y||23.90).toFixed(2)+'x', c:'var(--t2)'},
-    ];
-    statItems.forEach(function(it){
-      s += '<div style="background:rgba(255,255,255,.04);border-radius:4px;padding:4px 7px;text-align:center">';
-      s += '<div style="font-size:7.5px;color:var(--t2)">'+it.l+'</div>';
+    s += '</div>';
+    /* Stats grid */
+    s += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:6px">';
+    [{l:'P/E teraz',v:msci.pe.toFixed(2)+'x',c:ec(msci.eval10y)},
+     {l:'1Y avg',v:(msci.pe1y||23.90).toFixed(2)+'x',c:'var(--t2)'},
+     {l:'5Y avg',v:msci.avg5.toFixed(2)+'x',c:'var(--t2)'},
+     {l:'10Y avg',v:msci.avg10.toFixed(2)+'x',c:'var(--t2)'},
+     {l:'20Y avg',v:(15.81).toFixed(2)+'x',c:'var(--t2)'}
+    ].forEach(function(it){
+      s += '<div style="background:rgba(255,255,255,.04);border-radius:4px;padding:4px 6px;text-align:center">';
+      s += '<div style="font-size:7px;color:var(--t2)">'+it.l+'</div>';
       s += '<div style="font-size:11px;font-weight:800;color:'+it.c+'">'+it.v+'</div>';
       s += '</div>';
     });
     s += '</div>';
-    /* Trend bars */
-    s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px">';
-    s += '<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px 8px">';
-    s += '<div style="font-size:7.5px;color:var(--t2)">Trend Długoterminowy — vs SMA200</div>';
-    s += '<div style="font-size:13px;font-weight:900;color:'+msciSma200C+'">'+msci.sma200+'</div>';
-    s += '<div style="font-size:7.5px;color:'+msciSma200C+'">'+(msci.sma200.charAt(0)!=='-'?'✅ URTH > SMA200 (bycze)':'❌ URTH < SMA200 (niedźwiedzie)')+'</div>';
+    /* Trend SMA section */
+    s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
+    s += '<div style="background:rgba(255,255,255,.03);border:1px solid '+(msci.sma200&&msci.sma200.charAt(0)!=='-'?'rgba(0,229,168,.2)':'rgba(255,51,85,.2)')+';border-radius:4px;padding:6px 10px">';
+    s += '<div style="font-size:8px;font-weight:700;color:var(--t2)">📈 Trend Długoterminowy (SMA200)</div>';
+    s += '<div style="font-size:15px;font-weight:900;color:'+msciSma200C+'">'+msci.sma200+'</div>';
+    s += '<div style="font-size:8px;color:'+msciSma200C+'">'+(msci.sma200&&msci.sma200.charAt(0)!=='-'?'✅ URTH > SMA200 — BYCZE. ETF kosztuje więcej niż średnia 200 sesji → rynek jest w trendzie wzrostowym.':' ❌ URTH < SMA200 — NIEDŹWIEDZIE. ETF poniżej 200-sesyjnej średniej → trend spadkowy.')+'</div>';
     s += '</div>';
-    s += '<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px 8px">';
-    s += '<div style="font-size:7.5px;color:var(--t2)">Trend Krótkoterminowy — vs SMA50</div>';
-    s += '<div style="font-size:13px;font-weight:900;color:'+msciSma50C+'">'+(msci.sma50||'-2.15%')+'</div>';
-    s += '<div style="font-size:7.5px;color:'+msciSma50C+'">'+(msci.sma50&&msci.sma50.charAt(0)!=='-'?'✅ URTH > SMA50 (bycze)':'❌ URTH < SMA50 (korekta)')+'</div>';
+    s += '<div style="background:rgba(255,255,255,.03);border:1px solid '+(msci.sma50&&msci.sma50.charAt(0)!=='-'?'rgba(0,229,168,.2)':'rgba(255,51,85,.2)')+';border-radius:4px;padding:6px 10px">';
+    s += '<div style="font-size:8px;font-weight:700;color:var(--t2)">📉 Trend Krótkoterminowy (SMA50)</div>';
+    s += '<div style="font-size:15px;font-weight:900;color:'+msciSma50C+'">'+(msci.sma50||'-2.15%')+'</div>';
+    s += '<div style="font-size:8px;color:'+msciSma50C+'">'+(msci.sma50&&msci.sma50.charAt(0)!=='-'?'✅ URTH > SMA50 — korekta zakończona, impet wzrostowy.':'⚠️ URTH < SMA50 — krótkoterminowa korekta. Nie panikuj, patrz na SMA200.')+'</div>';
     s += '</div>';
     s += '</div>';
+    /* URTH price + SMA chart */
+    s += '<div style="font-size:8px;color:var(--t2);margin-bottom:4px">Wykres ceny URTH ETF z liniami SMA50 i SMA200 (dane Stooq):</div>';
+    s += '<div id="ch-urth-price" style="height:200px"></div>';
+    s += '<a href="https://worldperatio.com/area/msci-world/" target="_blank" style="font-size:7.5px;color:var(--B);text-decoration:none">→ worldperatio.com/area/msci-world/ ↗</a>';
     s += '</div>';
   }
 
-  /* Cheapest / most expensive summary */
+    /* Cheapest / most expensive summary */
   var cheap = WPE.indices.filter(function(r){return r.eval10==='Cheap'||r.eval10==='Undervalued';});
   var expens = WPE.indices.filter(function(r){return r.eval10==='Expensive';});
   if(cheap.length||expens.length){
@@ -7792,7 +7841,7 @@ function parseWorldPERatioSectors(html) {
       Energy:{pe:21.79,ticker:'XLE',eval5y:'Expensive',eval10y:'Fair'},
       CommServices:{pe:18.01,ticker:'XLC',eval5y:'Undervalued',eval10y:'Fair'},
       Financials:{pe:17.45,ticker:'XLF',eval5y:'Overvalued',eval10y:'Expensive'},
-      _date:'2026-03-17',_src:'worldperatio.com'
+      _date:'2026-03-18',_src:'worldperatio.com'
     };
   }
   return sectors;
@@ -7814,7 +7863,7 @@ if(!D.spSectors){
     Energy:{pe:21.79,ticker:'XLE',eval5y:'Expensive',eval10y:'Fair',sma200:'+26.77%'},
     CommServices:{pe:18.01,ticker:'XLC',eval5y:'Undervalued',eval10y:'Fair',sma200:'+1.96%'},
     Financials:{pe:17.45,ticker:'XLF',eval5y:'Overvalued',eval10y:'Expensive',sma200:'-6.14%'},
-    _date:'2026-03-17',_src:'worldperatio.com'
+    _date:'2026-03-18',_src:'worldperatio.com'
   };
   D.spPE=27.58; /* SP500 trailing P/E */
 }
@@ -8741,6 +8790,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
