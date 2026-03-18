@@ -322,14 +322,14 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v75</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v76</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
     <div class="tr"><button class="btn" id="bR">↻ ODŚWIEŻ</button><span id="clk">—</span></div>
   </div>
   <div class="ticker"><div class="tt" id="tt"></div></div>
- <div class="tabs">
+<div class="tabs">
     <button class="tab on" data-t="decision">DECYZJA</button>
     <button class="tab" data-t="sentiment">SENTYMENT</button>
     <button class="tab" data-t="kapital">KAPITAŁ</button>
@@ -358,6 +358,8 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
+
 
 
 
@@ -2520,9 +2522,9 @@ function renderKapital(){
   var vix=(q.vix&&q.vix.price>0)?q.vix.price:(f.vixfred&&f.vixfred.current>0?f.vixfred.current:GD.vix);
   var rsi=ta.rsi14||35.4;
   var macdH=ta.macd?ta.macd.hist:-12.6;
-  var sma50=ta.sma?ta.sma.s50:6746;
-  var sma200=ta.sma?ta.sma.s200:6851;
-  var spP=(q.sp500?q.sp500.price:null)||6775;
+  var sma50=(ta.sma&&ta.sma.s50)?ta.sma.s50:GD.sma50;
+  var sma200=(ta.sma&&ta.sma.s200)?ta.sma.s200:GD.sma200;
+  var spP=(q.sp500&&q.sp500.price>0)?q.sp500.price:GD.spP;
   var adx=ta.adx||24.75;
   var bb=ta.bb||{};
   var s2pts=sc.dims&&sc.dims[1]?sc.dims[1].pts:0;
@@ -2538,12 +2540,23 @@ function renderKapital(){
   }
   var s='';
   s+='<div style="font-size:9px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Płynność — dane teraz</div>';
-  s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">';
+  s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
   s+=kpi('Fed Funds',fed.toFixed(2)+'%','Stopy Fed',cC(fed,3,5),'<4%=akcje fav | >5%=stres');
   s+=kpi('M2 YoY',m2yoy!=null?m2yoy.toFixed(1)+'%':'ład.','Wzrost podaży pieniądza',m2yoy==null?'var(--t2)':m2yoy>6?'var(--G)':m2yoy>0?'var(--Y)':'var(--R)','>6%=ekspansja | <0%=deflacja');
   s+=kpi('SOFR',sofr.toFixed(2)+'%','Overnight USD',cC(sofr,3,5),'Proxy Fed rate');
   s+=kpi('HY Spread',hy.toFixed(2)+'%','High Yield',cC(hy,3.5,5),'<3.5%OK | >4%stres | >6%kryzys');
   s+=kpi('MOVE Index',move.toFixed(0),'Bond VIX',cC(move,100,130),'<100OK | >130stres obligacji');
+  /* Brent oil + 10Y bonds */
+  var oilBrent=(q.brent&&q.brent.price>0)?q.brent.price:(q.oil&&q.oil.price>0?q.oil.price:GD.oil);
+  var oilChgW=(q.brent&&q.brent.changeW!=null)?q.brent.changeW:(q.oil&&q.oil.changeW!=null?q.oil.changeW:0);
+  var oilChgWC=oilChgW>10?'var(--R)':oilChgW>5?'var(--Y)':oilChgW<-8?'var(--G)':'var(--t1)';
+  var pl10yV=(q['10plgby.b']&&q['10plgby.b'].price>0)?q['10plgby.b'].price:GD.pl10y;
+  var us10yV=(q['10usy.b']&&q['10usy.b'].price>0)?q['10usy.b'].price:GD.us10y;
+  var pl10yDate=(q['10plgby.b']&&q['10plgby.b'].date)?q['10plgby.b'].date:'GD 17.03.26';
+  var us10yDate=(q['10usy.b']&&q['10usy.b'].date)?q['10usy.b'].date:'GD 17.03.26';
+  s+=kpi('Brent Oil',oilBrent.toFixed(1)+' $','<span style="color:'+oilChgWC+'">'+(oilChgW>0?'+':'')+oilChgW.toFixed(1)+'% 5d</span>',oilChgW>10?'var(--R)':oilChgW<-8?'var(--G)':'var(--t1)','Zmiana 5d: >10%=ostrzeżenie');
+  s+=kpi('PL 10Y',pl10yV.toFixed(2)+'%','<span style="font-size:7px;color:var(--t2)">'+pl10yDate+'</span>',cC(pl10yV,4,5.5),'<4%=bycze | >5.5%=presja');
+  s+=kpi('US 10Y',us10yV.toFixed(2)+'%','<span style="font-size:7px;color:var(--t2)">'+us10yDate+'</span>',cC(us10yV,3.5,4.5),'<3.5%=bycze | >4.5%=presja');
   s+='</div>';
   s+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">';
   s+=kpi('NFCI',nfci!=null?nfci.toFixed(3):'ład.','Warunki finansowe',nfci==null?'var(--t2)':nfci>0?'var(--R)':'var(--G)','<0=ekspansja | >0=restrykcje');
@@ -2652,14 +2665,14 @@ function renderKapital(){
     if(D.ta&&D.ta.closes&&D.ta.closes.length>0){
       var cl=D.ta.closes,dt=D.ta.dates,n=cl.length;
       function smac(a,p){return a.map(function(_,i){return i<p-1?null:a.slice(i-p+1,i+1).reduce(function(x,y){return x+y;})/p;});}
-      Plotly.newPlot('ch-kap-price',[
+      if(document.getElementById('ch-kap-price'))Plotly.newPlot('ch-kap-price',[
         {x:dt,y:cl,mode:'lines',name:'SP500',line:{color:'#2a9df5',width:1.5}},
         {x:dt,y:smac(cl,20),mode:'lines',name:'MA20',line:{color:'#f5c040',width:1,dash:'dot'}},
         {x:dt,y:smac(cl,50),mode:'lines',name:'MA50',line:{color:'#00e5a8',width:1.5}},
         {x:dt,y:smac(cl,200),mode:'lines',name:'MA200',line:{color:'#ff3355',width:2}}
       ],pLy({height:200,showlegend:true,legend:{x:0,y:1,font:{size:9},orientation:'h'},margin:{l:50,r:6,t:6,b:28}}),PLY);
       function rsiA(d,p){var ag=0,al=0,r=[];for(var i=1;i<d.length;i++){var dv=d[i]-d[i-1];if(i<=p){ag+=dv>0?dv:0;al+=dv<0?-dv:0;if(i===p){ag/=p;al/=p;r.push(al===0?100:100-100/(1+ag/al));}}else{ag=(ag*(p-1)+(dv>0?dv:0))/p;al=(al*(p-1)+(dv<0?-dv:0))/p;r.push(al===0?100:100-100/(1+ag/al));}}return new Array(p).fill(null).concat(r);}
-      Plotly.newPlot('ch-kap-rsi',[
+      if(document.getElementById('ch-kap-rsi'))Plotly.newPlot('ch-kap-rsi',[
         {x:dt,y:rsiA(cl,14),mode:'lines',line:{color:'#a78bfa',width:1.5},name:'RSI'},
         {x:[dt[0],dt[n-1]],y:[70,70],mode:'lines',line:{color:'#ff3355',width:1,dash:'dot'}},
         {x:[dt[0],dt[n-1]],y:[30,30],mode:'lines',line:{color:'#00e5a8',width:1,dash:'dot'}}
@@ -2668,7 +2681,7 @@ function renderKapital(){
       var e12=ema2(cl,12),e26=ema2(cl,26),ml=e12.map(function(v,i){return v-e26[i];});
       var sig2=new Array(35).fill(null).concat(ema2(ml.slice(25),9));
       var hist2=ml.map(function(v,i){return sig2[i]!=null?v-sig2[i]:null;});
-      Plotly.newPlot('ch-kap-macd',[
+      if(document.getElementById('ch-kap-macd'))Plotly.newPlot('ch-kap-macd',[
         {x:dt,y:hist2,type:'bar',name:'Hist',marker:{color:hist2.map(function(v){return v==null?'#333':v>=0?'rgba(0,229,168,.7)':'rgba(255,51,85,.7)';})}},
         {x:dt,y:ml,mode:'lines',name:'MACD',line:{color:'#2a9df5',width:1.5}},
         {x:dt,y:sig2,mode:'lines',name:'Signal',line:{color:'#f5c040',width:1.5}}
@@ -4931,6 +4944,9 @@ function renderDecision(){
 
   /* ── Signals ─────────────────────────────────────────────────── */
   var alarms=[];
+  (D.pdfSignals||[]).filter(function(ps){return ps.type==='warn'||ps.type==='sell';}).slice(-5).forEach(function(ps){
+    alarms.push({t:'[PDF] '+ps.text.slice(0,55),d:ps.text+' | '+ps.source+' ('+ps.date+')',v:'PDF'});
+  });
   if(oilChgW>10) alarms.push({t:'🛢️ '+oilSrc+' +'+oilChgW.toFixed(1)+'%/tydz',d:'Geopolityka → ropa drożeje → inflacja wraca → Fed/NBP nie tnie → obligacje długie TRACĄ wartość. Unikaj ETFBTBSP/IBTA. Użyj ETFBCASH lub IB01.',v:'+'+oilChgW.toFixed(1)+'%'});
   if(Math.abs(pl10yChgW)>30) alarms.push({t:'📈 PL10Y +'+Math.abs(pl10yChgW).toFixed(0)+'bp/tydz',d:'Rentowności PL rosną szybko → ceny obligacji SPADAJĄ. Zamień ETFBTBSP → ETFBCASH lub EDO stała stopa.',v:'+'+Math.abs(pl10yChgW).toFixed(0)+'bp'});
   if(move>130) alarms.push({t:'⚡ MOVE='+move.toFixed(0)+' (stres obligacji)',d:'MOVE Index >130 = rynek obligacji USA niespokojny. Unikaj IBTA/DTLA długi duration. Preferuj IB01 lub IBTS (1-3Y).',v:move.toFixed(0)});
@@ -4940,6 +4956,9 @@ function renderDecision(){
   if(cape>36) alarms.push({t:'⚠️ CAPE='+cape.toFixed(1)+'x (drogo)',d:'CAPE/Shiller P/E >36. Mediana historyczna = 17x. Przy CAPE>35 kolejne 10Y SP500 zwrot avg +2-4%. Nie put all in.',v:cape.toFixed(1)+'x'});
 
   var opps=[];
+  (D.pdfSignals||[]).filter(function(ps){return ps.type==='buy';}).slice(-3).forEach(function(ps){
+    opps.push({t:'[PDF] '+ps.text.slice(0,55),d:ps.text+' | '+ps.source+' ('+ps.date+')',v:'PDF'});
+  });
   if(vix>28&&alarms.filter(function(a){return a.t.includes('Ropa')||a.t.includes('RECESJA');}).length===0)
     opps.push({t:'🔥 VIX='+vix.toFixed(0)+' PANIKA',d:'Każdy VIX>30 w historii (2003,2009,2011,2015,2018,2020) był okazją dla 3-5Y horyzontu. DCA 2-3×. Historycznie +25-50% w 12M.',v:vix.toFixed(0)});
   if(rsi<32) opps.push({t:'📊 RSI='+rsi.toFixed(0)+' wyprzedanie',d:'RSI SP500 <30 = ekstremalna wyprzedaż. Hist. avg return 12M po RSI<30: +22%. Kupuj transzami.',v:rsi.toFixed(0)});
@@ -4948,11 +4967,6 @@ function renderDecision(){
   if(cape<18) opps.push({t:'💎 CAPE='+cape.toFixed(1)+'x (tanie)',d:'CAPE<18 = historycznie dobre entry. Kolejne 10Y SP500 avg return ~12-15%.',v:cape.toFixed(1)+'x'});
   if(oilChgW<-8) opps.push({t:'📉 Ropa -'+Math.abs(oilChgW).toFixed(1)+'%',d:'Tania ropa = deflacja → inflacja spada → cięcia stóp szybciej → ETFBTBSP i akcje korzystają.',v:oilChgW.toFixed(1)+'%'});
   if(hy<2.5) opps.push({t:'🟢 HY='+hy.toFixed(2)+'% (spokój)',d:'Niskie spready kredytowe = rynki wyceniają niskie ryzyko recesji = środowisko pro-akcje.',v:hy.toFixed(2)+'%'});
-  /* ── PDF Report signals ── */
-  (D.pdfSignals||[]).slice(-8).forEach(function(ps){
-    if(ps.type==='buy') opps.push({t:'📄 '+ps.text.slice(0,45),d:'Raport: '+ps.source+' ('+ps.date+')',v:'PDF'});
-    else if(ps.type==='sell'||ps.type==='warn') alarms.push({t:'📄 '+ps.text.slice(0,45),d:'Raport: '+ps.source+' ('+ps.date+')',v:'PDF'});
-  });
 
   /* ── Cycle ───────────────────────────────────────────────────── */
   var cyclePhase,cycleColor,cycleDesc;
@@ -7033,6 +7047,78 @@ async function processPDFURL(url, progressCallback) {
   }
 }
 
+
+/* ═══ Pre-loaded PDF Analysis: Pekao Barometr Sektorowy 2026 ═══ */
+function preloadPDFReports() {
+  if(!D.pdfReports) D.pdfReports = [];
+  if(!D.pdfSignals) D.pdfSignals = [];
+  if(!D.pdfIndicators) D.pdfIndicators = [];
+
+  /* --- Report 1: Pekao Barometr Sektorowy 2026 + qnews analizy --- */
+  if(!D.pdfReports.find(function(r){return r.id==='pekao_barometr_2026';})){
+    var r1 = {
+      id: 'pekao_barometr_2026',
+      fileName: 'Pekao_Barometr_Sektorowy_2026.pdf',
+      uploadDate: '2026-03-18',
+      url: '',
+      analysis: {
+        title: 'Barometr Sektorowy 2026 — Pekao / qnews.pl',
+        region: 'PL',
+        category: 'makro',
+        date: 'Marzec 2026 (aktualizacja 10.03.2026)',
+        summary: 'Konflikt USA/Izrael–Iran wywołał rewizję prognoz makro dla Polski. PKB 2026 obniżony do +3.8% z +4.0%, CPI wzrośnie do 2.3%, NBP utrzyma stopę na 3.50% do końca roku. Brent >100 USD/bbl w scenariuszu kryzysowym = szok energetyczny jak 2022, ale w warunkach słabszej koniunktury.',
+        keyNumbers: [
+          {label:'PKB Polska 2026',value:'+3.8%',date:'proj. 10.03.26',vs:'poprzednio +4.0%'},
+          {label:'Konsumpcja pryw.',value:'+3.2%',date:'proj. 10.03.26',vs:'poprzednio +3.5%'},
+          {label:'Inwestycje',value:'+7.0%',date:'proj. 10.03.26',vs:'poprzednio +9.7%'},
+          {label:'Eksport',value:'+5.5%',date:'proj. 10.03.26',vs:'poprzednio +6.2%'},
+          {label:'Inflacja CPI PL',value:'2.3%',date:'proj. 2026',vs:'poprzednio 1.9%'},
+          {label:'NBP stopa (koniec)',value:'3.50%',date:'proj. 2026',vs:'aktualna 3.25%'},
+          {label:'Brent (scenariusz kryzy.)',value:'>100 USD',date:'jeśli konflikt trwa',vs:'bazowy 70-80 USD'},
+          {label:'BofA gotówka w fund.',value:'4.3%',date:'18.03.2026',vs:'sygnał sprzedaży anulowany'},
+          {label:'Bezrobocie PL',value:'3.1%',date:'sty 2026',vs:'hist. min. lut 2023'},
+          {label:'Dług publiczny PL/PKB',value:'65.4%',date:'2026 proj.',vs:'59.8% w 2025'},
+          {label:'USD/PLN opór tech.',value:'3.75',date:'mar 2026',vs:'USD safe haven'},
+        ],
+        indicators: [
+          {name:'PKB Polska',value:'3.8',unit:'% 2026P',date:'proj. 10.03.26',trend:'spadający',signal:'bear'},
+          {name:'CPI Polska',value:'2.3',unit:'% 2026P',date:'proj. 2026',trend:'rosnący',signal:'bear'},
+          {name:'Stopa NBP (koniec 2026)',value:'3.50',unit:'%',date:'proj. RPP',trend:'spadający',signal:'bull'},
+          {name:'Brent scenariusz kryz.',value:'>100',unit:'USD/bbl',date:'jeśli konflikt',trend:'rosnący',signal:'bear'},
+          {name:'Gotówka BofA FMS',value:'4.3',unit:'%',date:'18.03.26',trend:'rosnący',signal:'bull'},
+          {name:'Dług PL/PKB',value:'65.4',unit:'%',date:'2026 proj.',trend:'rosnący',signal:'bear'},
+          {name:'Bezrobocie PL',value:'3.1',unit:'%',date:'sty 2026',trend:'stabilny',signal:'bull'},
+          {name:'MSCI EM overweight',value:'najwyżej od lut 2021',unit:'',date:'18.03.26',trend:'rosnący',signal:'warn'},
+        ],
+        marketImpact: {
+          stocks: {signal:'bear', reason:'Obniżka prognoz PKB, wyższe koszty energii w kryzysowym, mocny USD. Sektory energochłonne zagrożone.'},
+          bonds: {signal:'bear', reason:'PL 10Y pod presją (dług/PKB rośnie do 65.4%). Brent >100 = wyższa inflacja = opóźnienie cięć NBP.'},
+          currencies: {signal:'bear', reason:'USD/PLN wzrósł 5% od początku roku, opór tech. 3.75. USD safe haven w konflikcie.'},
+          savings: {signal:'bull', reason:'NBP tnie stopy powoli — KO i EDO 10Y nadal atrakcyjne. EDO real = CPI+2% = ~4.3% realnie.'}
+        },
+        signals: [
+          {type:'warn', text:'Brent >100 USD/bbl w scenariuszu kryzysowym = szok energetyczny jak 2022. Energochłonne branże (metal, mineral, papier, transport) zagrożone.', indicator:'Pekao Barometr Sektorowy'},
+          {type:'warn', text:'Dług publiczny PL wzrośnie do 65.4% PKB w 2026 = presja na rentowności obligacji PL10Y. Unikaj długich obligacji PL.', indicator:'MF Strategia Zarządzania Długiem'},
+          {type:'warn', text:'MSCI EM overweight najwyżej od lut 2021 w sondażu BofA — historycznie sygnał kontrariański (EM szczyt w lut 2021).', indicator:'BofA FMS Mar 2026'},
+          {type:'buy', text:'Gotówka funduszy wzrosła do 4.3% (BofA) = sygnał sprzedaży ryzykownych aktywów anulowany. Kontrariańsko: okazja DCA.', indicator:'BofA FMS Mar 2026 18.03.26'},
+          {type:'buy', text:'USD/PLN testuje opór 3.75 — przy deeskalacji konfliktu: okazja zakupu PLN, ETFBMWIG40. GPW odporna na popyt krajowy.', indicator:'qnews.pl 16.03.26'},
+          {type:'warn', text:'Inflacja CPI USA może wzrosnąć do ~4% przez drożejące paliwa (Brent). Fed odłoży cięcia stóp — ryzyko dla obligacji.', indicator:'qnews.pl Tydzień BC 17.03.26'},
+          {type:'buy', text:'Sektory odporne: usługi biznesowe, IT/komunikacja, gospodarka odpadowa — dobre perspektywy nawet w scenariuszu kryzysowym.', indicator:'Pekao Barometr Sektorowy 2026'},
+        ]
+      }
+    };
+    D.pdfReports.push(r1);
+    /* Inject signals */
+    r1.analysis.signals.forEach(function(sig){
+      D.pdfSignals.push({type:sig.type, text:sig.text, indicator:sig.indicator,
+        source:'Pekao/qnews Mar 2026', sourceUrl:'', date:'2026-03-18'});
+    });
+    r1.analysis.indicators.forEach(function(ind){
+      D.pdfIndicators.push(Object.assign({source:'Pekao Barometr 2026'},ind));
+    });
+  }
+}
+
 async function loadSavedPDFReports() {
   if(D.pdfReports&&D.pdfReports.length>0) return;
   D.pdfReports=[]; D.pdfSignals=[]; D.pdfIndicators=[];
@@ -7615,7 +7701,7 @@ async function fetchAll(){
       if(t==='wiedza')renderWiedza();if(t==='cot')renderCOT();}
 }
 setInterval(fetchAll,10*60*1000);
-loadSavedPDFReports().then(function(){if(D.pdfReports&&D.pdfReports.length>0){renderDecision();}});
+preloadPDFReports();loadSavedPDFReports().then(function(){renderDecision();});
 
 /* ═══════════════════════════════
    TABS
@@ -7816,6 +7902,8 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
+
 
 
 
