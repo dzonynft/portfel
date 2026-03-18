@@ -402,6 +402,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 
 
 
+
 'use strict';
 /* ═══════════════════════════════════════════════════════════
    MacroTerminal v28 — FIXED 2026 — Professional Investment Decision System
@@ -824,22 +825,27 @@ async function pGetHTML(url, ms) {
 
 
 async function fOne(id) {
-  /* FRED API JSON via proxy — fredgraph.csv is blocked, JSON API works via allorigins */
+  /* FRED API JSON — sort_order=desc gets newest first, filter '.' values */
   var apiUrl='https://api.stlouisfed.org/fred/series/observations'
-    +'?api_key=03062bdea07a8594cad80e9a0574721e&file_type=json&sort_order=desc&limit=100&series_id='+id;
+    +'?api_key=03062bdea07a8594cad80e9a0574721e&file_type=json'
+    +'&sort_order=desc&limit=200&series_id='+id
+    +'&observation_end='+new Date().toISOString().slice(0,10);
   var rp=await pGet(apiUrl, 16000);
   var txt=await rp.text();
   if(!txt||txt.trimStart().charAt(0)==='<') throw new Error('got HTML');
   var j=JSON.parse(txt);
   if(j.error_message) throw new Error(j.error_message);
-  var obs=(j.observations||[]).filter(function(o){return o.value!=='.'&&o.value!=='';});
+  /* Filter out missing values ('.' or empty), keep only real observations */
+  var obs=(j.observations||[]).filter(function(o){
+    return o.value!=='.'&&o.value!==''&&o.value!==null&&isFinite(parseFloat(o.value));
+  });
   if(!obs.length) throw new Error('empty');
-  /* API returns desc (newest first) → reverse to asc */
-  obs.reverse();
-  var rows=obs.map(function(o){return{date:o.date,val:parseFloat(o.value)};})
-              .filter(function(x){return isFinite(x.val);});
-  if(!rows.length) throw new Error('no valid rows');
-  var last=rows[rows.length-1],p1=rows.length>1?rows[rows.length-2]:last;
+  /* API returns desc → sort asc for series */
+  obs.sort(function(a,b){return a.date<b.date?-1:1;});
+  var rows=obs.map(function(o){return{date:o.date,val:parseFloat(o.value)};});
+  /* last = truly most recent non-null value */
+  var last=rows[rows.length-1];
+  var p1=rows.length>1?rows[rows.length-2]:last;
   var p3=rows.length>3?rows[rows.length-4]:rows[0];
   var p6=rows.length>6?rows[rows.length-7]:rows[0];
   var p12=rows.length>12?rows[rows.length-13]:rows[0];
@@ -848,7 +854,7 @@ async function fOne(id) {
     trend3m:p3.val&&p3.val!==0?(last.val-p3.val)/Math.abs(p3.val)*100:null,
     trend6m:p6.val&&p6.val!==0?(last.val-p6.val)/Math.abs(p6.val)*100:null,
     yoy:p12.val&&p12.val!==0?(last.val-p12.val)/Math.abs(p12.val)*100:null,
-    series:rows.slice(-60)
+    series:rows.slice(-80)
   };
 }
 async function fetchFred() {
@@ -9007,6 +9013,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
