@@ -322,7 +322,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v78</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v79</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -358,6 +358,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -2668,6 +2669,7 @@ function renderKapital(){
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">M2 YoY + Fed Funds</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-m2" style="height:150px"></div></div></div>';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Spread</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-hy" style="height:150px"></div></div></div>';
   s+='</div>';
+    s+=renderWorldPE();
   el.innerHTML='<div class="wrap">'+s+'</div>';
   setTimeout(function(){
     if(D.ta&&D.ta.closes&&D.ta.closes.length>0){
@@ -5800,6 +5802,136 @@ function renderCOT(){
 /* ═══════════════════════════════
    RENDER: INDICATORS
 ═══════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   World P/E Ratios — worldperatio.com | 17.03.2026
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Preloaded data */
+var WPE = {
+  date: '2026-03-17',
+  src: 'worldperatio.com',
+  /* Major indices */
+  indices: [
+    {name:'Nasdaq 100',      etf:'QQQ',  pe:33.47, avg5:30.14, avg10:26.72, eval5:'Overvalued', eval10:'Overvalued', sma200:'+1.87%'},
+    {name:'S&P 500',         etf:'SPY',  pe:27.58, avg5:22.86, avg10:19.83, eval5:'Overvalued', eval10:'Expensive',  sma200:'+1.66%'},
+    {name:'MSCI World',      etf:'URTH', pe:24.49, avg5:20.75, avg10:18.57, eval5:'Overvalued', eval10:'Expensive',  sma200:'+2.26%'},
+    {name:'Dow Jones',       etf:'DIA',  pe:24.17, avg5:22.57, avg10:20.40, eval5:'Fair',        eval10:'Overvalued', sma200:'+1.15%'},
+    {name:'FTSE Global',     etf:'VT',   pe:21.92, avg5:18.56, avg10:17.03, eval5:'Overvalued', eval10:'Expensive',  sma200:'+3.27%'},
+    {name:'Russell 2000',    etf:'IWM',  pe:19.04, avg5:15.48, avg10:16.23, eval5:'Overvalued', eval10:'Overvalued', sma200:'+3.81%'},
+    {name:'FTSE Europe',     etf:'VGK',  pe:17.52, avg5:14.19, avg10:13.91, eval5:'Overvalued', eval10:'Expensive',  sma200:'+3.13%'},
+    {name:'MSCI EM',         etf:'EEM',  pe:16.93, avg5:13.56, avg10:13.61, eval5:'Expensive',  eval10:'Expensive',  sma200:'+9.60%'},
+    {name:'MSCI India',      etf:'INDA', pe:12.71, avg5:23.10, avg10:20.73, eval5:'Cheap',       eval10:'Cheap',      sma200:'-9.05%'},
+    {name:'FTSE China 50',   etf:'FXI',  pe:10.63, avg5:10.21, avg10:11.17, eval5:'Fair',        eval10:'Fair',       sma200:'-4.76%'},
+  ],
+  /* Selected countries */
+  countries: [
+    {name:'New Zealand',   etf:'ENZL', pe:30.13, eval10:'Fair',       sma200:'-1.56%'},
+    {name:'United States', etf:'VTI',  pe:26.22, eval10:'Expensive',  sma200:'+2.22%'},
+    {name:'Taiwan',        etf:'EWT',  pe:24.25, eval10:'Expensive',  sma200:'+15.29%'},
+    {name:'Switzerland',   etf:'EWL',  pe:23.64, eval10:'Expensive',  sma200:'+4.20%'},
+    {name:'Australia',     etf:'EWA',  pe:22.88, eval10:'Expensive',  sma200:'+7.07%'},
+    {name:'South Korea',   etf:'EWY',  pe:21.51, eval10:'Expensive',  sma200:'+46.62%'},
+    {name:'Canada',        etf:'EWC',  pe:20.26, eval10:'Expensive',  sma200:'+10.29%'},
+    {name:'France',        etf:'EWQ',  pe:19.96, eval10:'Expensive',  sma200:'-0.62%'},
+    {name:'United Kingdom',etf:'EWU',  pe:19.89, eval10:'Expensive',  sma200:'+8.68%'},
+    {name:'Japan',         etf:'EWJ',  pe:19.50, eval10:'Expensive',  sma200:'+5.51%'},
+    {name:'Germany',       etf:'EWG',  pe:18.50, eval10:'Expensive',  sma200:'-2.51%'},
+    {name:'Spain',         etf:'EWP',  pe:15.87, eval10:'Expensive',  sma200:'+7.99%'},
+    {name:'Brazil',        etf:'EWZ',  pe:13.54, eval10:'Overvalued', sma200:'+16.29%'},
+    {name:'India',         etf:'INDA', pe:12.71, eval10:'Cheap',      sma200:'-9.05%'},
+    {name:'China',         etf:'FXI',  pe:10.63, eval10:'Fair',       sma200:'-4.76%'},
+  ]
+};
+
+function renderWorldPE() {
+  var ec = function(e){
+    return e==='Cheap'||e==='Undervalued'?'var(--G)':
+           e==='Fair'?'var(--t1)':
+           e==='Overvalued'?'var(--Y)':'var(--R)';
+  };
+  var ei = function(e){
+    return e==='Cheap'||e==='Undervalued'?'▼↓':e==='Fair'?'●':e==='Overvalued'?'↑':'▲▲';
+  };
+  var tc = function(s){ return s&&s.charAt(0)==='-'?'var(--R)':'var(--G)'; };
+
+  var s = '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 14px;margin-bottom:10px">';
+
+  /* Header */
+  s += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  s += '<div><div style="font-size:10px;font-weight:800;color:var(--t1)">🌍 Globalne P/E Ratio — Główne Indeksy</div>';
+  s += '<div style="font-size:7.5px;color:var(--t2)">worldperatio.com | '+WPE.date+' | Ocena vs 10Y średnia</div></div>';
+  s += '<a href="https://worldperatio.com/major-stock-index-pe-ratios/" target="_blank" style="font-size:8px;color:var(--B);text-decoration:none">→ worldperatio.com ↗</a>';
+  s += '</div>';
+
+  /* Cheapest / most expensive summary */
+  var cheap = WPE.indices.filter(function(r){return r.eval10==='Cheap'||r.eval10==='Undervalued';});
+  var expens = WPE.indices.filter(function(r){return r.eval10==='Expensive';});
+  if(cheap.length||expens.length){
+    s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">';
+    if(cheap.length){
+      s += '<div style="background:rgba(0,229,168,.06);border:1px solid rgba(0,229,168,.2);border-radius:4px;padding:5px 8px">';
+      s += '<div style="font-size:7.5px;font-weight:700;color:var(--G);margin-bottom:2px">✅ Tanie (10Y) — okazja</div>';
+      cheap.forEach(function(r){s+='<div style="font-size:8.5px;color:var(--t1)">'+r.name+' <b>P/E='+r.pe.toFixed(1)+'</b> (avg10: '+r.avg10.toFixed(1)+')</div>';});
+      s += '</div>';
+    }
+    s += '<div style="background:rgba(255,51,85,.06);border:1px solid rgba(255,51,85,.2);border-radius:4px;padding:5px 8px">';
+    s += '<div style="font-size:7.5px;font-weight:700;color:var(--R);margin-bottom:2px">⚠️ Drogie (10Y) — najdroższe</div>';
+    expens.slice(0,3).forEach(function(r){s+='<div style="font-size:8.5px;color:var(--t1)">'+r.name+' <b>P/E='+r.pe.toFixed(1)+'</b> (avg10: '+r.avg10.toFixed(1)+')</div>';});
+    s += '</div>';
+    s += '</div>';
+  }
+
+  /* Major indices table */
+  s += '<div style="overflow-x:auto;margin-bottom:8px">';
+  s += '<table style="width:100%;border-collapse:collapse;font-size:8px">';
+  s += '<thead><tr style="border-bottom:1px solid var(--br)">';
+  ['Indeks','ETF','P/E','5Y avg','10Y avg','5Y ocena','10Y ocena','vs SMA200'].forEach(function(h){
+    s += '<th style="padding:3px 6px;color:var(--t2);font-weight:600;text-align:'+(h==='Indeks'?'left':'center')+'">'+h+'</th>';
+  });
+  s += '</tr></thead><tbody>';
+
+  WPE.indices.forEach(function(r){
+    var c5=ec(r.eval5), c10=ec(r.eval10);
+    var bg=r.eval10==='Cheap'||r.eval10==='Undervalued'?'rgba(0,229,168,.04)':
+            r.eval10==='Expensive'?'rgba(255,51,85,.03)':'transparent';
+    s += '<tr style="border-bottom:1px solid rgba(255,255,255,.04);background:'+bg+'">';
+    s += '<td style="padding:3px 6px;color:var(--t1);font-weight:600">'+r.name+'</td>';
+    s += '<td style="padding:3px 6px;color:var(--t2);text-align:center">'+r.etf+'</td>';
+    s += '<td style="padding:3px 6px;font-size:10px;font-weight:800;color:var(--t1);text-align:right">'+r.pe.toFixed(2)+'</td>';
+    s += '<td style="padding:3px 6px;color:var(--t2);text-align:right">'+r.avg5.toFixed(1)+'</td>';
+    s += '<td style="padding:3px 6px;color:var(--t2);text-align:right">'+r.avg10.toFixed(1)+'</td>';
+    s += '<td style="padding:3px 6px;text-align:center;color:'+c5+'">'+ei(r.eval5)+' '+r.eval5+'</td>';
+    s += '<td style="padding:3px 6px;text-align:center;color:'+c10+'"><b>'+ei(r.eval10)+' '+r.eval10+'</b></td>';
+    s += '<td style="padding:3px 6px;text-align:right;color:'+tc(r.sma200)+'">'+r.sma200+'</td>';
+    s += '</tr>';
+  });
+  s += '</tbody></table></div>';
+
+  /* Countries bubble chart / compact grid */
+  s += '<div style="border-top:1px solid var(--br);padding-top:8px">';
+  s += '<div style="font-size:9px;font-weight:700;color:var(--t1);margin-bottom:6px">🌐 Kraje — P/E vs 10Y ocena</div>';
+  s += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px">';
+
+  WPE.countries.forEach(function(r){
+    var c=ec(r.eval10);
+    var bg=r.eval10==='Cheap'||r.eval10==='Undervalued'?'rgba(0,229,168,.08)':
+            r.eval10==='Expensive'?'rgba(255,51,85,.06)':
+            r.eval10==='Overvalued'?'rgba(245,192,64,.06)':'rgba(255,255,255,.03)';
+    var brd=r.eval10==='Cheap'||r.eval10==='Undervalued'?'rgba(0,229,168,.25)':
+             r.eval10==='Expensive'?'rgba(255,51,85,.2)':
+             r.eval10==='Overvalued'?'rgba(245,192,64,.2)':'var(--br)';
+    s += '<div style="background:'+bg+';border:1px solid '+brd+';border-radius:4px;padding:4px 7px;display:flex;justify-content:space-between;align-items:center">';
+    s += '<div><div style="font-size:8px;font-weight:700;color:var(--t1)">'+r.name+'</div>';
+    s += '<div style="font-size:7px;color:var(--t2)">'+r.etf+' | '+r.sma200+'</div></div>';
+    s += '<div style="text-align:right"><div style="font-size:12px;font-weight:900;color:'+c+'">'+r.pe.toFixed(1)+'</div>';
+    s += '<div style="font-size:7px;color:'+c+'">'+r.eval10+'</div></div>';
+    s += '</div>';
+  });
+  s += '</div></div></div>';
+  return s;
+}
+
+
 function renderSP500Sectors() {
   var sec = D.spSectors;
   if(!sec) return '';
@@ -6347,7 +6479,9 @@ function renderIndicators(){
     }
   },120);
 
-  /* Append SP500 sectors */
+  /* Append World P/E + SP500 sectors */
+  var worldPeHtml=renderWorldPE();
+  if(worldPeHtml) el.innerHTML+=worldPeHtml;
   var secHtml=renderSP500Sectors();
   if(secHtml) el.innerHTML+=secHtml;
   renderIndicatorsExtra(el);
@@ -8018,6 +8152,23 @@ async function fetchMacroData() {
   /* Source D: static fallback with known value — CAPE ~34 as of Mar 2026 */
   if(!capeLoaded||!D.cape){
     D.cape=D.cape||D.spPE||27.58;
+
+  /* ── Fetch worldperatio major indices (updates WPE) ── */
+  try {
+    var hwi=await pGetHTML('https://worldperatio.com/major-stock-index-pe-ratios/');
+    if(hwi&&hwi.length>1000){
+      /* Parse QQQ P/E */
+      var mqq=hwi.match(/QQQ[^|]*\|\s*([\d]{2,3}\.[\d]{1,2})/);
+      if(mqq){WPE.indices[0].pe=parseFloat(mqq[1]);}
+      /* Parse SPY */
+      var msp=hwi.match(/SPY[^|]*\|\s*([\d]{2,3}\.[\d]{1,2})/);
+      if(msp){var spv=parseFloat(msp[1]);WPE.indices[1].pe=spv;D.spPE=spv;D.cape=D.cape||spv;}
+      /* Parse MSCI EM */
+      var mem=hwi.match(/EEM[^|]*\|\s*([\d]{2,3}\.[\d]{1,2})/);
+      if(mem){WPE.indices[8].pe=parseFloat(mem[1]);}
+      console.log('WPE indices updated from live');
+    }
+  } catch(eWPE){}
     D.cape_src='Fallback est. Mar 2026 (~33-34)';
     console.log('CAPE static fallback:',D.cape);
   }
@@ -8144,6 +8295,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
