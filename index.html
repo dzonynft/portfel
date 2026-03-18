@@ -321,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v73</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v74</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -357,6 +357,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -2513,7 +2514,7 @@ function renderKapital(){
   var nfci=(f.nfci&&f.nfci.current!=null)?f.nfci.current:null;
   var rrp=(f.rrp&&f.rrp.current!=null)?f.rrp.current:null;
   var move=(q.move?q.move.price:null)||95;
-  var vix=(q.vix?q.vix.price:null)||(f.vixfred?f.vixfred.current:null)||20;
+  var vix=(q.vix&&q.vix.price>0)?q.vix.price:(f.vixfred&&f.vixfred.current>0?f.vixfred.current:GD.vix);
   var rsi=ta.rsi14||35.4;
   var macdH=ta.macd?ta.macd.hist:-12.6;
   var sma50=ta.sma?ta.sma.s50:6746;
@@ -2833,6 +2834,7 @@ function renderPrognozy(){
 
   /* ═══ STOPY PROCENTOWE RAZEM ════════════════════════════════════ */
   s+='<div class="sec">🏦 Stopy procentowe — NBP vs Fed</div>';
+  s+='<div style="font-size:7.5px;color:var(--t2);margin-bottom:4px">NBP: faktyczna do mar 2026, prognoza Q2-Q4 2026 (NBP RPP). Fed: faktyczna do mar 2026, prognoza CME FedWatch mar 2026.</div>';
   s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   /* NBP */
   s+='<div style="background:var(--bg2);border:1px solid var(--Y)40;border-radius:var(--r);padding:11px 13px">';
@@ -3007,7 +3009,7 @@ function renderPrognozy(){
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
       margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,10]}}),PLY);
     /* PKB */
-    Plotly.newPlot('ch-prg-pkb',[
+    if(document.getElementById('ch-prg-pkb'))Plotly.newPlot('ch-prg-pkb',[
       {x:['2022','2023','2024','2025','2026P','2027P','2028P'],
        y:[5.1,0.2,2.9,3.6,3.9,2.9,2.9],
        mode:'lines+markers',type:'bar',
@@ -3017,7 +3019,7 @@ function renderPrognozy(){
       xaxis:{categoryorder:'array',categoryarray:['2022','2023','2024','2025','2026P','2027P','2028P']},
       yaxis:{title:'%'}}),PLY);
     /* NBP+Fed rates */
-    Plotly.newPlot('ch-prg-nbp',[
+    if(document.getElementById('ch-prg-nbp'))Plotly.newPlot('ch-prg-nbp',[
       {x:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26'],y:[6.75,5.75,5.25,5.25,5.00,4.25,4.00,3.75],mode:'lines+markers',name:'NBP faktyczna',line:{color:'#f5c040',width:2.5},marker:{size:7}},
       {x:['mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],y:[3.75,3.50,3.25,3.25,3.00],mode:'lines+markers',name:'NBP prognoza',line:{color:'#f5c040',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
       {x:['2023','2027P'],y:[2.5,2.5],mode:'lines',name:'Neutralna',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
@@ -3030,14 +3032,14 @@ function renderPrognozy(){
     var fedProjX=['mar26','cze26P','wrz26P','gru26P','2027P'];
     var fedProjY=[3.63,3.38,3.25,3.00,2.75];
     var fedAllX=fedHistX.concat(fedProjX.slice(1));
-    Plotly.newPlot('ch-prg-fed',[
+    if(document.getElementById('ch-prg-fed'))Plotly.newPlot('ch-prg-fed',[
       {x:fedHistX,y:fedHistY,mode:'lines+markers',name:'Fed faktyczna',line:{color:'#60a5fa',width:2.5},marker:{size:6}},
       {x:fedProjX,y:fedProjY,mode:'lines+markers',name:'Fed prognoza (FedWatch)',line:{color:'#60a5fa',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
       {x:[fedHistX[0],fedProjX[fedProjX.length-1]],y:[2.5,2.5],mode:'lines',name:'Neutralna Fed',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:150,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
       margin:{l:36,r:6,t:6,b:35},
-      xaxis:{categoryorder:'array',categoryarray:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],tickangle:-20,tickfont:{size:8}},
-      yaxis:{title:'%',range:[2,7]}}),PLY);
+      xaxis:{categoryorder:'array',categoryarray:fedAllX,tickangle:-20,tickfont:{size:8}},
+      yaxis:{title:'%',range:[0,6]}}),PLY);
   },150);
 }
 
@@ -4051,7 +4053,8 @@ function renderMSCIMatrix() {
 function computeAllocation(sc, extras) {
   var total  = sc.total  || 0;
   var norm   = sc.norm   || 50;
-  var vix    = extras.vix       || 20;
+  var vix    = extras.vix    || GD.vix  || 22;
+  var cape   = extras.cape   || GD.cape || 27.0;
   var oilChg = extras.oilChg    || 0;
   var pl10yChg = extras.pl10yChg || 0;
   var move   = extras.move      || 95;
@@ -5775,7 +5778,7 @@ function renderIndicators(){
   /* === HISTORICAL SUMMARY === */
   var sc3=calcScore();
   var f=D.f||{},q=D.q||{};
-  var vix3=sc3.vix||20,hy3=sc3.hy||4,sahm3=sc3.sahm||0;
+  var vix3=sc3.vix||GD.vix,hy3=sc3.hy||GD.hy,sahm3=sc3.sahm||0.17;
   var fedR=f.fedfunds&&f.fedfunds.current?f.fedfunds.current:null;
   var m2y=f.m2&&f.m2.yoy!=null?f.m2.yoy:null;
   var yield_c=f.yield_curve&&f.yield_curve.current!=null?f.yield_curve.current:null;
@@ -5783,7 +5786,7 @@ function renderIndicators(){
   /* Build historical context rows */
   var histRows=[];
   if(vix3!=null){
-    var vixCtx=vix3>=40?'Poziom kryzysu (2008:80, COVID:85, 2022:36). Historyczne punkty kupna.':
+    var vixCtx=vix3>=40?'Poziom kryzysu (2008:88.69, COVID:85.47, 2022:36.45). Historyczne punkty kupna.':
                vix3>=28?'Strefa podwyższonego ryzyka. Panika lub korekta ≥10%.':
                vix3>=20?'Podwyższony. 2022 bessa: VIX 25–36. Normalna zmienność.':
                vix3>=15?'Normalny zakres. Brak skrajności.':'Euforia. VIX&lt;15 poprzedzał covidowy crash, DotCom.';
@@ -5859,7 +5862,7 @@ function renderIndicators(){
     var cape=D.cape;
     var eps=D.eps;
     var sp12m=D.sp12m;
-    var vix=(D.q&&D.q.vix)?D.q.vix.price:(f.vixfred?f.vixfred.current:null);
+    var vix=(D.q&&D.q.vix&&D.q.vix.price>0)?D.q.vix.price:(f.vixfred&&f.vixfred.current>0?f.vixfred.current:GD.vix);
     var move=(D.q&&D.q.move)?D.q.move.price:null;
     var gold=(D.q&&D.q.gold)?D.q.gold.price:(D.gold?D.gold.current:null);
     var goldYoy=(D.gold&&D.gold.yoy!=null)?D.gold.yoy:((D.q&&D.q.gold)?D.q.gold.change:null);
@@ -7473,6 +7476,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
