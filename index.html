@@ -668,9 +668,8 @@ async function sOneFrankfurter(sym) {
   return{price:rate,prev:rate,change:0,date:j.date||''};
 }
 async function sOne(sym) {
-  /* DXY: try FRED first if already loaded */
   if(sym==='dxy'&&D.f&&D.f.dxy_fred&&D.f.dxy_fred.current>0){
-    return{price:D.f.dxy_fred.current,prev:D.f.dxy_fred.current,change:0,date:D.f.dxy_fred.date||'FRED',src:'FRED'};
+    return{price:D.f.dxy_fred.current,prev:D.f.dxy_fred.current,change:0,date:'FRED',src:'FRED DTWEXBGS'};
   }
   try{return await sOneStooq(sym);}catch(e1){
     try{return await sOneYahoo(sym);}catch(e2){
@@ -702,32 +701,19 @@ async function fetchStooq() {
   if(D.q.usdpln&&!D.usdPlnHistory) D.usdPlnHistory=[];
   if(D.q.wig20&&!D.wig20History) D.wig20History=[];
   setS(ok>10?'ok':'er','Stooq: '+ok+' OK, '+fail+' err');
-  /* DXY fallback: calculate from EUR/USD if direct failed */
-  if(!D.q.dxy || !D.q.dxy.price){
-    try{
-      var eurusd_v = D.q.eurusd&&D.q.eurusd.price>0?D.q.eurusd.price:null;
-      var dxy_fred_v = D.f&&D.f.dxy_fred&&D.f.dxy_fred.current>0?D.f.dxy_fred.current:null;
-      if(dxy_fred_v){
-        D.q.dxy = {price:dxy_fred_v, prev:dxy_fred_v, change:0, date:'FRED', src:'FRED DTWEXBGS'};
-      } else if(eurusd_v){
-        /* DXY ≈ 115.68 / (EUR/USD)^0.576 approximation */
-        var dxy_est = Math.round(115.68 / Math.pow(eurusd_v, 0.576) * 100) / 100;
-        D.q.dxy = {price:dxy_est, prev:dxy_est, change:0, date:'calc', src:'calc from EUR/USD'};
-      }
-    }catch(edxy){}
+  /* DXY fallback */
+  if(!D.q.dxy||!D.q.dxy.price){
+    var dfv=D.f&&D.f.dxy_fred&&D.f.dxy_fred.current>0?D.f.dxy_fred.current:null;
+    var euv=D.q.eurusd&&D.q.eurusd.price>0?D.q.eurusd.price:null;
+    if(dfv) D.q.dxy={price:dfv,prev:dfv,change:0,date:'FRED',src:'FRED'};
+    else if(euv) D.q.dxy={price:Math.round(115.68/Math.pow(euv,0.576)*100)/100,prev:0,change:0,date:'calc',src:'calc'};
   }
-  /* USD/PLN fallback via NBP if not loaded */
-  if(!D.q.usdpln || !D.q.usdpln.price){
-    try{
-      var nbpR = await sOneNBP('usdpln');
-      if(nbpR&&nbpR.price>0) D.q.usdpln = nbpR;
-    }catch(enbp){}
+  /* USD/PLN NBP fallback */
+  if(!D.q.usdpln||!D.q.usdpln.price){
+    try{var n1=await sOneNBP('usdpln');if(n1&&n1.price>0)D.q.usdpln=n1;}catch(e){}
   }
-  if(!D.q.eurpln || !D.q.eurpln.price){
-    try{
-      var nbpR2 = await sOneNBP('eurpln');
-      if(nbpR2&&nbpR2.price>0) D.q.eurpln = nbpR2;
-    }catch(enbp2){}
+  if(!D.q.eurpln||!D.q.eurpln.price){
+    try{var n2=await sOneNBP('eurpln');if(n2&&n2.price>0)D.q.eurpln=n2;}catch(e){}
   }
 }
 async function fetchSP12M() {
@@ -790,9 +776,8 @@ var FM = {
   /* wilshire removed - series invalid */   /* Wilshire 5000 Total Market — corrected from WILL5000INDFC */
   gdp_nom:'GDP',
   sp500_m:'SP500',
-  dxy_fred:'DTWEXBGS',     /* USD Broad Index (FRED) — fallback for DXY */
-  gold_fred:'GOLDAMGBD228NLBM', /* Gold price FRED - monthly */
-  cpi_pl:'POLCPIALLMINMEI'   /* Poland CPI via FRED/OECD */
+  dxy_fred:'DTWEXBGS',
+  gold_fred:'GOLDAMGBD228NLBM'
 };
 /* pGetHTML — fetch HTML pages via allorigins /get?url= (returns JSON wrapper with contents) */
 async function pGetHTML(url, ms) {
@@ -2870,14 +2855,15 @@ function renderKapital(){
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">HY Spread</span><span class="ch-s">FRED</span></div><div class="chbody"><div id="ch-kap-hy" style="height:150px"></div></div></div>';
   s+='</div>';
     s+=renderWorldPE();
-  el.innerHTM
-  /* Correlation charts */
+  /* Correlation charts section */
   s+='<div class="sec">📊 Korelacje: Złoto/Inflacja + DXY</div>';
-  s+='<div style="background:rgba(0,0,0,.15);font-size:8px;color:var(--t2);padding:5px 10px;border-radius:4px;margin-bottom:6px">Korelacja = miara statystyczna zależności między aktywami. r = -1: perfekcyjna odwrotna | r = 0: brak | r = +1: perfekcyjna zgodna</div>';
+  s+='<div style="background:rgba(0,0,0,.15);font-size:8px;color:var(--t2);padding:5px 10px;border-radius:4px;margin-bottom:6px">Korelacja r: -1 = odwrotna | 0 = brak | +1 = zgodna. Dane 2010-2026 (statyczne + live aktualizacja).</div>';
   s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Złoto vs Inflacja CPI USA</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-gold-cpi" style="height:220px"></div></div></div>';
-  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">DXY (USD Index) vs Złoto vs USD/PLN</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-dxy" style="height:220px"></div></div></div>';
-  s+='</div>';L='<div class="wrap">'+s+'</div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">DXY vs Złoto vs USD/PLN</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-dxy" style="height:220px"></div></div></div>';
+  s+="</div>";
+  s+=renderWorldPE();
+  el.innerHTML='<div class="wrap">'+s+'</div>';
   setTimeout(function(){
     if(D.ta&&D.ta.closes&&D.ta.closes.length>0){
       var cl=D.ta.closes,dt=D.ta.dates,n=cl.length;
