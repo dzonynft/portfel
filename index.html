@@ -400,6 +400,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 
 
 
+
 'use strict';
 /* ═══════════════════════════════════════════════════════════
    MacroTerminal v28 — FIXED 2026 — Professional Investment Decision System
@@ -3086,52 +3087,76 @@ function renderKapital(){
       ],pLy({height:140,showlegend:false,margin:{l:40,r:6,t:6,b:28}}),PLY);
     }
     if(document.getElementById('ch-kap-m2')){
-      /* M2 full monthly static (FRED format dates yyyy-mm-dd), fallback when FRED unavailable */
+      /* M2 monthly 2010-2026 (FRED format: yyyy-mm-dd, values in bn USD) */
       var m2Fallback=[
-        {date:'2015-01-01',val:11.9e3},{date:'2016-01-01',val:12.5e3},{date:'2017-01-01',val:13.2e3},
-        {date:'2018-01-01',val:13.8e3},{date:'2019-01-01',val:14.5e3},{date:'2019-06-01',val:14.8e3},
-        {date:'2020-01-01',val:15.4e3},{date:'2020-04-01',val:17.2e3},{date:'2020-07-01',val:18.1e3},
-        {date:'2020-10-01',val:18.8e3},{date:'2021-01-01',val:19.4e3},{date:'2021-04-01',val:20.1e3},
-        {date:'2021-07-01',val:20.6e3},{date:'2021-10-01',val:21.2e3},{date:'2021-12-01',val:21.6e3},
-        {date:'2022-03-01',val:21.8e3},{date:'2022-06-01',val:21.7e3},{date:'2022-09-01',val:21.4e3},
-        {date:'2022-12-01',val:21.3e3},{date:'2023-03-01',val:20.8e3},{date:'2023-06-01',val:20.7e3},
-        {date:'2023-09-01',val:20.8e3},{date:'2023-12-01',val:20.9e3},{date:'2024-03-01',val:21.0e3},
-        {date:'2024-06-01',val:21.1e3},{date:'2024-09-01',val:21.3e3},{date:'2024-12-01',val:21.4e3},
-        {date:'2025-03-01',val:21.5e3},{date:'2025-06-01',val:21.6e3},{date:'2025-09-01',val:21.7e3},
-        {date:'2025-12-01',val:21.8e3},{date:'2026-02-01',val:21.9e3}
+        {date:'2010-01-01',val:8491},{date:'2010-07-01',val:8669},{date:'2011-01-01',val:8870},
+        {date:'2011-07-01',val:9131},{date:'2012-01-01',val:9796},{date:'2012-07-01',val:10164},
+        {date:'2013-01-01',val:10470},{date:'2013-07-01',val:10680},{date:'2014-01-01',val:11148},
+        {date:'2014-07-01',val:11447},{date:'2015-01-01',val:11799},{date:'2015-07-01',val:12044},
+        {date:'2016-01-01',val:12359},{date:'2016-07-01',val:12837},{date:'2017-01-01',val:13225},
+        {date:'2017-07-01',val:13508},{date:'2018-01-01',val:13852},{date:'2018-07-01',val:14176},
+        {date:'2019-01-01',val:14450},{date:'2019-07-01',val:14800},{date:'2020-01-01',val:15406},
+        {date:'2020-04-01',val:17119},{date:'2020-07-01',val:18132},{date:'2020-10-01',val:18826},
+        {date:'2021-01-01',val:19392},{date:'2021-04-01',val:20015},{date:'2021-07-01',val:20571},
+        {date:'2021-10-01',val:21218},{date:'2021-12-01',val:21638},{date:'2022-03-01',val:21792},
+        {date:'2022-06-01',val:21704},{date:'2022-09-01',val:21449},{date:'2022-12-01',val:21337},
+        {date:'2023-03-01',val:20813},{date:'2023-06-01',val:20706},{date:'2023-09-01',val:20800},
+        {date:'2023-12-01',val:20937},{date:'2024-03-01',val:20965},{date:'2024-06-01',val:21113},
+        {date:'2024-09-01',val:21285},{date:'2024-12-01',val:21427},{date:'2025-03-01',val:21490},
+        {date:'2025-06-01',val:21562},{date:'2025-09-01',val:21680},{date:'2025-12-01',val:21760},
+        {date:'2026-01-01',val:21820},{date:'2026-02-01',val:21900}
       ];
-      /* Fed funds history (same date format) */
+      /* Fed funds monthly 2010-2026 */
       var fedFallback=[
-        {date:'2015-01-01',val:0.25},{date:'2016-12-01',val:0.66},{date:'2017-06-01',val:1.16},
-        {date:'2018-06-01',val:1.91},{date:'2018-12-01',val:2.40},{date:'2019-06-01',val:2.38},
-        {date:'2019-12-01',val:1.55},{date:'2020-03-01',val:1.00},{date:'2020-05-01',val:0.05},
+        {date:'2010-01-01',val:0.11},{date:'2011-01-01',val:0.17},{date:'2012-01-01',val:0.07},
+        {date:'2013-01-01',val:0.09},{date:'2014-01-01',val:0.09},{date:'2015-01-01',val:0.12},
+        {date:'2015-12-01',val:0.36},{date:'2016-12-01',val:0.66},{date:'2017-06-01',val:1.16},
+        {date:'2017-12-01',val:1.30},{date:'2018-06-01',val:1.91},{date:'2018-12-01',val:2.40},
+        {date:'2019-06-01',val:2.38},{date:'2019-12-01',val:1.55},{date:'2020-03-01',val:0.65},
+        {date:'2020-05-01',val:0.05},{date:'2020-12-01',val:0.09},{date:'2021-12-01',val:0.08},
         {date:'2022-03-01',val:0.33},{date:'2022-06-01',val:1.58},{date:'2022-09-01',val:3.08},
         {date:'2022-12-01',val:4.10},{date:'2023-03-01',val:4.65},{date:'2023-06-01',val:5.08},
         {date:'2023-09-01',val:5.33},{date:'2024-01-01',val:5.33},{date:'2024-09-01',val:5.13},
-        {date:'2024-12-01',val:4.48},{date:'2025-06-01',val:4.33},{date:'2025-12-01',val:4.08},
-        {date:'2026-03-01',val:3.625}
+        {date:'2024-12-01',val:4.48},{date:'2025-03-01',val:4.33},{date:'2025-09-01',val:4.08},
+        {date:'2025-12-01',val:4.00},{date:'2026-03-01',val:3.625}
       ];
-      var m2rows = (f.m2&&f.m2.series&&f.m2.series.length>5) ? f.m2.series.slice(-48) : m2Fallback;
-      var fedrows= (f.fedfunds&&f.fedfunds.series&&f.fedfunds.series.length>5) ? f.fedfunds.series.slice(-120) : fedFallback;
+      var m2rows=(f.m2&&f.m2.series&&f.m2.series.length>12)?f.m2.series:m2Fallback;
+      var fedrows=(f.fedfunds&&f.fedfunds.series&&f.fedfunds.series.length>12)?f.fedfunds.series:fedFallback;
+      /* compute M2 YoY % from series */
+      var m2yoyArr=[], m2yoyX=[];
+      for(var ii=12;ii<m2rows.length;ii++){
+        var cur=m2rows[ii].val, yr=m2rows[ii-12]?m2rows[ii-12].val:null;
+        if(yr&&yr>0){m2yoyArr.push(parseFloat(((cur-yr)/yr*100).toFixed(2)));m2yoyX.push(m2rows[ii].date);}
+      }
       var m2x=m2rows.map(function(r){return r.date;}), m2y=m2rows.map(function(r){return r.val/1000;});
       var fx=fedrows.map(function(r){return r.date;}), fy=fedrows.map(function(r){return r.val;});
       Plotly.newPlot('ch-kap-m2',[
-        {x:m2x,y:m2y,mode:'lines',name:'M2 (trln$)',line:{color:'#60a5fa',width:2},fill:'tozeroy',fillcolor:'rgba(96,165,250,.08)'},
-        {x:fx,y:fy,mode:'lines',name:'Fed rate %',line:{color:'#f5c040',width:1.5,dash:'dot'},yaxis:'y2'}
+        {x:m2yoyX,y:m2yoyArr,mode:'lines',name:'M2 YoY %',
+         line:{color:'#60a5fa',width:2},fill:'tozeroy',fillcolor:'rgba(96,165,250,.1)'},
+        {x:fx,y:fy,mode:'lines',name:'Fed rate %',
+         line:{color:'#f5c040',width:2,dash:'dot'},yaxis:'y2'},
+        {x:[m2yoyX[0]||'2010-01-01',m2yoyX[m2yoyX.length-1]||'2026-01-01'],y:[0,0],
+         mode:'lines',line:{color:'rgba(255,255,255,.15)',width:1},showlegend:false}
       ],pLy({height:150,showlegend:true,legend:{x:0,y:1,font:{size:8.5},orientation:'h'},
-        margin:{l:48,r:48,t:6,b:28},
-        yaxis:{title:'M2 trln$',titlefont:{size:8}},
-        yaxis2:{title:'%',overlaying:'y',side:'right',range:[0,7],titlefont:{size:8}}}),PLY);
+        margin:{l:46,r:46,t:6,b:28},
+        xaxis:{tickfont:{size:8},dtick:'M24',tickformat:'%Y'},
+        yaxis:{title:'YoY %',titlefont:{size:8},tickfont:{size:8}},
+        yaxis2:{title:'Fed %',overlaying:'y',side:'right',range:[0,7],titlefont:{size:8}}}),PLY);
     }
     if(document.getElementById('ch-kap-hy')){
-      /* HY Spread — monthly static fallback (FRED format), full history 2015-2026 */
+      /* HY Spread monthly 2010-2026 (FRED BAMLH0A0HYM2 format) */
       var hyFallback=[
-        {date:'2015-01-01',val:5.42},{date:'2015-06-01',val:5.33},{date:'2015-12-01',val:7.95},
-        {date:'2016-01-01',val:8.93},{date:'2016-06-01',val:6.45},{date:'2016-12-01',val:4.08},
-        {date:'2017-06-01',val:3.54},{date:'2017-12-01',val:3.33},{date:'2018-06-01',val:3.57},
-        {date:'2018-12-01',val:5.26},{date:'2019-06-01',val:3.80},{date:'2019-12-01',val:3.33},
+        {date:'2010-01-01',val:6.19},{date:'2010-07-01',val:5.79},{date:'2011-01-01',val:4.97},
+        {date:'2011-07-01',val:5.45},{date:'2012-01-01',val:6.49},{date:'2012-07-01',val:5.74},
+        {date:'2013-01-01',val:4.75},{date:'2013-07-01',val:4.31},{date:'2014-01-01',val:3.88},
+        {date:'2014-07-01',val:3.68},{date:'2015-01-01',val:5.42},{date:'2015-07-01',val:5.91},
+        {date:'2015-12-01',val:7.95},{date:'2016-01-01',val:8.93},{date:'2016-07-01',val:5.67},
+        {date:'2016-12-01',val:4.08},{date:'2017-06-01',val:3.54},{date:'2017-12-01',val:3.33},
+        {date:'2018-01-01',val:3.21},{date:'2018-06-01',val:3.57},{date:'2018-12-01',val:5.26},
+        {date:'2019-01-01',val:4.51},{date:'2019-06-01',val:3.80},{date:'2019-12-01',val:3.33},
         {date:'2020-01-01',val:3.57},{date:'2020-03-01',val:10.87},{date:'2020-06-01',val:5.82},
-        {date:'2020-12-01',val:3.57},{date:'2021-06-01',val:2.83},{date:'2021-12-01',val:2.83},
+        {date:'2020-09-01',val:4.73},{date:'2020-12-01',val:3.57},{date:'2021-03-01',val:3.27},
+        {date:'2021-06-01',val:2.83},{date:'2021-09-01',val:3.03},{date:'2021-12-01',val:2.83},
         {date:'2022-03-01',val:3.89},{date:'2022-06-01',val:5.10},{date:'2022-09-01',val:5.62},
         {date:'2022-12-01',val:4.82},{date:'2023-03-01',val:4.62},{date:'2023-06-01',val:3.88},
         {date:'2023-09-01',val:4.07},{date:'2023-12-01',val:3.28},{date:'2024-03-01',val:2.91},
@@ -3139,11 +3164,14 @@ function renderKapital(){
         {date:'2025-03-01',val:3.05},{date:'2025-06-01',val:3.18},{date:'2025-09-01',val:3.22},
         {date:'2025-12-01',val:3.10},{date:'2026-01-01',val:3.05},{date:'2026-02-01',val:3.18}
       ];
-      var hrows = (f.hy_spread&&f.hy_spread.series&&f.hy_spread.series.length>5) ? f.hy_spread.series.slice(-60) : hyFallback;
+      var hrows=(f.hy_spread&&f.hy_spread.series&&f.hy_spread.series.length>12)?f.hy_spread.series.slice(-80):hyFallback;
       var hyx=hrows.map(function(r){return r.date;}), hyy=hrows.map(function(r){return r.val;});
       Plotly.newPlot('ch-kap-hy',[
-        {x:hyx,y:hyy,mode:'lines',line:{color:'#ff7c3e',width:1.5},fill:'tozeroy',fillcolor:'rgba(255,124,62,.07)'}
-      ],pLy({height:150,showlegend:false,margin:{l:42,r:6,t:6,b:28},
+        {x:hyx,y:hyy,mode:'lines',line:{color:'#ff7c3e',width:1.5},
+         fill:'tozeroy',fillcolor:'rgba(255,124,62,.07)'}
+      ],pLy({height:150,showlegend:false,
+        margin:{l:42,r:6,t:6,b:28},
+        xaxis:{tickfont:{size:8},dtick:'M24',tickformat:'%Y'},
         yaxis:{range:[0,12]},
         shapes:[
           {type:'line',x0:hyx[0],x1:hyx[hyx.length-1],y0:3.5,y1:3.5,line:{color:'#f5c040',width:1,dash:'dot'}},
@@ -9004,6 +9032,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
