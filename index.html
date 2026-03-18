@@ -322,7 +322,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v81</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v82</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
@@ -358,6 +358,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -780,7 +781,10 @@ var FM = {
   gdp_nom:'GDP',
   sp500_m:'SP500',
   dxy_fred:'DTWEXBGS',
-  gold_fred:'GOLDAMGBD228NLBM'
+  gold_fred:'GOLDAMGBD228NLBM',
+  tga:'WTREGEN',          /* Treasury General Account */
+  reserves:'WRESBAL',     /* Bank Reserves at Fed */
+  net_liq:'WALCL'         /* Fed balance sheet (already have fed_bs) */
 };
 /* pGetHTML — fetch HTML pages via allorigins /get?url= (returns JSON wrapper with contents) */
 async function pGetHTML(url, ms) {
@@ -2614,63 +2618,255 @@ function renderGoldCPIChart(divId) {
   return corr;
 }
 
-function renderDXYChart(divId) {
-  var dxyD  = CORR_DATA.dxy_hist;
-  var goldD = CORR_DATA.gold_hist;
-  var cpiD  = CORR_DATA.cpi_hist;
-  var uplnD = CORR_DATA.usdpln_hist;
 
-  /* Use live data if available */
-  if(D.q&&D.q.dxy&&D.q.dxy.price>0){
-    dxyD = dxyD.slice();
-    dxyD[dxyD.length-1] = {d:'2026-03', v:D.q.dxy.price};
-  } else if(D.f&&D.f.dxy_fred&&D.f.dxy_fred.current>0){
-    dxyD = dxyD.slice();
-    dxyD[dxyD.length-1] = {d:'2026-03', v:D.f.dxy_fred.current};
-  }
-  if(D.q&&D.q.gold&&D.q.gold.price>0){
-    goldD = goldD.slice();
-    goldD[goldD.length-1] = {d:'2026-03', v:Math.round(D.q.gold.price)};
-  }
-  if(D.q&&D.q.usdpln&&D.q.usdpln.price>0){
-    uplnD = uplnD.slice();
-    uplnD[uplnD.length-1] = {d:'2026-03', v:D.q.usdpln.price};
-  }
 
-  var dx=dxyD.map(function(r){return r.d;}), dy=dxyD.map(function(r){return r.v;});
-  var gx=goldD.map(function(r){return r.d;}), gy=goldD.map(function(r){return r.v;});
-  var cx=cpiD.map(function(r){return r.d;}),  cy=cpiD.map(function(r){return r.v;});
-  var ux=uplnD.map(function(r){return r.d;}), uy=uplnD.map(function(r){return r.v;});
 
-  /* DXY vs Gold correlation */
-  var common=[];
-  dx.forEach(function(d,i){var gi=gx.indexOf(d);if(gi>=0)common.push({d:dy[i],g:gy[gi]});});
-  var n=common.length,sd=0,sg=0,sdd=0,sgg=0,sdg=0;
-  common.forEach(function(p){sd+=p.d;sg+=p.g;sdd+=p.d*p.d;sgg+=p.g*p.g;sdg+=p.d*p.g;});
-  var corrDG=n>2?(n*sdg-sd*sg)/Math.sqrt((n*sdd-sd*sd)*(n*sgg-sg*sg)):0;
+/* ═══════════════════════════════════════════════════════════════
+   NEW CHART FUNCTIONS v82
+   - renderSPDXYChart   : SP500 vs DXY (inverse correlation)
+   - renderSPM2Chart    : SP500 vs M2 + Oil Brent
+   - renderFedLiquidityChart : Fed BS + Bank Reserves
+   - renderTGAChart     : TGA + RRP (net liquidity path)
+   ═══════════════════════════════════════════════════════════════ */
 
+/* ── Static SP500 monthly data (2010-2026) for correlations ── */
+CORR_DATA.sp500_hist = [
+  {d:'2010-01',v:1124},{d:'2010-06',v:1031},{d:'2011-01',v:1286},{d:'2011-09',v:1131},
+  {d:'2012-01',v:1300},{d:'2012-06',v:1362},{d:'2013-01',v:1480},{d:'2013-06',v:1606},
+  {d:'2014-01',v:1783},{d:'2015-01',v:1995},{d:'2015-06',v:2063},{d:'2016-01',v:1940},
+  {d:'2016-06',v:2099},{d:'2017-01',v:2279},{d:'2018-01',v:2789},{d:'2018-06',v:2718},
+  {d:'2019-01',v:2704},{d:'2019-06',v:2942},{d:'2020-01',v:3226},{d:'2020-03',v:2585},
+  {d:'2020-06',v:3100},{d:'2020-08',v:3500},{d:'2021-01',v:3715},{d:'2021-06',v:4298},
+  {d:'2022-01',v:4515},{d:'2022-06',v:3785},{d:'2022-09',v:3585},{d:'2022-12',v:3839},
+  {d:'2023-01',v:4077},{d:'2023-06',v:4450},{d:'2023-12',v:4770},{d:'2024-01',v:4846},
+  {d:'2024-03',v:5254},{d:'2024-06',v:5460},{d:'2024-09',v:5650},{d:'2024-12',v:5882},
+  {d:'2025-03',v:5700},{d:'2025-06',v:5980},{d:'2025-09',v:5800},{d:'2025-12',v:6090},
+  {d:'2026-01',v:6119},{d:'2026-02',v:6100},{d:'2026-03',v:6033}
+];
+
+/* ── Brent oil monthly (2010-2026) ── */
+CORR_DATA.brent_hist = [
+  {d:'2010-01',v:78},{d:'2010-06',v:75},{d:'2011-01',v:97},{d:'2011-09',v:106},
+  {d:'2012-01',v:111},{d:'2012-06',v:93},{d:'2013-01',v:113},{d:'2013-06',v:103},
+  {d:'2014-01',v:107},{d:'2015-01',v:55},{d:'2015-06',v:63},{d:'2016-01',v:34},
+  {d:'2016-06',v:48},{d:'2017-01',v:55},{d:'2018-01',v:69},{d:'2018-06',v:74},
+  {d:'2019-01',v:61},{d:'2019-06',v:65},{d:'2020-01',v:64},{d:'2020-03',v:23},
+  {d:'2020-06',v:42},{d:'2020-08',v:45},{d:'2021-01',v:56},{d:'2021-06',v:74},
+  {d:'2022-01',v:86},{d:'2022-03',v:118},{d:'2022-06',v:113},{d:'2022-09',v:91},
+  {d:'2022-12',v:82},{d:'2023-01',v:83},{d:'2023-06',v:75},{d:'2023-12',v:77},
+  {d:'2024-01',v:80},{d:'2024-03',v:87},{d:'2024-06',v:86},{d:'2024-09',v:74},
+  {d:'2024-12',v:73},{d:'2025-03',v:71},{d:'2025-06',v:68},{d:'2025-09',v:73},
+  {d:'2025-12',v:72},{d:'2026-01',v:78},{d:'2026-02',v:82},{d:'2026-03',v:74}
+];
+
+/* ── Fed balance sheet monthly (2015-2026, bn USD) ── */
+CORR_DATA.fed_bs_hist = [
+  {d:'2015-01',v:4500},{d:'2016-01',v:4460},{d:'2017-01',v:4450},{d:'2018-01',v:4400},
+  {d:'2019-01',v:4020},{d:'2019-06',v:3770},{d:'2019-09',v:3760},{d:'2019-12',v:4165},
+  {d:'2020-03',v:5250},{d:'2020-06',v:7210},{d:'2020-09',v:7100},{d:'2020-12',v:7360},
+  {d:'2021-01',v:7420},{d:'2021-06',v:8060},{d:'2021-12',v:8760},{d:'2022-03',v:8960},
+  {d:'2022-06',v:8910},{d:'2022-09',v:8780},{d:'2022-12',v:8630},{d:'2023-01',v:8600},
+  {d:'2023-06',v:8380},{d:'2023-09',v:8060},{d:'2023-12',v:7700},{d:'2024-01',v:7660},
+  {d:'2024-06',v:7250},{d:'2024-09',v:7050},{d:'2024-12',v:6900},{d:'2025-03',v:6780},
+  {d:'2025-06',v:6620},{d:'2025-09',v:6500},{d:'2025-12',v:6420},{d:'2026-01',v:6510},
+  {d:'2026-02',v:6590},{d:'2026-03',v:6650}
+];
+
+/* ── Bank reserves (2015-2026, bn USD) ── */
+CORR_DATA.reserves_hist = [
+  {d:'2015-01',v:2700},{d:'2016-01',v:2350},{d:'2017-01',v:2100},{d:'2018-01',v:1900},
+  {d:'2019-01',v:1600},{d:'2019-09',v:1380},{d:'2019-12',v:1640},{d:'2020-03',v:1800},
+  {d:'2020-06',v:3030},{d:'2020-12',v:3240},{d:'2021-06',v:3950},{d:'2021-12',v:4180},
+  {d:'2022-06',v:3250},{d:'2022-12',v:3050},{d:'2023-06',v:3250},{d:'2023-12',v:3530},
+  {d:'2024-06',v:3270},{d:'2024-12',v:3360},{d:'2025-06',v:3200},{d:'2025-12',v:3380},
+  {d:'2026-01',v:3290},{d:'2026-02',v:3410},{d:'2026-03',v:3450}
+];
+
+/* ── TGA (Treasury General Account, bn USD) ── */
+CORR_DATA.tga_hist = [
+  {d:'2019-01',v:380},{d:'2019-06',v:310},{d:'2019-12',v:390},{d:'2020-03',v:400},
+  {d:'2020-06',v:1740},{d:'2020-09',v:1650},{d:'2020-12',v:1610},{d:'2021-01',v:1610},
+  {d:'2021-06',v:820},{d:'2021-12',v:210},{d:'2022-03',v:680},{d:'2022-06',v:600},
+  {d:'2022-09',v:700},{d:'2022-12',v:450},{d:'2023-01',v:370},{d:'2023-06',v:470},
+  {d:'2023-09',v:860},{d:'2023-12',v:760},{d:'2024-03',v:750},{d:'2024-06',v:780},
+  {d:'2024-09',v:840},{d:'2024-12',v:680},{d:'2025-03',v:700},{d:'2025-06',v:650},
+  {d:'2025-09',v:720},{d:'2025-12',v:770},{d:'2026-01',v:830},{d:'2026-02',v:790},
+  {d:'2026-03',v:810}
+];
+
+/* ── RRP (Overnight Reverse Repo, bn USD) ── */
+CORR_DATA.rrp_hist = [
+  {d:'2021-01',v:30},{d:'2021-06',v:810},{d:'2021-12',v:1900},{d:'2022-06',v:2330},
+  {d:'2022-12',v:2550},{d:'2023-03',v:2430},{d:'2023-06',v:2100},{d:'2023-09',v:1490},
+  {d:'2023-12',v:680},{d:'2024-03',v:500},{d:'2024-06',v:380},{d:'2024-09',v:310},
+  {d:'2024-12',v:200},{d:'2025-03',v:145},{d:'2025-06',v:130},{d:'2025-09',v:90},
+  {d:'2025-12',v:75},{d:'2026-01',v:80},{d:'2026-02',v:70},{d:'2026-03',v:65}
+];
+
+/* ─────────────────── SP500 vs DXY ─────────────────── */
+function renderSPDXYChart(divId) {
+  var spD=CORR_DATA.sp500_hist, dxD=CORR_DATA.dxy_hist;
+  /* Use live data */
+  if(D.q&&D.q.sp500&&D.q.sp500.price>0) spD=spD.slice(0,-1).concat([{d:'2026-03',v:D.q.sp500.price}]);
+  if(D.q&&D.q.dxy&&D.q.dxy.price>0)    dxD=dxD.slice(0,-1).concat([{d:'2026-03',v:D.q.dxy.price}]);
+  var sx=spD.map(function(r){return r.d;}), sy=spD.map(function(r){return r.v;});
+  var dx=dxD.map(function(r){return r.d;}), dy=dxD.map(function(r){return r.v;});
+  /* Correlation */
+  var common=[]; sx.forEach(function(d,i){var j=dx.indexOf(d);if(j>=0)common.push({s:sy[i],x:dy[j]});});
+  var n=common.length,ss=0,sx2=0,sss=0,sxx=0,ssx=0;
+  common.forEach(function(p){ss+=p.s;sx2+=p.x;sss+=p.s*p.s;sxx+=p.x*p.x;ssx+=p.s*p.x;});
+  var corr=n>2?(n*ssx-ss*sx2)/Math.sqrt((n*sss-ss*ss)*(n*sxx-sx2*sx2)):0;
+
+  if(!document.getElementById(divId)) return;
   Plotly.newPlot(divId,[
-    {x:dx,y:dy,mode:'lines',name:'DXY (USD Index)',
-     line:{color:'#60a5fa',width:2.5},yaxis:'y'},
-    {x:gx,y:gy.map(function(v){return v/30;}),mode:'lines',name:'Złoto ÷30 (skala)',
-     line:{color:'#f5c040',width:1.5,dash:'dot'},yaxis:'y'},
-    {x:ux,y:uy.map(function(v){return v*25;}),mode:'lines',name:'USD/PLN ×25 (skala)',
-     line:{color:'#a78bfa',width:1.5,dash:'dash'},yaxis:'y'}
+    {x:sx,y:sy,mode:'lines',name:'SP500',line:{color:'#2a9df5',width:2},yaxis:'y'},
+    {x:dx,y:dy.map(function(v){return v*55;}),mode:'lines',name:'DXY×55',
+     line:{color:'#f87171',width:1.5,dash:'dot'},yaxis:'y'}
   ],pLy({
-    height:220,showlegend:true,
-    legend:{x:0,y:1.15,font:{size:8.5},orientation:'h'},
-    margin:{l:45,r:12,t:10,b:40},
-    xaxis:{tickangle:-30,tickfont:{size:8},nticks:12},
-    yaxis:{title:'DXY | Złoto/30 | USD/PLN×25',titlefont:{size:8},tickfont:{size:8}},
-    annotations:[{
-      x:0.5,y:1.02,xref:'paper',yref:'paper',
-      text:'<b>DXY vs Złoto:</b> r = '+(corrDG>0?'+':'')+corrDG.toFixed(2)+'  (zwykle ujemna — silny USD = słabe złoto)',
-      showarrow:false,font:{size:9,color:corrDG<-0.3?'#00e5a8':'#f87171'},
-      bgcolor:'rgba(0,0,0,.4)',bordercolor:'#60a5fa',borderwidth:1,
-      borderpad:3,xanchor:'center'
-    }]
+    height:200,showlegend:true,
+    legend:{x:0,y:1.12,font:{size:8},orientation:'h'},
+    margin:{l:50,r:8,t:10,b:35},
+    xaxis:{tickfont:{size:8},nticks:8},
+    yaxis:{title:'SP500',titlefont:{size:8},tickfont:{size:8}},
+    annotations:[{x:0.5,y:1.02,xref:'paper',yref:'paper',
+      text:'<b>SP500 vs DXY</b> r='+(corr>0?'+':'')+corr.toFixed(2)+' (zwykle ujemna: silny USD = presja na akcje)',
+      showarrow:false,font:{size:8.5,color:corr<-0.2?'#00e5a8':'#f87171'},
+      bgcolor:'rgba(0,0,0,.4)',bordercolor:'#2a9df5',borderwidth:1,borderpad:3,xanchor:'center'}]
   }),PLY);
-  return corrDG;
+}
+
+/* ─────────────────── SP500 vs M2 + Oil Brent ─────────────────── */
+function renderSPM2Chart(divId) {
+  var spD=CORR_DATA.sp500_hist, m2D=CORR_DATA.gold_hist.slice(0,0); /* placeholder */
+  /* Use FRED M2 series if available */
+  var m2x=[], m2y=[];
+  if(D.f&&D.f.m2&&D.f.m2.series&&D.f.m2.series.length>0){
+    D.f.m2.series.slice(-50).forEach(function(r){m2x.push(r.date);m2y.push(r.val/1000);});
+  } else {
+    /* Static M2 fallback (trln USD) */
+    [{d:'2010-01',v:8.6},{d:'2012-01',v:9.8},{d:'2014-01',v:11.2},{d:'2016-01',v:12.5},
+     {d:'2018-01',v:13.9},{d:'2019-01',v:14.5},{d:'2020-01',v:15.4},{d:'2020-06',v:18.1},
+     {d:'2021-01',v:19.4},{d:'2021-12',v:21.6},{d:'2022-06',v:21.7},{d:'2022-12',v:21.3},
+     {d:'2023-06',v:20.8},{d:'2023-12',v:20.9},{d:'2024-06',v:21.1},{d:'2024-12',v:21.4},
+     {d:'2025-06',v:21.5},{d:'2025-12',v:21.7},{d:'2026-03',v:21.9}
+    ].forEach(function(r){m2x.push(r.d);m2y.push(r.v);});
+  }
+  var spD2=CORR_DATA.sp500_hist;
+  if(D.q&&D.q.sp500&&D.q.sp500.price>0) spD2=spD2.slice(0,-1).concat([{d:'2026-03',v:D.q.sp500.price}]);
+  var brtD=CORR_DATA.brent_hist;
+  if(D.q&&D.q.brent&&D.q.brent.price>0) brtD=brtD.slice(0,-1).concat([{d:'2026-03',v:D.q.brent.price}]);
+
+  if(!document.getElementById(divId)) return;
+  Plotly.newPlot(divId,[
+    {x:spD2.map(function(r){return r.d;}),y:spD2.map(function(r){return r.v;}),
+     mode:'lines',name:'SP500',line:{color:'#2a9df5',width:2},yaxis:'y'},
+    {x:m2x,y:m2y.map(function(v){return v*300;}),
+     mode:'lines',name:'M2×300',line:{color:'#00e5a8',width:1.5,dash:'dot'},yaxis:'y'},
+    {x:brtD.map(function(r){return r.d;}),y:brtD.map(function(r){return r.v*55;}),
+     mode:'lines',name:'Brent×55',line:{color:'#f5c040',width:1.5,dash:'dash'},yaxis:'y'}
+  ],pLy({
+    height:200,showlegend:true,
+    legend:{x:0,y:1.12,font:{size:8},orientation:'h'},
+    margin:{l:50,r:8,t:10,b:35},
+    xaxis:{tickfont:{size:8},nticks:8},
+    yaxis:{title:'SP500 / skalowane',titlefont:{size:8},tickfont:{size:8}},
+    annotations:[{x:0.5,y:1.02,xref:'paper',yref:'paper',
+      text:'<b>SP500 vs M2</b>: ekspansja pieniężna → wzrost akcji | <b>SP500 vs Brent</b>: rosnąca ropa = stagflacja',
+      showarrow:false,font:{size:8},color:'var(--t2)',
+      bgcolor:'rgba(0,0,0,.4)',bordercolor:'#00e5a8',borderwidth:1,borderpad:3,xanchor:'center'}]
+  }),PLY);
+}
+
+/* ─────────────────── Fed Liquidity: Balance Sheet + Reserves ─────────────────── */
+function renderFedLiquidityChart(divId) {
+  /* Use FRED data if available, otherwise static */
+  var bsX=[], bsY=[], resX=[], resY=[];
+  if(D.f&&D.f.fed_bs&&D.f.fed_bs.series&&D.f.fed_bs.series.length>0){
+    D.f.fed_bs.series.slice(-40).forEach(function(r){bsX.push(r.date);bsY.push(r.val/1000);});
+  } else {
+    CORR_DATA.fed_bs_hist.forEach(function(r){bsX.push(r.d);bsY.push(r.v/1000);});
+  }
+  if(D.f&&D.f.reserves&&D.f.reserves.series&&D.f.reserves.series.length>0){
+    D.f.reserves.series.slice(-40).forEach(function(r){resX.push(r.date);resY.push(r.val/1000);});
+  } else {
+    CORR_DATA.reserves_hist.forEach(function(r){resX.push(r.d);resY.push(r.v/1000);});
+  }
+
+  /* Detect QE / QT phases */
+  var lastBS = bsY.length>0?bsY[bsY.length-1]:6.65;
+  var prevBS  = bsY.length>3?bsY[bsY.length-4]:lastBS;
+  var isQE    = lastBS > prevBS + 0.05;   /* growing BS = QE / asset purchases */
+  var isQT    = lastBS < prevBS - 0.05;   /* shrinking BS = QT */
+
+  if(!document.getElementById(divId)) return;
+  Plotly.newPlot(divId,[
+    {x:bsX,y:bsY,mode:'lines',name:'Fed Bilans (trln$)',
+     line:{color:'#2a9df5',width:2},fill:'tozeroy',fillcolor:'rgba(42,157,245,.08)'},
+    {x:resX,y:resY,mode:'lines',name:'Rezerwy bankowe (trln$)',
+     line:{color:'#a78bfa',width:1.5,dash:'dot'}}
+  ],pLy({
+    height:180,showlegend:true,
+    legend:{x:0,y:1.12,font:{size:8},orientation:'h'},
+    margin:{l:42,r:8,t:10,b:35},
+    xaxis:{tickfont:{size:8},nticks:8},
+    yaxis:{title:'trln USD',titlefont:{size:8},tickfont:{size:8}},
+    annotations:[{x:0.5,y:1.02,xref:'paper',yref:'paper',
+      text:'<b>Fed: '+(isQE?'QE — SKUP AKTYWÓW ↑ (bycze)':isQT?'QT — REDUKCJA BS ↓ (niedźwiedzie)':'STABILNY BS')+'</b> | BS='+(lastBS?lastBS.toFixed(2):'6.65')+'trln$ | Rez='+(resY.length?resY[resY.length-1].toFixed(2):'3.45')+'trln$',
+      showarrow:false,font:{size:8.5,color:isQE?'#00e5a8':isQT?'#ff3355':'#f5c040'},
+      bgcolor:'rgba(0,0,0,.5)',bordercolor:isQE?'#00e5a8':isQT?'#ff3355':'#f5c040',
+      borderwidth:1,borderpad:3,xanchor:'center'}]
+  }),PLY);
+}
+
+/* ─────────────────── TGA + RRP — Ścieżka Płynności ─────────────────── */
+function renderTGAChart(divId) {
+  var tgaX=[], tgaY=[], rrpX=[], rrpY=[], nlX=[], nlY=[];
+  /* TGA */
+  if(D.f&&D.f.tga&&D.f.tga.series&&D.f.tga.series.length>0){
+    D.f.tga.series.slice(-36).forEach(function(r){tgaX.push(r.date);tgaY.push(r.val/1000);});
+  } else {
+    CORR_DATA.tga_hist.forEach(function(r){tgaX.push(r.d);tgaY.push(r.v/1000);});
+  }
+  /* RRP */
+  if(D.f&&D.f.rrp&&D.f.rrp.series&&D.f.rrp.series.length>0){
+    D.f.rrp.series.slice(-36).forEach(function(r){rrpX.push(r.date);rrpY.push(r.val/1000);});
+  } else {
+    CORR_DATA.rrp_hist.forEach(function(r){rrpX.push(r.d);rrpY.push(r.v/1000);});
+  }
+  /* Net Liquidity = Fed BS - TGA - RRP */
+  var fedBS = D.f&&D.f.fed_bs&&D.f.fed_bs.current>0?D.f.fed_bs.current:6650;
+  var tgaLast = tgaY.length?tgaY[tgaY.length-1]*1000:810;
+  var rrpLast = rrpY.length?rrpY[rrpY.length-1]*1000:65;
+  var netLiq  = fedBS - tgaLast - rrpLast; /* bn USD */
+  /* Build net liquidity series from overlapping dates */
+  var nlMap={};
+  CORR_DATA.fed_bs_hist.forEach(function(r){nlMap[r.d]={bs:r.v};});
+  CORR_DATA.tga_hist.forEach(function(r){if(nlMap[r.d])nlMap[r.d].tga=r.v;});
+  CORR_DATA.rrp_hist.forEach(function(r){if(nlMap[r.d])nlMap[r.d].rrp=r.v;});
+  Object.keys(nlMap).sort().forEach(function(d){
+    var e=nlMap[d];
+    if(e.bs&&e.tga&&e.rrp){nlX.push(d);nlY.push((e.bs-e.tga-e.rrp)/1000);}
+  });
+
+  if(!document.getElementById(divId)) return;
+  Plotly.newPlot(divId,[
+    {x:tgaX,y:tgaY,mode:'lines',name:'TGA (trln$)',
+     line:{color:'#f5c040',width:1.5},fill:'tozeroy',fillcolor:'rgba(245,192,64,.08)'},
+    {x:rrpX,y:rrpY,mode:'lines',name:'RRP (trln$)',
+     line:{color:'#f87171',width:1.5,dash:'dot'}},
+    {x:nlX,y:nlY,mode:'lines',name:'Net Liq. (trln$)',
+     line:{color:'#00e5a8',width:2.5}}
+  ],pLy({
+    height:180,showlegend:true,
+    legend:{x:0,y:1.12,font:{size:8},orientation:'h'},
+    margin:{l:42,r:8,t:10,b:35},
+    xaxis:{tickfont:{size:8},nticks:8},
+    yaxis:{title:'trln USD',titlefont:{size:8},tickfont:{size:8}},
+    annotations:[{x:0.5,y:1.02,xref:'paper',yref:'paper',
+      text:'<b>Net Płynność = Fed BS − TGA − RRP = '+(netLiq/1000).toFixed(2)+'trln$</b> | TGA↓=płynność↑ | RRP↓=płynność↑',
+      showarrow:false,font:{size:8.5,color:netLiq>5000?'#00e5a8':netLiq>4000?'#f5c040':'#ff3355'},
+      bgcolor:'rgba(0,0,0,.5)',bordercolor:'#00e5a8',borderwidth:1,borderpad:3,xanchor:'center'}]
+  }),PLY);
 }
 
 
@@ -2859,11 +3055,11 @@ function renderKapital(){
   s+='</div>';
     s+=renderWorldPE();
   /* Correlation charts section */
-  s+='<div class="sec">📊 Korelacje: Złoto/Inflacja + DXY</div>';
-  s+='<div style="background:rgba(0,0,0,.15);font-size:8px;color:var(--t2);padding:5px 10px;border-radius:4px;margin-bottom:6px">Korelacja r: -1 = odwrotna | 0 = brak | +1 = zgodna. Dane 2010-2026 (statyczne + live aktualizacja).</div>';
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Złoto vs Inflacja CPI USA</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-gold-cpi" style="height:220px"></div></div></div>';
-  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">DXY vs Złoto vs USD/PLN</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-dxy" style="height:220px"></div></div></div>';
+  s+='<div class="sec">📊 Korelacje: Złoto/Inflacja + Płynność</div>';
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">Złoto vs CPI USA</span><span class="ch-s">FRED 2010-2026</span></div><div class="chbody"><div id="ch-corr-gold-cpi" style="height:200px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SP500 vs DXY</span><span class="ch-s">Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-sp-dxy" style="height:200px"></div></div></div>';
+  s+='<div class="chartbox" style="margin:0"><div class="chdr"><span class="ch-t">SP500 vs M2 + Oil Brent</span><span class="ch-s">FRED/Stooq 2010-2026</span></div><div class="chbody"><div id="ch-corr-sp-m2" style="height:200px"></div></div></div>';
   s+="</div>";
   s+=renderWorldPE();
   el.innerHTML='<div class="wrap">'+s+'</div>';
@@ -2909,7 +3105,10 @@ function renderKapital(){
     }
   /* Correlation charts */
     if(document.getElementById('ch-corr-gold-cpi')) renderGoldCPIChart('ch-corr-gold-cpi');
-    if(document.getElementById('ch-corr-dxy')) renderDXYChart('ch-corr-dxy');
+    if(document.getElementById('ch-corr-sp-dxy'))  renderSPDXYChart('ch-corr-sp-dxy');
+    if(document.getElementById('ch-corr-sp-m2'))   renderSPM2Chart('ch-corr-sp-m2');
+    if(document.getElementById('ch-liq-fed'))      renderFedLiquidityChart('ch-liq-fed');
+    if(document.getElementById('ch-liq-tga'))      renderTGAChart('ch-liq-tga');
   },80);
 }
 
@@ -8542,6 +8741,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
