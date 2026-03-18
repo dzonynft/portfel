@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -321,14 +322,14 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="logo">MACRO TERMINAL<span class="logo-tag">v74</span></span>
+    <span class="logo">MACRO TERMINAL<span class="logo-tag">v75</span></span>
     <div id="vp" class="verdict-pill" style="background:var(--Yd);color:var(--Y);border-color:rgba(245,192,64,.3)">— ŁADOWANIE</div>
     <div class="topbar-score"><span class="ts-num" id="tsn">—</span><span class="ts-denom">/100</span></div>
     <div style="display:flex;align-items:center;gap:6px"><div class="sdot s-ld" id="sd"></div><span id="smsg">Inicjalizacja…</span></div>
     <div class="tr"><button class="btn" id="bR">↻ ODŚWIEŻ</button><span id="clk">—</span></div>
   </div>
   <div class="ticker"><div class="tt" id="tt"></div></div>
-  <div class="tabs">
+ <div class="tabs">
     <button class="tab on" data-t="decision">DECYZJA</button>
     <button class="tab" data-t="sentiment">SENTYMENT</button>
     <button class="tab" data-t="kapital">KAPITAŁ</button>
@@ -339,7 +340,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
     <button class="tab" data-t="prognozy">PROGNOZY</button>
     <button class="tab" data-t="journal">DZIENNIK</button>
     <button class="tab" data-t="wiedza">📚 WIEDZA</button>
-    <button class="tab" data-t="analizy">📰 ANALIZY</button>
+    <button class="tab" data-t="analizy">📰 ANALIZY + PDF</button>
     <button class="tab" data-t="sources">ŹRÓDŁA</button>
     <div class="tspc"></div>
     <span class="lupd" id="lupd"></span>
@@ -357,6 +358,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
   <div class="panel" id="p-analizy"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
   <div class="panel" id="p-sources"><div class="wrap"><div class="ldg"><div class="spin"></div></div></div></div>
 <script>
+
 
 
 
@@ -2973,12 +2975,19 @@ function renderPrognozy(){
 
   /* CHARTS */
   setTimeout(function(){
+    function safePlot(id,data,layout){
+      try{
+        var el=document.getElementById(id);
+        if(!el){console.warn('Missing div:',id);return;}
+        Plotly.newPlot(id,data,layout);
+      }catch(e){console.error('Plot error:',id,e.message);}
+    }
     var histX=['Sty24','Lut24','Mar24','Kwi24','Maj24','Cze24','Lip24','Sie24','Wrz24','Paz24','Lis24','Gru24',
                'Sty25','Lut25','Mar25','Kwi25','Maj25','Cze25','Lip25','Sie25','Wrz25','Paz25','Lis25','Gru25','Sty26','Lut26'];
     var histY=[0.4,0.7,0.9,2.0,2.1,2.2,3.7,3.8,3.8,4.2,4.6,4.7,1.0,1.3,1.5,1.9,1.7,1.8,2.2,2.2,2.2,2.3,2.4,2.4,2.2,2.1];
     var projX=['2026P','2027P','2028P'];
     var allX=histX.concat(projX);
-    Plotly.newPlot('ch-prg-cpipl-hist',[
+    safePlot('ch-prg-cpipl-hist',[
       {x:['2026P','2027P','2028P','2028P','2027P','2026P'],y:[2.9,3.7,4.0,0.9,1.1,1.6],fill:'toself',fillcolor:'rgba(96,165,250,.1)',line:{width:0},showlegend:false},
       {x:histX,y:histY,mode:'lines',name:'CPI PL hist.',line:{color:'#f87171',width:2}},
       {x:['Lut26','2026P','2027P','2028P'],y:[2.1,2.3,2.4,2.3],mode:'lines+markers',name:'Proj. NBP',line:{color:'#60a5fa',width:2,dash:'dash'},marker:{size:6}},
@@ -2986,61 +2995,61 @@ function renderPrognozy(){
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
       margin:{l:36,r:6,t:6,b:50},
       xaxis:{categoryorder:'array',categoryarray:allX,tickangle:-45,tickfont:{size:7.5},nticks:10},
-      yaxis:{title:'%',range:[0,6]}}),PLY);
+      yaxis:{title:'%',range:[0,6]}}));
     /* CPI PL + NBP */
     var rateYears=['2020','2021','2022','2023','2024','2025','2026P'];
     var cpiPLdata=[3.4,5.1,14.4,11.4,3.6,2.4,2.3];
     var nbpData=[0.1,0.1,6.75,6.75,5.25,3.75,3.25];
-    if(document.getElementById('ch-prg-cpipl'))Plotly.newPlot('ch-prg-cpipl',[
+    safePlot('ch-prg-cpipl',[
       {x:rateYears,y:cpiPLdata,mode:'lines+markers',name:'CPI PL',line:{color:'#f87171',width:2.5},marker:{size:7},
        fill:'tozeroy',fillcolor:'rgba(248,113,113,.07)'},
       {x:rateYears,y:nbpData,mode:'lines+markers',name:'NBP stopa',line:{color:'#f5c040',width:2,dash:'dash'},marker:{size:6}},
       {x:rateYears,y:rateYears.map(function(){return 2.5;}),mode:'lines',name:'Cel NBP 2.5%',line:{color:'#00e5a8',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
-      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,16]}}),PLY);
+      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,16]}}));
     /* CPI USA + Fed */
     var cpiUSdata=[1.2,4.7,8.0,3.4,3.4,2.9,2.6];
     var fedRateData=[0.25,0.25,4.25,5.25,5.25,4.25,3.63];
-    if(document.getElementById('ch-prg-cpius'))Plotly.newPlot('ch-prg-cpius',[
+    safePlot('ch-prg-cpius',[
       {x:rateYears,y:cpiUSdata,mode:'lines+markers',name:'CPI USA',line:{color:'#60a5fa',width:2.5},marker:{size:7},
        fill:'tozeroy',fillcolor:'rgba(96,165,250,.07)'},
       {x:rateYears,y:fedRateData,mode:'lines+markers',name:'Fed rate',line:{color:'#a78bfa',width:2,dash:'dash'},marker:{size:6}},
       {x:rateYears,y:rateYears.map(function(){return 2.0;}),mode:'lines',name:'Cel Fed 2%',line:{color:'#00e5a8',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:160,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
-      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,10]}}),PLY);
+      margin:{l:36,r:6,t:6,b:28},yaxis:{title:'%',range:[0,10]}}));
     /* PKB */
-    if(document.getElementById('ch-prg-pkb'))Plotly.newPlot('ch-prg-pkb',[
+    safePlot('ch-prg-pkb',[
       {x:['2022','2023','2024','2025','2026P','2027P','2028P'],
        y:[5.1,0.2,2.9,3.6,3.9,2.9,2.9],
-       mode:'lines+markers',type:'bar',
+       type:'bar',
        marker:{color:['#f87171','#f5c040','#f5c040','#4ade80','#4ade80','#4ade80','#4ade80']},
        name:'PKB PL'}
     ],pLy({height:150,showlegend:false,margin:{l:36,r:6,t:6,b:28},
       xaxis:{categoryorder:'array',categoryarray:['2022','2023','2024','2025','2026P','2027P','2028P']},
-      yaxis:{title:'%'}}),PLY);
+      yaxis:{title:'%'}}));
     /* NBP+Fed rates */
-    if(document.getElementById('ch-prg-nbp'))Plotly.newPlot('ch-prg-nbp',[
+    safePlot('ch-prg-nbp',[
       {x:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26'],y:[6.75,5.75,5.25,5.25,5.00,4.25,4.00,3.75],mode:'lines+markers',name:'NBP faktyczna',line:{color:'#f5c040',width:2.5},marker:{size:7}},
       {x:['mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],y:[3.75,3.50,3.25,3.25,3.00],mode:'lines+markers',name:'NBP prognoza',line:{color:'#f5c040',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
       {x:['2023','2027P'],y:[2.5,2.5],mode:'lines',name:'Neutralna',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:150,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
       margin:{l:36,r:6,t:6,b:35},
-      xaxis:{categoryorder:'array',categoryarray:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],tickangle:-20,tickfont:{size:8}},
-      yaxis:{title:'%',range:[2,7]}}),PLY);
+      xaxis:{categoryorder:'array',categoryarray:['2023','sty24','paz24','lut25','mar25','lis25','lut26','mar26','Q2-26P','Q3-26P','Q4-26P','2027P'],tickangle:-30,tickfont:{size:7.5}},
+      yaxis:{title:'%',range:[0,8]}}));
     var fedHistX=['lut22','lip22','gru22','cze23','gru23','mar24','cze24','wrz24','gru24','mar25','cze25','wrz25','gru25','lut26','mar26'];
     var fedHistY=[0.25,2.25,4.25,5.25,5.25,5.25,5.25,5.00,4.50,4.25,4.25,4.25,4.25,4.25,3.63];
     var fedProjX=['mar26','cze26P','wrz26P','gru26P','2027P'];
     var fedProjY=[3.63,3.38,3.25,3.00,2.75];
     var fedAllX=fedHistX.concat(fedProjX.slice(1));
-    if(document.getElementById('ch-prg-fed'))Plotly.newPlot('ch-prg-fed',[
+    safePlot('ch-prg-fed',[
       {x:fedHistX,y:fedHistY,mode:'lines+markers',name:'Fed faktyczna',line:{color:'#60a5fa',width:2.5},marker:{size:6}},
       {x:fedProjX,y:fedProjY,mode:'lines+markers',name:'Fed prognoza (FedWatch)',line:{color:'#60a5fa',width:1.5,dash:'dash'},marker:{size:5,symbol:'circle-open'}},
       {x:[fedHistX[0],fedProjX[fedProjX.length-1]],y:[2.5,2.5],mode:'lines',name:'Neutralna Fed',line:{color:'#666',width:1,dash:'dot'},hoverinfo:'skip'}
     ],pLy({height:150,showlegend:true,legend:{x:0,y:1.15,font:{size:8},orientation:'h'},
       margin:{l:36,r:6,t:6,b:35},
       xaxis:{categoryorder:'array',categoryarray:fedAllX,tickangle:-20,tickfont:{size:8}},
-      yaxis:{title:'%',range:[0,6]}}),PLY);
-  },150);
+      yaxis:{title:'%',range:[0,6]}}));
+  },300);
 }
 
 
@@ -4938,6 +4947,11 @@ function renderDecision(){
   if(cape<18) opps.push({t:'💎 CAPE='+cape.toFixed(1)+'x (tanie)',d:'CAPE<18 = historycznie dobre entry. Kolejne 10Y SP500 avg return ~12-15%.',v:cape.toFixed(1)+'x'});
   if(oilChgW<-8) opps.push({t:'📉 Ropa -'+Math.abs(oilChgW).toFixed(1)+'%',d:'Tania ropa = deflacja → inflacja spada → cięcia stóp szybciej → ETFBTBSP i akcje korzystają.',v:oilChgW.toFixed(1)+'%'});
   if(hy<2.5) opps.push({t:'🟢 HY='+hy.toFixed(2)+'% (spokój)',d:'Niskie spready kredytowe = rynki wyceniają niskie ryzyko recesji = środowisko pro-akcje.',v:hy.toFixed(2)+'%'});
+  /* ── PDF Report signals ── */
+  (D.pdfSignals||[]).slice(-8).forEach(function(ps){
+    if(ps.type==='buy') opps.push({t:'📄 '+ps.text.slice(0,45),d:'Raport: '+ps.source+' ('+ps.date+')',v:'PDF'});
+    else if(ps.type==='sell'||ps.type==='warn') alarms.push({t:'📄 '+ps.text.slice(0,45),d:'Raport: '+ps.source+' ('+ps.date+')',v:'PDF'});
+  });
 
   /* ── Cycle ───────────────────────────────────────────────────── */
   var cyclePhase,cycleColor,cycleDesc;
@@ -5232,7 +5246,9 @@ function renderDecision(){
 function renderSentiment(){
   var el=document.getElementById('p-sentiment');if(!el)return;
   var sc=SC||calcScore();
-  var vix=sc.vix,fg=sc.fg;
+  /* Always read live VIX from same source as renderDecision */
+  var vix=(D.q&&D.q.vix&&D.q.vix.price>0)?D.q.vix.price:(D.f&&D.f.vixfred&&D.f.vixfred.current>0?D.f.vixfred.current:(sc.vix||GD.vix));
+  var fg=sc.fg;
   var vixW=Math.min(vix/88*100,100),fgW=fg!=null?fg:50;
   var vixC=vix>=30?'var(--G)':vix>=25?'var(--Y)':vix<18?'var(--R)':'var(--t1)';
   var vixSt=vix>=30?'OKAZJA KONTRARIAŃSKA':vix>=25?'PODWYŻSZONY':vix<18?'EUFORIA — UWAGA':'NORMALNY';
@@ -6855,6 +6871,195 @@ function showWTab(id) {
 }
 
 
+async /* ═══════════════════════════════════════════════════════════════
+   PDF URL SCRAPING + AI ANALYSIS SYSTEM
+   - Add PDF URL → fetch → extract text → Claude analysis
+   - Store results in D.pdfReports + window.storage
+   - Signals injected into renderDecision
+   ═══════════════════════════════════════════════════════════════ */
+
+async function fetchPDFFromURL(url) {
+  /* Try to fetch PDF via proxy */
+  var proxies = [
+    'https://portfel.dzonyiks.workers.dev?url=',
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?url=',
+  ];
+  for(var i=0;i<proxies.length;i++){
+    try {
+      var resp = await fetch(proxies[i]+encodeURIComponent(url), {signal:AbortSignal.timeout(20000)});
+      if(!resp.ok) continue;
+      var buf = await resp.arrayBuffer();
+      if(buf.byteLength < 1000) continue;
+      return buf;
+    } catch(e){ continue; }
+  }
+  throw new Error('Nie można pobrać PDF przez proxy (CORS)');
+}
+
+async function extractTextFromPDFBuffer(arrayBuf) {
+  /* Use PDF.js if available, else basic text extraction */
+  if(window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var pdf = await window.pdfjsLib.getDocument({data: arrayBuf}).promise;
+    var text = '';
+    for(var p=1; p<=Math.min(pdf.numPages,40); p++){
+      var page = await pdf.getPage(p);
+      var content = await page.getTextContent();
+      text += content.items.map(function(i){return i.str;}).join(' ') + '\n';
+    }
+    return {text: text.slice(0,14000), pages: pdf.numPages};
+  }
+  /* Fallback: raw text extraction from PDF bytes */
+  var bytes = new Uint8Array(arrayBuf);
+  var str = '';
+  for(var j=0;j<bytes.length&&str.length<20000;j++){
+    if(bytes[j]>31&&bytes[j]<127) str += String.fromCharCode(bytes[j]);
+    else if(bytes[j]===10||bytes[j]===13) str += ' ';
+  }
+  /* Extract text between BT/ET markers (basic PDF text) */
+  var texts = [];
+  var bt = 0;
+  while((bt=str.indexOf('BT',bt))>-1){
+    var et=str.indexOf('ET',bt);
+    if(et<0) break;
+    var chunk = str.slice(bt,et);
+    var parts = chunk.match(/\(([^\)]{2,120})\)\s*Tj/g)||[];
+    parts.forEach(function(p){texts.push(p.slice(1,-3));});
+    bt = et+2;
+  }
+  return {text: texts.join(' ').slice(0,14000), pages: 0};
+}
+
+async function analyzePDFWithClaude(text, sourceUrl) {
+  var name = sourceUrl.split('/').pop().replace(/%20/g,' ').slice(0,60);
+  var prompt = 'Jesteś analitykiem finansowym i makroekonomicznym. Przeanalizuj poniższy dokument.\n\n'
+    + 'Źródło: ' + sourceUrl + '\n'
+    + 'Fragment treści:\n' + text + '\n\n'
+    + 'Odpowiedz WYŁĄCZNIE w formacie JSON (bez markdown, bez ```). Schema:\n'
+    + '{"title":"tytuł raportu","region":"PL lub WORLD","category":"makro|inflacja|stopy|pkb|rynek|obligacje|waluty|inne",'
+    + '"date":"data raportu","summary":"streszczenie 2-3 zdania",'
+    + '"indicators":[{"name":"wskaźnik","value":"wartość","unit":"%","date":"data","trend":"rosnący|spadający|stabilny","signal":"bull|bear|neutral"}],'
+    + '"keyNumbers":[{"label":"np. CPI","value":"2.1%","date":"lut 2026","vs":"poprzednio 2.4%"}],'
+    + '"marketImpact":{"stocks":{"signal":"bull|bear|neutral","reason":"uzasadnienie"},'
+    + '"bonds":{"signal":"bull|bear|neutral","reason":"uzasadnienie"},'
+    + '"currencies":{"signal":"bull|bear|neutral","reason":"uzasadnienie"},'
+    + '"savings":{"signal":"bull|bear|neutral","reason":"uzasadnienie"}},'
+    + '"signals":[{"type":"buy|sell|warn","text":"sygnał inwestycyjny","indicator":"skąd"}]}';
+
+  var resp = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-20250514",
+      max_tokens:1800,
+      messages:[{role:"user",content:prompt}]
+    })
+  });
+  var data = await resp.json();
+  var txt = (data.content||[]).map(function(b){return b.text||'';}).join('');
+  txt = txt.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  return JSON.parse(txt);
+}
+
+async function processPDFURL(url, progressCallback) {
+  if(!D.pdfReports) D.pdfReports=[];
+  if(!D.pdfSignals) D.pdfSignals=[];
+  if(!D.pdfIndicators) D.pdfIndicators=[];
+
+  var id = 'pdf_'+Date.now();
+  if(progressCallback) progressCallback('📥 Pobieranie PDF z '+url.split('/').pop()+'…');
+
+  try {
+    /* 1. Fetch PDF */
+    var buf = await fetchPDFFromURL(url);
+    if(progressCallback) progressCallback('📄 Ekstrakcja tekstu…');
+
+    /* 2. Extract text */
+    var extracted = await extractTextFromPDFBuffer(buf);
+    if(!extracted.text || extracted.text.length < 100) throw new Error('Za mało tekstu w PDF');
+
+    if(progressCallback) progressCallback('🤖 Analiza AI (Claude)…');
+
+    /* 3. AI analysis */
+    var analysis = await analyzePDFWithClaude(extracted.text, url);
+
+    var report = {
+      id: id,
+      url: url,
+      fileName: url.split('/').pop().replace(/%20/g,' ').slice(0,80),
+      pages: extracted.pages,
+      uploadDate: new Date().toISOString().slice(0,10),
+      analysis: analysis
+    };
+
+    /* Remove duplicate URL if exists */
+    D.pdfReports = D.pdfReports.filter(function(r){return r.url!==url;});
+    D.pdfReports.push(report);
+
+    /* Inject signals */
+    D.pdfSignals = D.pdfSignals.filter(function(s){return s.sourceUrl!==url;});
+    (analysis.signals||[]).forEach(function(sig){
+      D.pdfSignals.push({type:sig.type,text:sig.text,indicator:sig.indicator||'',
+        source:(analysis.title||report.fileName).slice(0,30),sourceUrl:url,
+        date:report.uploadDate});
+    });
+
+    /* Inject indicators */
+    D.pdfIndicators = D.pdfIndicators.filter(function(i){return i.sourceUrl!==url;});
+    (analysis.indicators||[]).forEach(function(ind){
+      D.pdfIndicators.push(Object.assign({source:report.fileName,sourceUrl:url},ind));
+    });
+
+    /* Save to storage */
+    try {
+      var toSave = D.pdfReports.slice(-15).map(function(r){
+        return {id:r.id,url:r.url,fileName:r.fileName,uploadDate:r.uploadDate,analysis:r.analysis};
+      });
+      await window.storage.set('pdf_reports_v2', JSON.stringify(toSave));
+    } catch(se){}
+
+    if(progressCallback) progressCallback('✅ Gotowe — '+( analysis.title||report.fileName));
+    return report;
+
+  } catch(e) {
+    var errReport = {id:id,url:url,fileName:url.split('/').pop().slice(0,60),
+      error:e.message,uploadDate:new Date().toISOString().slice(0,10)};
+    D.pdfReports.push(errReport);
+    if(progressCallback) progressCallback('❌ Błąd: '+e.message);
+    return errReport;
+  }
+}
+
+async function loadSavedPDFReports() {
+  if(D.pdfReports&&D.pdfReports.length>0) return;
+  D.pdfReports=[]; D.pdfSignals=[]; D.pdfIndicators=[];
+  try {
+    var s=await window.storage.get('pdf_reports_v2');
+    if(s&&s.value){
+      var stored=JSON.parse(s.value)||[];
+      stored.forEach(function(r){
+        D.pdfReports.push(r);
+        (r.analysis&&r.analysis.signals||[]).forEach(function(sig){
+          D.pdfSignals.push({type:sig.type,text:sig.text,
+            source:(r.analysis.title||r.fileName||'').slice(0,30),sourceUrl:r.url,date:r.uploadDate});
+        });
+        (r.analysis&&r.analysis.indicators||[]).forEach(function(ind){
+          D.pdfIndicators.push(Object.assign({source:r.fileName,sourceUrl:r.url},ind));
+        });
+      });
+    }
+  } catch(e){}
+}
+
+function clearPDFReports() {
+  D.pdfReports=[]; D.pdfSignals=[]; D.pdfIndicators=[];
+  try{window.storage.delete('pdf_reports_v2');}catch(e){}
+  renderAnalizy(); renderDecision();
+}
+
+
 async function fetchAnalizy() {
   D.analizy = [];
 
@@ -7007,140 +7212,273 @@ async function fetchAnalizy() {
 }
 
 
+function renderAnalizy() {
+  var el = document.getElementById('p-analizy'); if(!el) return;
+  var srcs = D.analizy || [];
+  var ins = D.analityInsights || {};
+  var reports = D.pdfReports || [];
+  var s = '';
 
-function renderAnalizy(){
-  var el=document.getElementById('p-analizy');if(!el)return;
-  var srcs=D.analizy||[];
-  var ins=D.analityInsights||{};
+  /* ══ HEADER ══════════════════════════════════════════════════ */
+  s += '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:10px">';
+  s += '<div><div style="font-size:13px;font-weight:900;color:var(--t1)">📰 Analizy + 📄 Raporty PDF</div>';
+  s += '<div style="font-size:8.5px;color:var(--t2)">Pekao · XTB · Alior · BIK · qnews · Dodaj link do raportu PDF → analiza AI</div></div>';
+  s += '<button onclick="D.analizy=[];fetchAnalizy().then(renderAnalizy)" '
+    + 'style="background:rgba(42,157,245,.15);border:1px solid rgba(42,157,245,.4);color:var(--B);border-radius:6px;padding:5px 12px;font-size:8.5px;cursor:pointer;font-weight:700">🔄 Odśwież</button>';
+  s += '</div>';
 
-  var s='';
+  /* ══ PDF URL INPUT ════════════════════════════════════════ */
+  s += '<div style="background:var(--bg2);border:2px solid rgba(245,192,64,.35);border-radius:var(--r);padding:12px 16px;margin-bottom:10px">';
+  s += '<div style="font-size:11px;font-weight:900;color:var(--Y);margin-bottom:4px">📄 Dodaj raport PDF — wklej link</div>';
+  s += '<div style="font-size:8.5px;color:var(--t2);margin-bottom:8px">Wklej URL do raportu PDF (NBP, GUS, MF, IMF, Fed, BIK, analiza bankowa…) → AI wyekstrahuje wskaźniki i oceni wpływ na rynek</div>';
+  s += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+  s += '<input id="pdf-url-input" type="text" placeholder="https://www.nbp.pl/…/raport.pdf" '
+    + 'style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:6px;'
+    + 'padding:7px 12px;font-size:9px;color:var(--t1);outline:none;font-family:inherit" '
+    + 'onkeydown="if(event.key===\'Enter\')addPDFReport()">';
+  s += '<button onclick="addPDFReport()" '
+    + 'style="background:rgba(245,192,64,.15);border:1px solid rgba(245,192,64,.4);color:var(--Y);'
+    + 'border-radius:6px;padding:7px 16px;font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">+ Analizuj PDF</button>';
+  s += '</div>';
+  /* Quick example links */
+  s += '<div style="font-size:7.5px;color:var(--t2)">Przykłady: ';
+  var examples = [
+    ['NBP Inflation Report','https://www.nbp.pl/en/publications/raport_inflacja/ri2026_01en.pdf'],
+    ['IMF WEO','https://www.imf.org/en/Publications/WEO'],
+    ['GUS','https://stat.gov.pl/obszary-tematyczne/rynek-pracy/'],
+  ];
+  examples.forEach(function(ex,i){
+    s += '<a href="#" onclick="document.getElementById(\'pdf-url-input\').value=\''+ex[1]+'\';return false" '
+      + 'style="color:var(--Y);text-decoration:underline">'+ex[0]+'</a>';
+    if(i<examples.length-1) s += ' · ';
+  });
+  s += '</div>';
+  s += '<div id="pdf-progress" style="font-size:8.5px;color:var(--t2);margin-top:6px;min-height:16px"></div>';
+  s += '</div>';
 
-  /* ══ HEADER ═══════════════════════════════════════════════ */
-  s+='<div style="display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px;margin-bottom:10px">';
-  s+='<div>';
-  s+='<div style="font-size:13px;font-weight:900;color:var(--t1);margin-bottom:2px">📰 Analizy Rynkowe — 5 polskich źródeł</div>';
-  s+='<div style="font-size:8.5px;color:var(--t2)">Pekao SA · XTB Polska · Alior Bank BM · BIK · qnews.pl — scraping przez proxy</div>';
+  /* ══ PDF REPORTS ══════════════════════════════════════════ */
+  if(reports.length > 0) {
+    var plR = reports.filter(function(r){return !r.error&&r.analysis&&(r.analysis.region==='PL'||!r.analysis.region);});
+    var wR  = reports.filter(function(r){return !r.error&&r.analysis&&r.analysis.region==='WORLD';});
+    var errR= reports.filter(function(r){return !!r.error;});
+
+    /* Signal summary */
+    var allSigs = D.pdfSignals||[];
+    if(allSigs.length>0){
+      var buys=allSigs.filter(function(s){return s.type==='buy';}).length;
+      var sells=allSigs.filter(function(s){return s.type==='sell';}).length;
+      var warns=allSigs.filter(function(s){return s.type==='warn';}).length;
+      s += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px">';
+      [{l:'📄 Raporty',v:reports.length-errR.length,c:'var(--t1)'},
+       {l:'✅ KUP',v:buys,c:'var(--G)'},
+       {l:'❌ SPRZEDAJ',v:sells,c:'var(--R)'},
+       {l:'⚠️ Ostrzeżenia',v:warns,c:'var(--Y)'}
+      ].forEach(function(x){
+        s += '<div style="background:'+x.c+'0a;border:1px solid '+x.c+'25;border-radius:5px;padding:7px;text-align:center">';
+        s += '<div style="font-size:20px;font-weight:900;color:'+x.c+'">'+x.v+'</div>';
+        s += '<div style="font-size:8px;color:var(--t2)">'+x.l+'</div></div>';
+      });
+      s += '</div>';
+    }
+
+    function rCard(r){
+      if(r.error){
+        return '<div style="background:rgba(255,51,85,.05);border:1px solid rgba(255,51,85,.2);border-radius:var(--r);padding:9px 12px;margin-bottom:6px">'
+          +'<div style="font-size:9px;font-weight:700;color:var(--R)">✗ '+r.fileName+'</div>'
+          +'<div style="font-size:8px;color:var(--t2)">'+r.error+'</div>'
+          +'<a href="'+r.url+'" target="_blank" style="font-size:8px;color:var(--Y)">→ Otwórz ↗</a>'
+          +'<button onclick="removePDFReport(\''+r.id+'\')" style="float:right;background:none;border:none;color:var(--R);cursor:pointer;font-size:9px">✕</button>'
+          +'</div>';
+      }
+      var a=r.analysis;
+      var rc=a.region==='PL'?'#f5c040':'#60a5fa';
+      var catI={macro:'🌐',inflacja:'🔥',stopy:'🏦',pkb:'📈',rynek:'📊',obligacje:'💵',waluty:'💱',inne:'📋'}[a.category]||'📋';
+      var sc2=function(sig){return sig==='bull'?'var(--G)':sig==='bear'?'var(--R)':'var(--Y)';};
+
+      var h='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 13px;margin-bottom:8px">';
+      /* Title row */
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">';
+      h+='<div><div style="font-size:10px;font-weight:800;color:var(--t1)">'+catI+' '+(a.title||r.fileName)+'</div>';
+      h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">';
+      h+='<span style="background:'+rc+'20;color:'+rc+';border-radius:10px;padding:1px 8px;font-size:7.5px;font-weight:700">'+(a.region||'?')+'</span>';
+      h+='<span style="background:rgba(255,255,255,.06);color:var(--t2);border-radius:10px;padding:1px 8px;font-size:7.5px">'+(a.category||'')+'</span>';
+      if(a.date) h+='<span style="font-size:7.5px;color:var(--t2)">📅 '+a.date+'</span>';
+      h+='</div></div>';
+      h+='<div style="display:flex;gap:4px;align-items:flex-start">';
+      h+='<a href="'+r.url+'" target="_blank" style="font-size:7.5px;color:var(--B)">↗</a>';
+      h+='<button onclick="removePDFReport(\''+r.id+'\')" style="background:none;border:none;color:var(--R);cursor:pointer;font-size:11px;line-height:1">✕</button>';
+      h+='</div></div>';
+
+      /* Summary */
+      if(a.summary) h+='<div style="font-size:8.5px;color:#c8c8c8;line-height:1.65;background:rgba(255,255,255,.03);border-radius:4px;padding:6px 8px;margin-bottom:7px">'+a.summary+'</div>';
+
+      /* Key Numbers */
+      if(a.keyNumbers&&a.keyNumbers.length>0){
+        h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:3px;margin-bottom:7px">';
+        a.keyNumbers.slice(0,8).forEach(function(kn){
+          h+='<div style="background:rgba(255,255,255,.04);border-radius:4px;padding:4px 7px">';
+          h+='<div style="font-size:7.5px;color:var(--t2)">'+kn.label+'</div>';
+          h+='<div style="font-size:15px;font-weight:800;color:var(--t1)">'+kn.value+'</div>';
+          if(kn.date||kn.vs) h+='<div style="font-size:7px;color:var(--t2)">'+(kn.date||'')+( kn.vs?' vs '+kn.vs:'')+'</div>';
+          h+='</div>';
+        });
+        h+='</div>';
+      }
+
+      /* Market Impact */
+      if(a.marketImpact){
+        h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:7px">';
+        [{k:'stocks',l:'📊 Giełda'},{k:'bonds',l:'💵 Obligacje'},{k:'currencies',l:'💱 Waluty'},{k:'savings',l:'🏦 Oszczęd.'}
+        ].forEach(function(imp){
+          var m=a.marketImpact[imp.k];if(!m)return;
+          var c=sc2(m.signal);
+          h+='<div style="background:'+c+'0a;border:1px solid '+c+'20;border-radius:4px;padding:5px 6px">';
+          h+='<div style="font-size:7.5px;color:var(--t2)">'+imp.l+'</div>';
+          h+='<div style="font-size:10px;font-weight:800;color:'+c+'">'+(m.signal==='bull'?'▲ BYCZE':m.signal==='bear'?'▼ NIEDŹ.':'● NEUTR.')+'</div>';
+          if(m.reason) h+='<div style="font-size:7px;color:var(--t2)">'+m.reason.slice(0,50)+'</div>';
+          h+='</div>';
+        });
+        h+='</div>';
+      }
+
+      /* Signals */
+      if(a.signals&&a.signals.length>0){
+        h+='<div style="border-top:1px solid rgba(255,255,255,.05);padding-top:5px">';
+        a.signals.forEach(function(sig){
+          var c=sig.type==='buy'?'var(--G)':sig.type==='sell'?'var(--R)':'var(--Y)';
+          h+='<div style="font-size:8.5px;color:'+c+'">'+( sig.type==='buy'?'✅':sig.type==='sell'?'❌':'⚠️')+' '+sig.text+'</div>';
+        });
+        h+='</div>';
+      }
+
+      /* Indicators pill row */
+      if(a.indicators&&a.indicators.length>0){
+        h+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.05)">';
+        a.indicators.slice(0,8).forEach(function(ind){
+          var c=ind.signal==='bull'?'var(--G)':ind.signal==='bear'?'var(--R)':'var(--t2)';
+          h+='<span style="background:'+c+'0d;border:1px solid '+c+'25;border-radius:4px;padding:2px 7px;font-size:8px">';
+          h+='<span style="color:var(--t2)">'+ind.name+': </span><b style="color:'+c+'">'+ind.value+(ind.unit?' '+ind.unit:'')+'</b>';
+          if(ind.date) h+='<span style="color:var(--t2);font-size:7px"> '+ind.date+'</span>';
+          h+='</span>';
+        });
+        h+='</div>';
+      }
+      h+='</div>';
+      return h;
+    }
+
+    if(plR.length>0){
+      s+='<div style="font-size:10px;font-weight:800;color:var(--Y);margin-bottom:6px">🇵🇱 Polska — '+plR.length+' raport(y)</div>';
+      plR.forEach(function(r){s+=rCard(r);});
+    }
+    if(wR.length>0){
+      s+='<div style="font-size:10px;font-weight:800;color:var(--B);margin-bottom:6px;'+(plR.length?'margin-top:8px':'')+'">🌍 Świat — '+wR.length+' raport(y)</div>';
+      wR.forEach(function(r){s+=rCard(r);});
+    }
+    errR.forEach(function(r){s+=rCard(r);});
+    s+='<div style="text-align:right;margin-top:5px"><button onclick="clearPDFReports()" '
+      +'style="background:rgba(255,51,85,.08);border:1px solid rgba(255,51,85,.2);color:var(--R);border-radius:5px;padding:3px 12px;font-size:8px;cursor:pointer">🗑️ Usuń wszystkie</button></div>';
+  } else {
+    s+='<div style="background:rgba(255,255,255,.02);border:1px solid var(--br);border-radius:var(--r);padding:18px;text-align:center;margin-bottom:10px">';
+    s+='<div style="font-size:22px;margin-bottom:6px">📭</div>';
+    s+='<div style="font-size:9.5px;color:var(--t1);margin-bottom:3px">Brak raportów PDF</div>';
+    s+='<div style="font-size:8.5px;color:var(--t2)">Wklej link do PDF → AI wyekstrahuje wskaźniki i oceni wpływ na giełdę/obligacje/waluty/oszczędności</div>';
+    s+='</div>';
+  }
+
+  /* ══ DIVIDER ════════════════════════════════════════════════ */
+  s+='<div style="border-top:1px solid var(--br);margin:8px 0;padding-top:8px">';
+  s+='<div style="font-size:9.5px;font-weight:800;color:var(--t2);margin-bottom:6px">🌐 Analizy z polskich serwisów online</div>';
   s+='</div>';
-  s+='<button onclick="D.analizy=[];D.analityInsights={};fetchAnalizy().then(renderAnalizy)" '
-    +'style="background:rgba(42,157,245,.15);border:1px solid rgba(42,157,245,.4);color:var(--B);'
-    +'border-radius:6px;padding:6px 14px;font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">🔄 Odśwież</button>';
-  s+='</div>';
 
-  /* ══ LOADING STATE ═════════════════════════════════════════ */
+  /* ══ INSIGHTS + SOURCES ══════════════════════════════════ */
   if(srcs.length===0){
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:40px;text-align:center">';
-    s+='<div style="font-size:28px;margin-bottom:10px">⏳</div>';
-    s+='<div style="font-size:11px;color:var(--t1);margin-bottom:5px">Ładowanie analiz...</div>';
-    s+='<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">';
-    ['🏦 Pekao','📊 XTB','📈 Alior','💳 BIK','⚡ qnews'].forEach(function(n){
-      s+='<span style="background:rgba(255,255,255,.06);border-radius:20px;padding:3px 10px;font-size:8.5px;color:var(--t2)">'+n+'</span>';
-    });
-    s+='</div></div>';
+    s+='<div style="padding:20px;text-align:center;color:var(--t2);font-size:9px">⏳ Ładowanie…</div>';
     el.innerHTML='<div class="wrap">'+s+'</div>';
     fetchAnalizy().then(renderAnalizy);
     return;
   }
 
-  /* ══ INSIGHTS SUMMARY BAR ═════════════════════════════════ */
   if(ins.total>0){
-    var sentScore=ins.total>0?Math.round((ins.bullCount/(ins.bullCount+ins.bearCount+0.01))*100):50;
-    var sentC=sentScore>60?'var(--G)':sentScore<40?'var(--R)':'var(--Y)';
-    var sentLabel=sentScore>65?'BYCZE 🟢':sentScore>55?'Lekko bycze':sentScore<35?'NIEDŹWIEDZIE 🔴':sentScore<45?'Lekko niedźwiedzie':'Neutralne 🟡';
-    s+='<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:10px 14px;margin-bottom:10px">';
-    s+='<div style="font-size:9px;font-weight:700;color:var(--t2);margin-bottom:6px">🔍 Analiza sentymentu — '+ins.total+' artykułów ze wszystkich źródeł</div>';
-    s+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">';
-    /* Sentiment gauge */
-    s+='<div style="background:'+sentC+'0d;border:1px solid '+sentC+'30;border-radius:5px;padding:7px 9px;text-align:center">';
-    s+='<div style="font-size:7.5px;color:var(--t2)">Sentyment mediów</div>';
-    s+='<div style="font-size:15px;font-weight:900;color:'+sentC+'">'+sentLabel+'</div>';
-    s+='<div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:4px">';
-    s+='<div style="width:'+sentScore+'%;height:100%;background:'+sentC+';border-radius:2px"></div></div>';
-    s+='<div style="font-size:7.5px;color:var(--t2);margin-top:2px">'+ins.bullCount+' bycze / '+ins.bearCount+' niedźwiedzie</div>';
-    s+='</div>';
-    /* Topic counts */
-    [
-      {l:'Inflacja/CPI',v:ins.cpiMentions,c:'var(--R)',ico:'🔥'},
-      {l:'PKB/Wzrost',v:ins.gdpMentions,c:'var(--G)',ico:'📈'},
-      {l:'Stopy/NBP/Fed',v:ins.rateMentions,c:'var(--B)',ico:'🏦'},
-      {l:'Artykułów łącznie',v:ins.total,c:'var(--Y)',ico:'📰'},
+    var ss=Math.round((ins.bullCount/(ins.bullCount+ins.bearCount+0.01))*100);
+    var sc3=ss>60?'var(--G)':ss<40?'var(--R)':'var(--Y)';
+    s+='<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:5px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:8px 12px;margin-bottom:8px">';
+    s+='<div><div style="font-size:8px;color:var(--t2)">Sentyment mediów PL ('+ins.total+' art.)</div>';
+    s+='<div style="font-size:13px;font-weight:900;color:'+sc3+'">'+(ss>60?'BYCZE 🟢':ss<40?'NIEDŹ. 🔴':'Neutralne 🟡')+'</div>';
+    s+='<div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px"><div style="width:'+ss+'%;height:100%;background:'+sc3+';border-radius:2px"></div></div></div>';
+    [{l:'🔥 Inflacja',v:ins.cpiMentions,c:'var(--R)'},{l:'📈 PKB',v:ins.gdpMentions,c:'var(--G)'},
+     {l:'🏦 Stopy',v:ins.rateMentions,c:'var(--B)'},{l:'📰 Art.',v:ins.total,c:'var(--t2)'}
     ].forEach(function(t){
-      s+='<div style="background:'+t.c+'0a;border:1px solid '+t.c+'20;border-radius:5px;padding:7px 9px;text-align:center">';
-      s+='<div style="font-size:11px">'+t.ico+'</div>';
-      s+='<div style="font-size:20px;font-weight:900;color:'+t.c+'">'+t.v+'</div>';
-      s+='<div style="font-size:7.5px;color:var(--t2)">'+t.l+'</div>';
-      s+='</div>';
+      s+='<div style="text-align:center"><div style="font-size:16px;font-weight:900;color:'+t.c+'">'+t.v+'</div><div style="font-size:7.5px;color:var(--t2)">'+t.l+'</div></div>';
     });
-    s+='</div></div>';
+    s+='</div>';
   }
 
-  /* ══ SOURCE CARDS ══════════════════════════════════════════ */
-  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-
+  s+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
   srcs.forEach(function(src){
     var c=src.color;
     s+='<div style="background:var(--bg2);border:1px solid '+c+'25;border-radius:var(--r);overflow:hidden">';
-
-    /* Card header */
-    s+='<div style="background:'+c+'12;border-bottom:1px solid '+c+'25;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">';
-    s+='<div style="display:flex;align-items:center;gap:7px">';
-    s+='<span style="font-size:16px">'+src.logo+'</span>';
-    s+='<div>';
-    s+='<div style="font-size:10px;font-weight:800;color:'+c+'">'+src.source+'</div>';
-    s+='<a href="'+src.url+'" target="_blank" style="font-size:7.5px;color:var(--t2);text-decoration:none">'+src.url.replace('https://','')+'</a>';
-    s+='</div></div>';
-    s+='<div style="text-align:right">';
+    s+='<div style="background:'+c+'12;border-bottom:1px solid '+c+'25;padding:7px 11px;display:flex;justify-content:space-between;align-items:center">';
+    s+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:15px">'+src.logo+'</span>';
+    s+='<div><div style="font-size:9.5px;font-weight:800;color:'+c+'">'+src.source+'</div>';
+    s+='<a href="'+src.url+'" target="_blank" style="font-size:7.5px;color:var(--t2);text-decoration:none">'+src.url.replace('https://','').slice(0,32)+'</a></div></div>';
     if(src.loaded){
-      var srcBull=src.articles.filter(function(a){return a.sent==='bull';}).length;
-      var srcBear=src.articles.filter(function(a){return a.sent==='bear';}).length;
-      var srcC=srcBull>srcBear?'var(--G)':srcBear>srcBull?'var(--R)':'var(--Y)';
-      s+='<div style="font-size:8px;color:'+srcC+'">'+src.articles.length+' art. | '+(srcBull>srcBear?'🟢 bycze':srcBear>srcBull?'🔴 niedźwiedzie':'🟡 mieszane')+'</div>';
-    } else {
-      s+='<div style="font-size:8px;color:'+(src.error?'var(--R)':'var(--Y)')+'">'+(src.error?'✗ błąd CORS':'⏳ ładowanie')+'</div>';
-    }
-    s+='<div style="font-size:7px;color:#555">'+( src.ts||'')+'</div>';
-    s+='</div></div>';
-
-    /* Articles list */
-    s+='<div style="padding:8px 10px;max-height:320px;overflow-y:auto">';
+      var b=src.articles.filter(function(a){return a.sent==='bull';}).length;
+      var d=src.articles.filter(function(a){return a.sent==='bear';}).length;
+      s+='<div style="font-size:8px;color:'+(b>d?'var(--G)':d>b?'var(--R)':'var(--Y)')+'">'+(b>d?'🟢':d>b?'🔴':'🟡')+' ('+src.articles.length+')</div>';
+    } else s+='<div style="font-size:8px;color:'+(src.error?'var(--R)':'var(--Y)')+'">'+(src.error?'✗':'⏳')+'</div>';
+    s+='</div>';
+    s+='<div style="padding:7px 10px;max-height:260px;overflow-y:auto">';
     if(src.articles&&src.articles.length>0){
-      src.articles.forEach(function(a,idx){
-        var sColor=a.sent==='bull'?'var(--G)':a.sent==='bear'?'var(--R)':'var(--t2)';
-        var sIcon=a.sent==='bull'?'▲':a.sent==='bear'?'▼':'●';
-        var href=a.url||src.url;
-        s+='<div style="padding:6px 0;'+(idx<src.articles.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':'')+'">';
-        s+='<div style="display:flex;gap:5px;align-items:flex-start">';
-        /* Sentiment dot */
-        s+='<span style="color:'+sColor+';font-size:9px;flex-shrink:0;margin-top:2px">'+sIcon+'</span>';
-        s+='<div style="flex:1">';
-        /* Title */
-        s+='<a href="'+href+'" target="_blank" rel="noopener" '
-          +'style="font-size:9px;color:var(--t1);text-decoration:none;font-weight:600;line-height:1.4;display:block" '
+      src.articles.forEach(function(a,i){
+        var ac=a.sent==='bull'?'var(--G)':a.sent==='bear'?'var(--R)':'var(--t2)';
+        s+='<div style="padding:5px 0;'+(i<src.articles.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':'')+'">';
+        s+='<div style="display:flex;gap:4px"><span style="color:'+ac+';font-size:9px;flex-shrink:0;margin-top:1px">'+(a.sent==='bull'?'▲':a.sent==='bear'?'▼':'●')+'</span>';
+        s+='<div><a href="'+(a.url||src.url)+'" target="_blank" style="font-size:9px;color:var(--t1);text-decoration:none;font-weight:600;display:block;line-height:1.35" '
           +'onmouseover="this.style.color=\''+c+'\'" onmouseout="this.style.color=\'var(--t1)\'">'+a.title+'</a>';
-        /* Date */
         if(a.date) s+='<span style="font-size:7.5px;color:var(--t2)">'+a.date+'</span>';
-        /* Summary */
-        if(a.summary) s+='<div style="font-size:8px;color:#a0a0a0;margin-top:2px;line-height:1.5">'+a.summary+'</div>';
+        if(a.summary) s+='<div style="font-size:8px;color:#a0a0a0;line-height:1.4">'+a.summary.slice(0,110)+'</div>';
         s+='</div></div></div>';
       });
     } else {
-      s+='<div style="padding:10px 0;font-size:9px;color:var(--t2)">';
-      if(src.error){
-        s+='<div style="color:var(--R);margin-bottom:6px;font-size:8.5px">CORS zablokowany — proxy nie może pobrać tej strony.</div>';
-      } else {
-        s+='<div style="color:var(--Y);margin-bottom:6px;font-size:8.5px">Brak artykułów (próba parsowania nieudana).</div>';
-      }
-      s+='<a href="'+src.url+'" target="_blank" style="background:'+c+'15;border:1px solid '+c+'30;color:'+c+';border-radius:5px;padding:4px 12px;font-size:8.5px;font-weight:700;text-decoration:none">→ Otwórz '+src.source+' bezpośrednio ↗</a>';
+      s+='<div style="font-size:9px;color:var(--t2);padding:8px 0">';
+      if(src.error) s+='<div style="color:var(--R);margin-bottom:5px;font-size:8px">CORS zablokowany</div>';
+      s+='<a href="'+src.url+'" target="_blank" style="color:'+c+';font-size:8.5px;font-weight:700;text-decoration:none">→ Otwórz bezpośrednio ↗</a>';
       s+='</div>';
     }
     s+='</div></div>';
   });
   s+='</div>';
-
-  /* Footer */
-  s+='<div style="margin-top:8px;font-size:7.5px;color:#555;text-align:center">Dane przez proxy | Odśwież raz dziennie | Kliknij tytuł aby otworzyć artykuł</div>';
-
+  s+='<div style="margin-top:6px;font-size:7.5px;color:#555;text-align:center">Dane przez proxy | Odśwież raz dziennie</div>';
   el.innerHTML='<div class="wrap">'+s+'</div>';
 }
+
+function addPDFReport() {
+  var inp = document.getElementById('pdf-url-input');
+  var url = inp ? inp.value.trim() : '';
+  if(!url) return;
+  if(!url.startsWith('http')) {url='https://'+url;}
+  inp.value='';
+  processPDFURL(url, function(msg){
+    var p=document.getElementById('pdf-progress');
+    if(p) p.textContent=msg;
+  }).then(function(){ renderAnalizy(); renderDecision(); });
+}
+
+function removePDFReport(id) {
+  D.pdfReports=(D.pdfReports||[]).filter(function(r){return r.id!==id;});
+  D.pdfSignals=(D.pdfSignals||[]).filter(function(s){
+    var r=(D.pdfReports||[]).find(function(r){return r.id===id;});
+    return r?s.sourceUrl!==r.url:true;
+  });
+  try{
+    var toSave=D.pdfReports.slice(-15);
+    window.storage.set('pdf_reports_v2',JSON.stringify(toSave));
+  }catch(e){}
+  renderAnalizy(); renderDecision();
+}
+
+
 
 
 
@@ -7276,6 +7614,7 @@ async function fetchAll(){
       if(t==='wiedza')renderWiedza();if(t==='cot')renderCOT();}
 }
 setInterval(fetchAll,10*60*1000);
+loadSavedPDFReports().then(function(){if(D.pdfReports&&D.pdfReports.length>0){renderDecision();}});
 
 /* ═══════════════════════════════
    TABS
@@ -7329,14 +7668,14 @@ async function fetchMacroData() {
     var h=await pGetHTML('https://www.currentmarketvaluation.com/models/shiller-pe.php');
     /* Look for current CAPE value in page */
     var m=h.match(/(?:CAPE|Shiller PE|P\/E10)[^0-9]{0,30}?(\d{2,3}(?:\.\d{1,2})?)/i);
-    if(m){var cv=parseFloat(m[1]);if(cv>5&&cv<200){D.cape=cv;capeLoaded=true;console.log('CAPE currentmktval:',cv);}}
+    if(m){var cv=parseFloat(m[1]);if(cv>10&&cv<50){D.cape=cv;capeLoaded=true;console.log('CAPE currentmktval:',cv);}}
   } catch(e){}
 
   /* Source B: gurufocus public data */
   if(!capeLoaded) try {
     var h2=await pGetHTML('https://www.gurufocus.com/economic_indicators/56/sp-500-shiller-cape-ratio');
     var m2=h2.match(/Current[:\s]+([\d]{2,3}(?:\.\d{1,2})?)/i)||h2.match(/(\d{2,3}\.\d{1,2})\s*(?:<\/td>|<\/span>|<\/div>)/);
-    if(m2){var cv2=parseFloat(m2[1]);if(cv2>10&&cv2<200){D.cape=cv2;capeLoaded=true;console.log('CAPE gurufocus:',cv2);}}
+    if(m2){var cv2=parseFloat(m2[1]);if(cv2>10&&cv2<50){D.cape=cv2;capeLoaded=true;console.log('CAPE gurufocus:',cv2);}}
   } catch(e2){}
 
   /* Source C: multpl.com via /get endpoint */
@@ -7476,6 +7815,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
