@@ -394,6 +394,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 
 
 
+
 'use strict';
 /* ═══════════════════════════════════════════════════════════
    MacroTerminal v28 — FIXED 2026 — Professional Investment Decision System
@@ -6038,7 +6039,7 @@ var WPE = {
     {name:'Brazil',        etf:'EWZ',  pe:13.54, eval10:'Overvalued', sma200:'+16.29%'},
     {name:'India',         etf:'INDA', pe:12.71, eval10:'Cheap',      sma200:'-9.05%'},
     {name:'China',         etf:'FXI',  pe:10.63, eval10:'Fair',       sma200:'-4.76%'},
-    {name:'Polska (WIG20)', etf:'ETFBWIG20', pe:15.0, avg5:13.0, avg10:12.0, eval5:'Overvalued', eval10:'Overvalued', sma200:'+3.5%', src:'Stooq wig20_pe'},
+    {name:'Polska',       etf:'EPOL', pe:13.62, avg5:10.15, avg10:11.04, avg20:11.45, eval5:'Overvalued', eval10:'Overvalued', sma200:'+5.5%', src:'worldperatio.com 10.03.26'},
   ]
 };
 
@@ -6165,7 +6166,9 @@ function renderWorldPE() {
              r.eval10==='Overvalued'?'rgba(245,192,64,.2)':'var(--br)';
     s += '<div style="background:'+bg+';border:1px solid '+brd+';border-radius:4px;padding:4px 7px;display:flex;justify-content:space-between;align-items:center">';
     s += '<div><div style="font-size:8px;font-weight:700;color:var(--t1)">'+r.name+'</div>';
-    s += '<div style="font-size:7px;color:var(--t2)">'+r.etf+' | '+r.sma200+'</div></div>';
+    s += '<div style="font-size:7px;color:var(--t2)">'+r.etf+' | SMA200: '+r.sma200+'</div>';
+    if(r.avg10) s += '<div style="font-size:7px;color:var(--t2)">10Y avg: '+r.avg10.toFixed(1)+'x</div>';
+    s += '</div>';
     s += '<div style="text-align:right"><div style="font-size:12px;font-weight:900;color:'+c+'">'+r.pe.toFixed(1)+'</div>';
     s += '<div style="font-size:7px;color:'+c+'">'+r.eval10+'</div></div>';
     s += '</div>';
@@ -6191,9 +6194,7 @@ function renderSP500Sectors() {
   };
   var trendC = function(s){ return s&&s.charAt(0)==='-'?'var(--R)':'var(--G)'; };
 
-  /* Update Poland P/E from live Stooq data */
-  var plIdx = WPE.countries.findIndex(function(c){return c.etf==='ETFBWIG20';});
-  if(plIdx>=0&&D.wig20PE&&D.wig20PE>5) WPE.countries[plIdx].pe=D.wig20PE;
+  /* Poland P/E from worldperatio.com (EPOL) — live update in fetchMacroData */
   var rows = [
     {k:'IT',name:'Information Technology',etf:'XLK'},
     {k:'RealEstate',name:'Real Estate',etf:'XLRE'},
@@ -8541,6 +8542,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
