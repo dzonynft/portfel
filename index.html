@@ -387,6 +387,7 @@ html,body{height:100%;background:var(--bg);color:var(--t0);font-family:var(--mon
 
 
 
+
 'use strict';
 /* ═══════════════════════════════════════════════════════════
    MacroTerminal v28 — FIXED 2026 — Professional Investment Decision System
@@ -450,8 +451,8 @@ var GD = {
   sma100: 6837,   /* computeTA Stooq ^spx | 17.03.2026 */
   sma200: 6612,   /* computeTA Stooq ^spx | 17.03.2026 */
   rsi14:  35.4,   /* computeTA Stooq ^spx | 17.03.2026 */
-  usdpln: 3.95,   /* Stooq usdpln | 17.03.2026 */
-  eurpln: 4.26,   /* Stooq eurpln | 17.03.2026 */
+  usdpln: 3.73,   /* Stooq usdpln | 18.03.2026 */
+  eurpln: 4.19,   /* Stooq eurpln | 18.03.2026 */
   wig20pe:15.0,   /* Stooq wig20_pe | tygodniowy */
   sp12m:  17.7,   /* Stooq/Yahoo ^SPX 12M return | 17.03.2026 */
   oil:    72.0,   /* Brent Stooq lcob.f | 17.03.2026 */
@@ -501,9 +502,10 @@ var _P=[
 ];
 /* Stooq needs direct approach - avoid proxies that block it */
 var _SP=[
-  'https://api.allorigins.win/raw?url=',
   'https://portfel.dzonyiks.workers.dev?url=',
-  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+  'https://proxy.cors.sh/',
   'https://api.codetabs.com/v1/proxy?quest=',
 ];
 /* Stooq-specific proxies (stooq blocks corsproxy/allorigins) */
@@ -520,9 +522,12 @@ async function pGetSP(url, ms) {
       clearTimeout(timer);
       if(!r.ok)throw new Error('HTTP '+r.status);
       var body=await r.text();
+      /* allorigins.win/get returns JSON {contents:...} */
+      if(body.charAt(0)==='{'){try{var j=JSON.parse(body);if(j.contents)body=j.contents;}catch(e){}}
       /* Stooq returns HTML when blocked */
       if(body.indexOf('<!DOCTYPE')>=0||body.indexOf('<html')>=0) throw new Error('got HTML (blocked)');
       if(body.indexOf('No data')>=0) throw new Error('No data');
+      if(body.trim().length<10) throw new Error('empty body');
       var fakeResp={text:function(){return Promise.resolve(body);}};
       return fakeResp;
     }catch(e){clearTimeout(timer);lastErr=e;}
@@ -602,7 +607,7 @@ async function sOneYahoo(sym) {
   if(!ysym) throw new Error('no yahoo mapping for '+sym);
   /* Yahoo Finance v8 — must go via proxy (direct CORS blocked since 2024) */
   /* Try query1 and query2 — Yahoo load balancers */
-  var ybase='https://query1.finance.yahoo.com/v8/finance/chart/'+ysym+'?interval=1d&range=5d&includePrePost=false';
+  var ybase='https://query2.finance.yahoo.com/v8/finance/chart/'+ysym+'?interval=1d&range=5d&includePrePost=false';
   var txt='';
   try{ var rp1=await pGet(ybase,8000); txt=await rp1.text(); }catch(e1){
     var ybase2='https://query2.finance.yahoo.com/v8/finance/chart/'+ysym+'?interval=1d&range=5d&includePrePost=false';
@@ -3966,9 +3971,10 @@ function renderAssetQuilt() {
 function renderMSCIMatrix() {
   var q=D.q||{}, f=D.f||{};
   var sc=typeof SC!=='undefined'&&SC?SC:calcScore();
-  var cape=D.cape||25;
-  var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:2.84;
-  var vix=(q.vix&&q.vix.price)?q.vix.price:20;
+  var cape=D.cape||GD.cape||27.0;
+  var move=(q.move&&q.move.price)?q.move.price:GD.move;
+  var hy=(f.hy_spread&&f.hy_spread.current!=null)?f.hy_spread.current:GD.hy;
+  var vix=(q.vix&&q.vix.price>0)?q.vix.price:GD.vix;
   var fg=(D.fg&&D.fg.score!=null)?D.fg.score:50;
   var rsi=(D.ta&&D.ta.rsi14)?D.ta.rsi14:35.4;
   /* MSCI World valuation score (0-100): based on CAPE */
@@ -7058,55 +7064,91 @@ function preloadPDFReports() {
   if(!D.pdfReports.find(function(r){return r.id==='pekao_barometr_2026';})){
     var r1 = {
       id: 'pekao_barometr_2026',
-      fileName: 'Pekao_Barometr_Sektorowy_2026.pdf',
+      fileName: 'Barometr_Sektorowy_2026_Pekao_qnews_MF.pdf',
       uploadDate: '2026-03-18',
       url: '',
+      pages: 30,
       analysis: {
-        title: 'Barometr Sektorowy 2026 — Pekao / qnews.pl',
+        title: 'Barometr Sektorowy 2026 — Pekao + qnews.pl + MF Strategia Dlugu',
         region: 'PL',
         category: 'makro',
-        date: 'Marzec 2026 (aktualizacja 10.03.2026)',
-        summary: 'Konflikt USA/Izrael–Iran wywołał rewizję prognoz makro dla Polski. PKB 2026 obniżony do +3.8% z +4.0%, CPI wzrośnie do 2.3%, NBP utrzyma stopę na 3.50% do końca roku. Brent >100 USD/bbl w scenariuszu kryzysowym = szok energetyczny jak 2022, ale w warunkach słabszej koniunktury.',
+        date: '10-18 marca 2026',
+        summary: 'Trzy raporty: (1) Pekao Barometr Sektorowy 2026 — PKB PL obciety do +3.8%, CPI do 2.3%, NBP 3.50% na koniec roku; wojn USA/Izrael-Iran = scenariusz ropy >100 USD grozi szokiem jak 2022. (2) qnews.pl — BofA FMS: gotowka w funduszach 4.3% (sygnał sprzedazy anulowany), MSCI EM overweight rekordowy = ryzyko kontrarianski; inflacja USA moze wskoczyc do ~4% z paliw. (3) MF Strategia Zarzadzania Dlugiem: dług PL/PKB do 65.4% w 2026, USD/PLN opor tech. 3.75.',
         keyNumbers: [
-          {label:'PKB Polska 2026',value:'+3.8%',date:'proj. 10.03.26',vs:'poprzednio +4.0%'},
-          {label:'Konsumpcja pryw.',value:'+3.2%',date:'proj. 10.03.26',vs:'poprzednio +3.5%'},
-          {label:'Inwestycje',value:'+7.0%',date:'proj. 10.03.26',vs:'poprzednio +9.7%'},
-          {label:'Eksport',value:'+5.5%',date:'proj. 10.03.26',vs:'poprzednio +6.2%'},
-          {label:'Inflacja CPI PL',value:'2.3%',date:'proj. 2026',vs:'poprzednio 1.9%'},
-          {label:'NBP stopa (koniec)',value:'3.50%',date:'proj. 2026',vs:'aktualna 3.25%'},
-          {label:'Brent (scenariusz kryzy.)',value:'>100 USD',date:'jeśli konflikt trwa',vs:'bazowy 70-80 USD'},
-          {label:'BofA gotówka w fund.',value:'4.3%',date:'18.03.2026',vs:'sygnał sprzedaży anulowany'},
-          {label:'Bezrobocie PL',value:'3.1%',date:'sty 2026',vs:'hist. min. lut 2023'},
-          {label:'Dług publiczny PL/PKB',value:'65.4%',date:'2026 proj.',vs:'59.8% w 2025'},
-          {label:'USD/PLN opór tech.',value:'3.75',date:'mar 2026',vs:'USD safe haven'},
+          {label:'PKB Polska 2026P',value:'+3.8%',date:'proj. Pekao 10.03.26',vs:'poprzednio +4.0%'},
+          {label:'PKB Polska 2025',value:'+3.6%',date:'GUS/Pekao',vs:'czolowka EU'},
+          {label:'Konsumpcja pryw. 2026P',value:'+3.2%',date:'proj. Pekao',vs:'poprzednio +3.5%'},
+          {label:'Inwestycje 2026P',value:'+7.0%',date:'proj. Pekao',vs:'poprzednio +9.7%'},
+          {label:'Eksport 2026P',value:'+5.5%',date:'proj. Pekao',vs:'poprzednio +6.2%'},
+          {label:'Inflacja CPI PL 2026P',value:'2.3%',date:'proj. Pekao (aktualizacja)',vs:'poprzednio 1.9%'},
+          {label:'Inflacja bazowa PL',value:'2.4%',date:'sty 2026',vs:'ponizej celu NBP'},
+          {label:'NBP stopa ref. (koniec 2026)',value:'3.50%',date:'proj. RPP/Pekao',vs:'aktualna 3.25%'},
+          {label:'NBP stopa ref. (aktualna)',value:'3.25%',date:'marzec 2026',vs:'obnizona z 3.75%'},
+          {label:'Bezrobocie PL (Eurostat)',value:'3.1%',date:'sty 2026',vs:'hist. min. lut 2023 = 2.6%'},
+          {label:'Brent (scenariusz kryz.)',value:'>100 USD/bbl',date:'jezeli konflikt trwa',vs:'bazowy 70-80 USD'},
+          {label:'BofA gotowka w portfelach',value:'4.3%',date:'18.03.2026',vs:'sygnał sprzedazy ANULOWANY'},
+          {label:'Pozycjonowanie EM',value:'najwyzej od lut 2021',date:'BofA FMS marzec 2026',vs:'kontrarianski sygnał ryzyka'},
+          {label:'USD/PLN',value:'3.7283',date:'18.03.2026',vs:'opor tech. 3.75, +5% YTD'},
+          {label:'Indeks dolara (DXY)',value:'>100 pkt',date:'mar 2026',vs:'safe haven w konflikcie'},
+          {label:'Inflacja CPI USA (projekcja)',value:'~4%',date:'proj. z cen paliw',vs:'aktualna 2.9%'},
+          {label:'Dlug PL/PKB (EDP)',value:'65.4%',date:'2026 proj. MF',vs:'59.8% w 2025'},
+          {label:'Dlug Skarbu Panstwa',value:'2271 mld PLN',date:'2026 proj. MF',vs:'1956 mld w 2025'},
+          {label:'Deficyt sektora GG',value:'6.5% PKB',date:'2026 proj. MF',vs:'6.9% w 2025'},
+          {label:'Produkcja przem. PL',value:'-1.5%',date:'sty 2026 r/r',vs:'slabsza od oczekiwan'},
+          {label:'Sprzedaz detaliczna PL',value:'+4.4%',date:'sty 2026 r/r',vs:'powyzej oczekiwan'},
+          {label:'WIBOR 3M (koniec 2026P)',value:'3.48%',date:'proj. Pekao/MF',vs:'aktualne ~3.81%'},
+          {label:'EUR/PLN (srednia 2026P)',value:'4.19',date:'proj. MF',vs:'historyczna avg 4.26'},
+          {label:'USD/PLN (srednia 2026P)',value:'3.48',date:'proj. MF',vs:'historyczna avg 3.98'},
+          {label:'Energochlonnosc: metale',value:'9.3%',date:'koszty energii/przychody',vs:'najbardziej zagrozony'},
+          {label:'Energochlonnosc: mineraly',value:'5.9%',date:'koszty energii/przychody',vs:'druga pozycja'},
         ],
         indicators: [
-          {name:'PKB Polska',value:'3.8',unit:'% 2026P',date:'proj. 10.03.26',trend:'spadający',signal:'bear'},
-          {name:'CPI Polska',value:'2.3',unit:'% 2026P',date:'proj. 2026',trend:'rosnący',signal:'bear'},
-          {name:'Stopa NBP (koniec 2026)',value:'3.50',unit:'%',date:'proj. RPP',trend:'spadający',signal:'bull'},
-          {name:'Brent scenariusz kryz.',value:'>100',unit:'USD/bbl',date:'jeśli konflikt',trend:'rosnący',signal:'bear'},
-          {name:'Gotówka BofA FMS',value:'4.3',unit:'%',date:'18.03.26',trend:'rosnący',signal:'bull'},
-          {name:'Dług PL/PKB',value:'65.4',unit:'%',date:'2026 proj.',trend:'rosnący',signal:'bear'},
-          {name:'Bezrobocie PL',value:'3.1',unit:'%',date:'sty 2026',trend:'stabilny',signal:'bull'},
-          {name:'MSCI EM overweight',value:'najwyżej od lut 2021',unit:'',date:'18.03.26',trend:'rosnący',signal:'warn'},
+          {name:'PKB Polska',value:'3.8',unit:'% 2026P',date:'proj. Pekao 10.03.26',trend:'spadajacy',signal:'bear'},
+          {name:'PKB Polska historyczny',value:'3.6',unit:'% 2025',date:'GUS',trend:'rosnacy',signal:'bull'},
+          {name:'CPI Polska 2026P',value:'2.3',unit:'%',date:'proj. Pekao',trend:'rosnacy',signal:'bear'},
+          {name:'Inflacja bazowa CPI PL',value:'2.4',unit:'%',date:'sty 2026',trend:'stabilny',signal:'neutral'},
+          {name:'Stopa NBP (koniec 2026)',value:'3.50',unit:'%',date:'proj. RPP',trend:'spadajacy',signal:'bull'},
+          {name:'Stopa NBP (aktualna)',value:'3.25',unit:'%',date:'marzec 2026',trend:'spadajacy',signal:'bull'},
+          {name:'Brent kryzysowy',value:'>100',unit:'USD/bbl',date:'jezeli konflikt trwa',trend:'rosnacy',signal:'bear'},
+          {name:'Gotowka BofA FMS',value:'4.3',unit:'%',date:'18.03.26',trend:'rosnacy',signal:'bull'},
+          {name:'Dlug PL/PKB (EDP)',value:'65.4',unit:'%',date:'2026 proj.',trend:'rosnacy',signal:'bear'},
+          {name:'Bezrobocie PL (sa)',value:'3.1',unit:'%',date:'sty 2026',trend:'stabilny',signal:'bull'},
+          {name:'USD/PLN',value:'3.73',unit:'PLN',date:'mar 2026',trend:'rosnacy',signal:'bear'},
+          {name:'MSCI EM overweight',value:'rekord od lut 2021',unit:'',date:'18.03.26',trend:'rosnacy',signal:'warn'},
+          {name:'Inflacja CPI USA proj.',value:'~4',unit:'%',date:'jezeli Brent >100',trend:'rosnacy',signal:'bear'},
+          {name:'WIBOR 3M (koniec 2026)',value:'3.48',unit:'%',date:'proj. MF',trend:'spadajacy',signal:'bull'},
+          {name:'EUR/PLN (srednia 2026)',value:'4.19',unit:'',date:'proj. MF',trend:'stabilny',signal:'neutral'},
+          {name:'Produkcja przem. PL',value:'-1.5',unit:'% r/r',date:'sty 2026',trend:'spadajacy',signal:'bear'},
+          {name:'Sprzedaz detaliczna PL',value:'+4.4',unit:'% r/r',date:'sty 2026',trend:'rosnacy',signal:'bull'},
+          {name:'Energochlonnosc metale',value:'9.3',unit:'% energii/przych.',date:'1-3Q25',trend:'stabilny',signal:'bear'},
+          {name:'Energochlonnosc mineraly',value:'5.9',unit:'% energii/przych.',date:'1-3Q25',trend:'stabilny',signal:'bear'},
+          {name:'Deficyt sektora GG',value:'6.5',unit:'% PKB',date:'2026P MF',trend:'spadajacy',signal:'bear'},
         ],
         marketImpact: {
-          stocks: {signal:'bear', reason:'Obniżka prognoz PKB, wyższe koszty energii w kryzysowym, mocny USD. Sektory energochłonne zagrożone.'},
-          bonds: {signal:'bear', reason:'PL 10Y pod presją (dług/PKB rośnie do 65.4%). Brent >100 = wyższa inflacja = opóźnienie cięć NBP.'},
-          currencies: {signal:'bear', reason:'USD/PLN wzrósł 5% od początku roku, opór tech. 3.75. USD safe haven w konflikcie.'},
-          savings: {signal:'bull', reason:'NBP tnie stopy powoli — KO i EDO 10Y nadal atrakcyjne. EDO real = CPI+2% = ~4.3% realnie.'}
+          stocks: {signal:'bear',
+            reason:'PKB ciety do 3.8%, wyzsze koszty energii (Brent >100 w kryzysie). Energochlonne branze (metale 9.3%, mineraly 5.9%) bardzo zagrozone. Sektory odporne: IT, uslugi, gospodarka odpadowa.'},
+          bonds: {signal:'bear',
+            reason:'Dlug PL/PKB rosnie do 65.4% (EDP) = presja na rentownosci PL10Y. Brent >100 = inflacja wyzsza = NBP nie bedzie mogl ciac szybko. PL10Y pozostaje pod presja.'},
+          currencies: {signal:'bear',
+            reason:'USD/PLN wzrosl 5% YTD do 3.73, opor tech. 3.75. USD odgrywa role safe haven w konflikcie. Przy deeskalacji: PLN moze sie umocnic. EUR/PLN proj. 4.19 (MF).'},
+          savings: {signal:'bull',
+            reason:'NBP tnie wolno = KO i EDO 10Y nadal korzystne. EDO 10Y = CPI+2% = ok. 4.3% realnie. Przy dlugu 65.4% EDO bezpieczniejsze niz obligacje skarbowe na rynku.'}
         },
         signals: [
-          {type:'warn', text:'Brent >100 USD/bbl w scenariuszu kryzysowym = szok energetyczny jak 2022. Energochłonne branże (metal, mineral, papier, transport) zagrożone.', indicator:'Pekao Barometr Sektorowy'},
-          {type:'warn', text:'Dług publiczny PL wzrośnie do 65.4% PKB w 2026 = presja na rentowności obligacji PL10Y. Unikaj długich obligacji PL.', indicator:'MF Strategia Zarządzania Długiem'},
-          {type:'warn', text:'MSCI EM overweight najwyżej od lut 2021 w sondażu BofA — historycznie sygnał kontrariański (EM szczyt w lut 2021).', indicator:'BofA FMS Mar 2026'},
-          {type:'buy', text:'Gotówka funduszy wzrosła do 4.3% (BofA) = sygnał sprzedaży ryzykownych aktywów anulowany. Kontrariańsko: okazja DCA.', indicator:'BofA FMS Mar 2026 18.03.26'},
-          {type:'buy', text:'USD/PLN testuje opór 3.75 — przy deeskalacji konfliktu: okazja zakupu PLN, ETFBMWIG40. GPW odporna na popyt krajowy.', indicator:'qnews.pl 16.03.26'},
-          {type:'warn', text:'Inflacja CPI USA może wzrosnąć do ~4% przez drożejące paliwa (Brent). Fed odłoży cięcia stóp — ryzyko dla obligacji.', indicator:'qnews.pl Tydzień BC 17.03.26'},
-          {type:'buy', text:'Sektory odporne: usługi biznesowe, IT/komunikacja, gospodarka odpadowa — dobre perspektywy nawet w scenariuszu kryzysowym.', indicator:'Pekao Barometr Sektorowy 2026'},
+          {type:'warn',text:'Brent >100 USD/bbl w scenariuszu kryzysowym = szok energetyczny jak 2022, ale w warunkach slabszej koniunktury. Branze: metale, mineraly, papier, transport zagrozone.',indicator:'Pekao Barometr Sektorowy 2026'},
+          {type:'warn',text:'Dlug publiczny PL wzrosnie do 65.4% PKB w 2026 (EDP, proj. MF). Presja na rentownosci PL10Y. Unikaj dlugich obligacji PL.',indicator:'MF Strategia Zarzadzania Dlugiem 2026-2029'},
+          {type:'warn',text:'MSCI EM overweight najwyzej od lut 2021 w sondazu BofA - historycznie sygnał kontrarianski (EM szczyt w lut 2021 → 5 lat do powrotu do szczytu).',indicator:'BofA FMS marzec 2026, qnews.pl 18.03.26'},
+          {type:'warn',text:'Inflacja CPI USA moze wskoczyc do ~4% z powodu drozejacych paliw (Brent). Fed odlozy ciecia stop - ryzyko dla obligacji USD i akcji growth.',indicator:'qnews.pl Tydzien BC 17.03.26'},
+          {type:'warn',text:'USD/PLN testowal opor tech. 3.75 - przy braku deeskalacji mozliwy dalszy wzrost = PLN slabnie = wyzsza inflacja importowana w PL.',indicator:'qnews.pl Dolar 16.03.26'},
+          {type:'warn',text:'Produkcja przemyslowa PL -1.5% r/r w sty 2026 - slabsza od oczekiwan. Sezon zimowy i efekty kalendarza, ale sygnal ostroznosci.',indicator:'GUS/MF Sytuacja Makroekonomiczna sty 2026'},
+          {type:'buy',text:'Gotowka w portfelach funduszy wzrosla do 4.3% (BofA) = sygnał sprzedazy ryzykownych aktywow ANULOWANY. Kontrarianska okazja DCA przy stabilizacji.',indicator:'BofA FMS marzec 2026, qnews.pl 18.03.26'},
+          {type:'buy',text:'NBP tnie stopy (3.25% z 4.0%) = korzysci dla ETFBTBSP (duration 5-7Y). Dalsze ciecia do 3.0-3.5% prognozowane = zysk na cenie obligacji PL.',indicator:'RPP/Pekao projekcja 2026'},
+          {type:'buy',text:'Sektory odporne na konflikt: uslugi biznesowe, IT/komunikacja, gospodarka odpadowa - dobre perspektywy nawet w scenariuszu kryzysowym (Brent >100).',indicator:'Pekao Barometr Sektorowy 2026'},
+          {type:'buy',text:'PKB PL +3.8% = ponad srednia UE (proj. 1.3%). Sprzedaz detaliczna +4.4% r/r w sty 2026. Popyt krajowy solidny = GPW/mWIG40 relatywnie odporne.',indicator:'GUS/Pekao marzec 2026'},
         ]
       }
     };
+
     D.pdfReports.push(r1);
     /* Inject signals */
     r1.analysis.signals.forEach(function(sig){
@@ -7902,6 +7944,7 @@ async function fetchMacroData() {
     if(D.f.realsales) D.retail_yoy=D.f.realsales.yoy;
   }
 }
+
 
 
 
